@@ -1,0 +1,16 @@
+# Exported from Render on 2025-11-30T11:22:37Z
+version: "1"
+projects:
+- name: My project
+  environments:
+  - name: Production
+    services:
+    - type: web
+      name: mywebsite
+      runtime: node
+      repo: https://github.com/magiccane204/mywebsite
+      plan: free
+      region: oregon
+      buildCommand: npm install
+      startCommand: npm start
+      autoDeployTrigger: commit
