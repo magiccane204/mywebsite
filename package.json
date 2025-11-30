@@ -21,7 +21,7 @@
     "xlsx": "^0.18.5"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "node server.js",
     "server": "node backend/server.js",
     "client": "react-scripts start",
     "build": "react-scripts build",
