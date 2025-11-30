@@ -1,0 +1,88 @@
+.editor-container {
+  padding: 20px;
+  background: #f8fafc;
+  border-radius: 10px;
+  box-shadow: 0 5px 20px rgba(121, 234, 222, 0.7);
+  max-width: 90%;
+  margin: 20px auto;
+  font-family: Arial, sans-serif;
+}
+
+h2 {
+  text-align: center;
+  margin-bottom: 15px;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.toolbar button, .toolbar select {
+  background-color: #1e293b;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: 0.3s;
+}
+
+.toolbar button:hover, .toolbar select:hover {
+  background-color: #0f172a;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+th, td {
+  border: 1px solid #ccc;
+  padding: 8px;
+  text-align: center;
+  position: relative;
+}
+
+th {
+  background-color: #e2e8f0;
+}
+
+input {
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: center;
+  font-size: inherit;
+}
+
+input:focus {
+  outline: none;
+  background: #f0f9ff;
+}
+
+.delete-btn {
+  position: absolute;
+  right: 5px;
+  top: 5px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: red;
+  font-size: 16px;
+}
+
+.delete-btn:hover {
+  transform: scale(1.2);
+}

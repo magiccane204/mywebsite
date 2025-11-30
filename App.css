@@ -1,0 +1,85 @@
+/* Floating login card */
+.floating-card {
+  background-color: #ffffff;
+  padding: 40px 60px;       /* smaller vertical padding */
+  width: 600px;              /* horizontal width stays wide */
+  max-width: 90%;
+  margin: 50px auto;
+  text-align: center;
+  border-radius: 20px;
+  box-shadow: 0 12px 40px rgba(121, 234, 222, 0.922);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;                /* reduced spacing between elements */
+}
+
+/* Image */
+.floating-card img {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+}
+
+/* Inputs */
+.floating-card input {
+  width: 80%;
+  max-width: 400px;
+  padding: 12px 12px;
+  font-size: 20px;
+  border-radius: 20px;
+  border: 1px solid #ccc;
+}
+
+/* Checkbox + forgot password row */
+.floating-card .options-row {
+  display: flex;
+  justify-content: space-between;
+  width: 80%;
+  max-width: 400px;
+  font-size: 14px;
+  align-items: center;
+}
+
+/* Button */
+.button {
+  font-size: 22px;
+  width: 80%;
+  max-width: 400px;
+  border: none;
+  border-radius: 35px;
+  padding: 18px;            /* slightly smaller padding */
+  text-align: center;
+  box-shadow: 0 12px 35px lightblue;
+  cursor: pointer;
+  background-color: #ffffff;
+}
+
+.button:hover {
+  background-color: azure;
+}
+
+/* OTP card */
+.OB {
+  background-color: #ffffff;
+  padding: 40px 60px;       /* smaller vertical padding */
+  width: 500px;
+  max-width: 90%;
+  margin: 50px auto;
+  text-align: center;
+  border-radius: 20px;
+  box-shadow: 0 12px 40px rgba(121, 234, 222, 0.922);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;                /* reduced spacing between elements */
+}
+
+.OB input {
+  width: 80%;
+  max-width: 300px;
+  padding: 12px 12px;
+  font-size: 20px;
+  border-radius: 20px;
+  border: 1px solid #ccc;
+}
