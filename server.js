@@ -10,11 +10,11 @@ const mammoth = require("mammoth");
 
 const app = express();
 
-// ------------------- IMPORTANT FOR RENDER -------------------
-const PORT = process.env.PORT || 5002; 
+// ------------------- RENDER FIX -------------------
+const PORT = process.env.PORT || 5002;
 const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/";
 const client = new MongoClient(MONGO_URI);
-// ------------------------------------------------------------
+// ---------------------------------------------------
 
 app.use(cors());
 app.use(express.json({ limit: "100mb" }));
@@ -47,15 +47,14 @@ function getCustomerCollection() {
   return client.db("Users").collection("Customers");
 }
 
+// ------------------ SUPER ADMIN ------------------
 const OWNER_EMAIL = "dhruvbhatiaxcyz@gmail.com";
 
-// ------------------ SUPERADMIN SETUP ------------------
 async function ensureSuperAdmin() {
-  if (!usersCollection) return;
-
   try {
-    const user = await usersCollection.findOne({ Email: OWNER_EMAIL });
-    if (!user) {
+    const existing = await usersCollection.findOne({ Email: OWNER_EMAIL });
+
+    if (!existing) {
       await usersCollection.insertOne({
         Name: "Dhruv Bhatia",
         Email: OWNER_EMAIL,
@@ -66,20 +65,20 @@ async function ensureSuperAdmin() {
         DarkMode: false,
         createdAt: new Date(),
       });
-      console.log("🛠️ Created SuperAdmin account automatically.");
+      console.log("🛠️ Created SuperAdmin");
     } else {
       await usersCollection.updateOne(
         { Email: OWNER_EMAIL },
         { $set: { Role: "SuperAdmin" } }
       );
-      console.log("🛠️ Ensured SuperAdmin privileges for Dhruv.");
+      console.log("🛠️ Verified SuperAdmin privileges");
     }
   } catch (err) {
-    console.error("❌ Error ensuring SuperAdmin:", err);
+    console.log("Error SuperAdmin:", err);
   }
 }
 
-// ------------------ PERMISSIONS & HELPERS ------------------
+// ------------------ HELPERS ------------------
 async function getCompanyByEmail(email) {
   const user = await usersCollection.findOne(
     { Email: email },
@@ -133,12 +132,11 @@ let otpStore = {};
 // ------------------ AUTH ROUTES ------------------
 app.post("/register", async (req, res) => {
   const { name, email, password, company } = req.body;
-
   if (!name || !email || !password || !company)
     return res.status(400).json({ message: "All fields required" });
 
   const existing = await usersCollection.findOne({ Email: email });
-  if (existing) return res.status(400).json({ message: "User already exists" });
+  if (existing) return res.status(400).json({ message: "User exists" });
 
   const role = email === OWNER_EMAIL ? "SuperAdmin" : "Employee";
 
@@ -150,26 +148,26 @@ app.post("/register", async (req, res) => {
     Role: role,
   });
 
-  res.json({ message: `✅ Registered successfully with role: ${role}` });
+  res.json({ message: `Registered with role ${role}` });
 });
 
 app.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
   const user = await usersCollection.findOne({ Email: email });
-  if (!user) return res.status(401).json({ message: "No account found" });
+  if (!user) return res.status(401).json({ message: "No account" });
 
   if (user.Password !== password)
-    return res.status(401).json({ message: "Bad credentials" });
+    return res.status(401).json({ message: "Bad password" });
 
-  res.status(200).json({ message: "OTP required", name: user.Name });
+  res.json({ message: "OTP required", name: user.Name });
 });
 
 // ------------------ OTP ROUTES ------------------
 app.post("/send-otp", async (req, res) => {
   const { email } = req.body;
-  const user = await usersCollection.findOne({ Email: email });
 
+  const user = await usersCollection.findOne({ Email: email });
   if (!user) return res.status(401).json({ message: "Invalid email" });
 
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -179,14 +177,14 @@ app.post("/send-otp", async (req, res) => {
     await transporter.sendMail({
       from: "dhruvbhatiaxcyz565@gmail.com",
       to: email,
-      subject: "Your OTP Code",
+      subject: "Your OTP",
       text: `Hi ${user.Name}, your OTP is ${otp}`,
     });
 
-    console.log("📧 OTP sent:", otp);
-    res.json({ message: "OTP sent successfully!" });
+    console.log("OTP:", otp);
+    res.json({ message: "OTP sent" });
   } catch {
-    res.status(500).json({ message: "Failed to send OTP" });
+    res.status(500).json({ message: "Email failed" });
   }
 });
 
@@ -195,16 +193,16 @@ app.post("/verify-otp", (req, res) => {
 
   if (otpStore[email] === otp) {
     delete otpStore[email];
-    return res.json({ success: true, message: "OTP verified" });
-  } else {
-    return res.json({ success: false, message: "Invalid OTP" });
+    return res.json({ success: true });
   }
+
+  res.json({ success: false, message: "Invalid OTP" });
 });
 
 // ------------------ CUSTOMER ROUTES ------------------
 app.post("/add-customer", async (req, res) => {
   try {
-    const { userEmail, Name, Email, "Applied Position": position, Salary } = req.body;
+    const { userEmail, Name, Email, "Applied Position": pos, Salary } = req.body;
 
     if (!(await checkAccess(userEmail, "add")))
       return res.status(403).json({ message: "No permission" });
@@ -217,55 +215,24 @@ app.post("/add-customer", async (req, res) => {
       Company: company,
       Name,
       Email,
-      "Applied Position": position,
+      "Applied Position": pos,
       Salary: Number(Salary),
       createdAt: new Date(),
     });
 
-    res.json({ message: "Customer added!" });
+    res.json({ message: "Customer added" });
   } catch {
-    res.status(500).json({ message: "Error adding customer" });
+    res.status(500).json({ message: "Error adding" });
   }
 });
 
-// ... (your other customer routes stay unchanged)
-
-// ------------------ FILE UPLOAD PARSER ------------------
+// ------------------ FILE UPLOAD ------------------
 const upload = multer({ dest: "uploads/" });
-
-function clean(s = "") {
-  return (s || "").replace(/\s+/g, " ").trim();
-}
-
-function guessName(lines) {
-  for (const L of lines.slice(0, 8)) {
-    const t = clean(L);
-    if (!t || /(resume|cv)/i.test(t) || t.length > 70 || /\d/.test(t)) continue;
-    return t;
-  }
-  return "";
-}
-
-function parseResumeText(text) {
-  const raw = text || "";
-  const blob = raw.replace(/\s+/g, " ");
-
-  const emailMatch = blob.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi);
-  const email = emailMatch ? emailMatch[0] : "";
-
-  const lines = raw.split(/\r?\n/);
-
-  return {
-    name: guessName(lines),
-    email,
-    phone: "",
-    skills: [],
-  };
-}
 
 app.post("/resume-extract", upload.single("resume"), async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+    if (!req.file)
+      return res.status(400).json({ message: "No file uploaded" });
 
     const buf = fs.readFileSync(req.file.path);
     let text = "";
@@ -277,23 +244,22 @@ app.post("/resume-extract", upload.single("resume"), async (req, res) => {
       text = out.value || "";
     }
 
-    const fields = parseResumeText(text);
     fs.unlinkSync(req.file.path);
-
-    res.json({ fields });
-  } catch {
-    res.status(500).json({ message: "Error extracting resume" });
+    res.json({ text });
+  } catch (err) {
+    console.error("Resume error:", err);
+    res.status(500).json({ message: "Parsing failed" });
   }
 });
 
-// ------------------ SERVE REACT BUILD -------------------
+// ------------------ SERVE REACT BUILD ------------------
 app.use(express.static(path.join(__dirname, "build")));
 
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "build", "index.html"));
 });
 
-// ------------------ START SERVER -------------------
+// ------------------ START SERVER ------------------
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
