@@ -4,13 +4,16 @@ import "./Otp.css";
 
 function Otp({ Email, setMode }) {
   const [userOtp, setUserOtp] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  // ✅ Verify OTP
+  // VERIFY OTP
   const verifyOtp = async () => {
     if (!userOtp) {
       alert("Please enter OTP");
       return;
     }
+
+    setLoading(true);
 
     try {
       const res = await axios.post("/verify-otp", {
@@ -19,43 +22,52 @@ function Otp({ Email, setMode }) {
       });
 
       if (res.data.success) {
-        // ✅ Store login persistence
         localStorage.setItem("isLoggedIn", "true");
         localStorage.setItem("loggedInUser", Email);
-
         alert("OTP verified successfully!");
         setMode("crm");
       } else {
-        alert(res.data.message || "Invalid OTP, please try again.");
+        alert("Invalid OTP. Try again.");
       }
     } catch (err) {
-      alert("Verification failed. Please try again later.");
+      alert("Verification failed. Try again later.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  // ✅ Resend OTP
+  // RESEND OTP
   const resendOtp = async () => {
+    setLoading(true);
+
     try {
       await axios.post("/send-otp", { email: Email });
       alert("OTP resent successfully!");
-    } catch {
+    } catch (err) {
       alert("Failed to resend OTP. Try again later.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="OB">
-      <p>OTP Verification</p>
-      <p>Enter OTP sent to {Email}</p>
+      <h2>OTP Verification</h2>
+      <p>Enter the OTP sent to <b>{Email}</b></p>
+
       <input
         className="input"
         type="number"
+        placeholder="Enter OTP"
         value={userOtp}
         onChange={(e) => setUserOtp(e.target.value)}
-        placeholder="Enter OTP"
       />
-      <button onClick={verifyOtp}>Verify</button>
-      <p>
+
+      <button onClick={verifyOtp} disabled={loading}>
+        {loading ? "Verifying..." : "Verify OTP"}
+      </button>
+
+      <p style={{ marginTop: "10px" }}>
         Didn’t receive OTP?{" "}
         <span
           style={{ color: "blue", cursor: "pointer" }}
@@ -69,4 +81,3 @@ function Otp({ Email, setMode }) {
 }
 
 export default Otp;
-
