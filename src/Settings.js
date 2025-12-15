@@ -12,7 +12,7 @@ export default function Settings() {
     if (!email) return;
 
     axios
-      .get(`http://localhost:5002/user/${email}`)
+      .get(`/user/${email}`)
       .then((res) => {
         setUser(res.data);
         setDarkMode(res.data.DarkMode || false);
@@ -25,7 +25,7 @@ export default function Settings() {
     const newMode = !darkMode;
 
     try {
-      await axios.put(`http://localhost:5002/user/${user.Email}/darkmode`, {
+      await axios.put(`/user/${user.Email}/darkmode`, {
         DarkMode: newMode,
       });
       setDarkMode(newMode);
@@ -62,3 +62,4 @@ export default function Settings() {
     </div>
   );
 }
+
