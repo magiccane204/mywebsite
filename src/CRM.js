@@ -48,7 +48,7 @@ function CRM({ setMode }) {
 
   const handleLogout = async () => {
     try {
-      await axios.post("http://localhost:5002/logout");
+      await axios.post("/logout");
     } catch (err) {
       console.warn("Logout backend not reachable, continuing logout.");
     }
@@ -59,20 +59,21 @@ function CRM({ setMode }) {
     window.location.replace("/");
   };
 
-  const fetchData = async (route, section) => {
-    try {
-      setActiveSection(section);
-      const res = await axios.get(`http://localhost:50009${route}`);
-      if (section === "customers") {
-        setCustomers(res.data);
-        setBackendData(null);
-      } else {
-        setBackendData(res.data);
-      }
-    } catch (err) {
-      console.error("Error fetching data:", err);
+const fetchData = async (route, section) => {
+  try {
+    setActiveSection(section);
+    const res = await axios.get(route);
+
+    if (section === "customers") {
+      setCustomers(res.data);
+      setBackendData(null);
+    } else {
+      setBackendData(res.data);
     }
-  };
+  } catch (err) {
+    console.error("Error fetching data:", err);
+  }
+};
 
   // ✅ Handle column click from ExcelTable
   const handleColumnSelect = (columnValues, colIndex) => {
@@ -307,3 +308,4 @@ function CRM({ setMode }) {
 }
 
 export default CRM;
+
