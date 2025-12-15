@@ -1,7 +1,7 @@
 {
   "name": "crm",
   "version": "1.0.0",
-  "private": true,
+  "private": true, 
   "main": "server.js",
   "dependencies": {
     "axios": "^1.12.2",
