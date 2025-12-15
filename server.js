@@ -5,88 +5,68 @@ const { MongoClient } = require("mongodb");
 const multer = require("multer");
 const fs = require("fs");
 const path = require("path");
-const pdfParse = require("pdf-parse").default || require("pdf-parse");
+const pdfParse = require("pdf-parse");
 const mammoth = require("mammoth");
 
 const app = express();
 
-// ------------------- RENDER FIX -------------------
-const PORT = process.env.PORT || 5002;
-const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/";
-const client = new MongoClient(MONGO_URI);
-// ---------------------------------------------------
+/* ================== CONFIG ================== */
+const PORT = process.env.PORT || 10000;
+const MONGO_URI = process.env.MONGODB_URI;
+const OWNER_EMAIL = "dhruvbhatiaxcyz@gmail.com";
 
+/* ================== MIDDLEWARE ================== */
 app.use(cors());
 app.use(express.json({ limit: "100mb" }));
-app.use(express.urlencoded({ limit: "100mb", extended: true }));
+app.use(express.urlencoded({ extended: true }));
 
+/* ================== DATABASE ================== */
+const client = new MongoClient(MONGO_URI);
 let usersCollection;
+let customersCollection;
 
-// ------------------ CONNECT DATABASE ------------------
 async function connectDB() {
   try {
     await client.connect();
     const db = client.db("Users");
     usersCollection = db.collection("user");
-    console.log("✅ Connected to MongoDB");
+    customersCollection = db.collection("Customers");
 
-    const customers = db.collection("Customers");
-    await customers.createIndex({ Company: 1 });
-    await customers.createIndex({ Email: 1, Company: 1 });
     await usersCollection.createIndex({ Email: 1 }, { unique: true });
+    await customersCollection.createIndex({ Company: 1 });
+    await customersCollection.createIndex({ Email: 1 });
 
-    await backfillCustomerCompanies();
     await ensureSuperAdmin();
-  } catch (e) {
-    console.error("❌ Mongo connection error:", e);
+    console.log("✅ MongoDB connected");
+  } catch (err) {
+    console.error("❌ MongoDB error:", err);
   }
 }
 connectDB();
 
-function getCustomerCollection() {
-  return client.db("Users").collection("Customers");
-}
-
-// ------------------ SUPER ADMIN ------------------
-const OWNER_EMAIL = "dhruvbhatiaxcyz@gmail.com";
-
+/* ================== SUPER ADMIN ================== */
 async function ensureSuperAdmin() {
-  try {
-    const existing = await usersCollection.findOne({ Email: OWNER_EMAIL });
+  const existing = await usersCollection.findOne({ Email: OWNER_EMAIL });
 
-    if (!existing) {
-      await usersCollection.insertOne({
-        Name: "Dhruv Bhatia",
-        Email: OWNER_EMAIL,
-        Password: "Password",
-        Company: "Apple",
-        Role: "SuperAdmin",
-        verified: true,
-        DarkMode: false,
-        createdAt: new Date(),
-      });
-      console.log("🛠️ Created SuperAdmin");
-    } else {
-      await usersCollection.updateOne(
-        { Email: OWNER_EMAIL },
-        { $set: { Role: "SuperAdmin" } }
-      );
-      console.log("🛠️ Verified SuperAdmin privileges");
-    }
-  } catch (err) {
-    console.log("Error SuperAdmin:", err);
+  if (!existing) {
+    await usersCollection.insertOne({
+      Name: "Dhruv Bhatia",
+      Email: OWNER_EMAIL,
+      Password: "Password",
+      Company: "Apple",
+      Role: "SuperAdmin",
+      verified: true,
+      createdAt: new Date(),
+    });
+  } else {
+    await usersCollection.updateOne(
+      { Email: OWNER_EMAIL },
+      { $set: { Role: "SuperAdmin" } }
+    );
   }
 }
 
-// ------------------ HELPERS ------------------
-async function getCompanyByEmail(email) {
-  const user = await usersCollection.findOne(
-    { Email: email },
-    { projection: { Company: 1 } }
-  );
-  return user?.Company || null;
-}
-
+/* ================== HELPERS ================== */
 async function getUserRole(email) {
   const user = await usersCollection.findOne(
     { Email: email },
@@ -95,8 +75,16 @@ async function getUserRole(email) {
   return user?.Role || "Employee";
 }
 
-async function checkAccess(userEmail, action) {
-  const role = await getUserRole(userEmail);
+async function getCompany(email) {
+  const user = await usersCollection.findOne(
+    { Email: email },
+    { projection: { Company: 1 } }
+  );
+  return user?.Company || null;
+}
+
+async function checkAccess(email, action) {
+  const role = await getUserRole(email);
   const permissions = {
     SuperAdmin: ["view", "add", "edit", "delete", "admin"],
     Admin: ["view", "add", "edit", "delete"],
@@ -106,37 +94,25 @@ async function checkAccess(userEmail, action) {
   return permissions[role]?.includes(action);
 }
 
-async function backfillCustomerCompanies() {
-  const customers = getCustomerCollection();
-  const cursor = customers.find({ Company: { $exists: false } });
-
-  for await (const doc of cursor) {
-    const company = await getCompanyByEmail(doc.userEmail);
-    if (company) {
-      await customers.updateOne({ _id: doc._id }, { $set: { Company: company } });
-    }
-  }
-}
-
-// ------------------ MAILER ------------------
+/* ================== MAIL ================== */
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
-    user: "dhruvbhatiaxcyz565@gmail.com",
-    pass: "jtha uwny zimp yano",
+    user: process.env.MAIL_USER,
+    pass: process.env.MAIL_PASS,
   },
 });
 
-let otpStore = {};
+const otpStore = {};
 
-// ------------------ AUTH ROUTES ------------------
+/* ================== AUTH ================== */
 app.post("/register", async (req, res) => {
   const { name, email, password, company } = req.body;
   if (!name || !email || !password || !company)
-    return res.status(400).json({ message: "All fields required" });
+    return res.status(400).json({ message: "Missing fields" });
 
-  const existing = await usersCollection.findOne({ Email: email });
-  if (existing) return res.status(400).json({ message: "User exists" });
+  const exists = await usersCollection.findOne({ Email: email });
+  if (exists) return res.status(400).json({ message: "User exists" });
 
   const role = email === OWNER_EMAIL ? "SuperAdmin" : "Employee";
 
@@ -146,46 +122,30 @@ app.post("/register", async (req, res) => {
     Password: password,
     Company: company,
     Role: role,
+    verified: false,
+    createdAt: new Date(),
   });
 
-  res.json({ message: `Registered with role ${role}` });
+  res.json({ message: "Registered" });
 });
 
 app.post("/login", async (req, res) => {
   const { email, password } = req.body;
-
   const user = await usersCollection.findOne({ Email: email });
-  if (!user) return res.status(401).json({ message: "No account" });
 
-  if (user.Password !== password)
-    return res.status(401).json({ message: "Bad password" });
-
-  res.json({ message: "OTP required", name: user.Name });
-});
-
-// ------------------ OTP ROUTES ------------------
-app.post("/send-otp", async (req, res) => {
-  const { email } = req.body;
-
-  const user = await usersCollection.findOne({ Email: email });
-  if (!user) return res.status(401).json({ message: "Invalid email" });
+  if (!user || user.Password !== password)
+    return res.status(401).json({ message: "Invalid credentials" });
 
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   otpStore[email] = otp;
 
-  try {
-    await transporter.sendMail({
-      from: "dhruvbhatiaxcyz565@gmail.com",
-      to: email,
-      subject: "Your OTP",
-      text: `Hi ${user.Name}, your OTP is ${otp}`,
-    });
+  await transporter.sendMail({
+    to: email,
+    subject: "OTP Verification",
+    text: `Your OTP is ${otp}`,
+  });
 
-    console.log("OTP:", otp);
-    res.json({ message: "OTP sent" });
-  } catch {
-    res.status(500).json({ message: "Email failed" });
-  }
+  res.json({ message: "OTP sent" });
 });
 
 app.post("/verify-otp", (req, res) => {
@@ -196,70 +156,65 @@ app.post("/verify-otp", (req, res) => {
     return res.json({ success: true });
   }
 
-  res.json({ success: false, message: "Invalid OTP" });
+  res.status(401).json({ success: false });
 });
 
-// ------------------ CUSTOMER ROUTES ------------------
+/* ================== CUSTOMERS ================== */
+app.get("/customers/:email", async (req, res) => {
+  const company = await getCompany(req.params.email);
+  const customers = await customersCollection.find({ Company: company }).toArray();
+  res.json(customers);
+});
+
 app.post("/add-customer", async (req, res) => {
-  try {
-    const { userEmail, Name, Email, "Applied Position": pos, Salary } = req.body;
+  const { userEmail, Name, Email, Salary } = req.body;
 
-    if (!(await checkAccess(userEmail, "add")))
-      return res.status(403).json({ message: "No permission" });
+  if (!(await checkAccess(userEmail, "add")))
+    return res.status(403).json({ message: "Forbidden" });
 
-    const customers = getCustomerCollection();
-    const company = await getCompanyByEmail(userEmail);
+  const company = await getCompany(userEmail);
 
-    await customers.insertOne({
-      userEmail,
-      Company: company,
-      Name,
-      Email,
-      "Applied Position": pos,
-      Salary: Number(Salary),
-      createdAt: new Date(),
-    });
+  await customersCollection.insertOne({
+    userEmail,
+    Company: company,
+    Name,
+    Email,
+    Salary: Number(Salary),
+    createdAt: new Date(),
+  });
 
-    res.json({ message: "Customer added" });
-  } catch {
-    res.status(500).json({ message: "Error adding" });
-  }
+  res.json({ message: "Customer added" });
 });
 
-// ------------------ FILE UPLOAD ------------------
+/* ================== FILE UPLOAD ================== */
 const upload = multer({ dest: "uploads/" });
 
 app.post("/resume-extract", upload.single("resume"), async (req, res) => {
   try {
-    if (!req.file)
-      return res.status(400).json({ message: "No file uploaded" });
-
-    const buf = fs.readFileSync(req.file.path);
+    const buffer = fs.readFileSync(req.file.path);
     let text = "";
 
     if (req.file.mimetype === "application/pdf") {
-      text = (await pdfParse(buf)).text;
+      text = (await pdfParse(buffer)).text;
     } else {
-      const out = await mammoth.extractRawText({ buffer: buf });
-      text = out.value || "";
+      text = (await mammoth.extractRawText({ buffer })).value;
     }
 
     fs.unlinkSync(req.file.path);
     res.json({ text });
-  } catch (err) {
-    console.error("Resume error:", err);
-    res.status(500).json({ message: "Parsing failed" });
+  } catch {
+    res.status(500).json({ message: "Resume parse failed" });
   }
 });
 
-// ------------------ SERVE REACT BUILD ------------------
+/* ================== FRONTEND ================== */
 app.use(express.static(path.join(__dirname, "build")));
 
-app.get("*", (req, res) => {
+app.get("*", (_, res) => {
   res.sendFile(path.join(__dirname, "build", "index.html"));
 });
 
-// ------------------ START SERVER ------------------
+/* ================== START ================== */
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
