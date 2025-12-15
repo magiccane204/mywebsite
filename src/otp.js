@@ -13,7 +13,7 @@ function Otp({ Email, setMode }) {
     }
 
     try {
-      const res = await axios.post("http://localhost:5002/verify-otp", {
+      const res = await axios.post("/verify-otp", {
         email: Email,
         otp: userOtp,
       });
@@ -36,7 +36,7 @@ function Otp({ Email, setMode }) {
   // ✅ Resend OTP
   const resendOtp = async () => {
     try {
-      await axios.post("http://localhost:5002/send-otp", { email: Email });
+      await axios.post("/send-otp", { email: Email });
       alert("OTP resent successfully!");
     } catch {
       alert("Failed to resend OTP. Try again later.");
@@ -69,3 +69,4 @@ function Otp({ Email, setMode }) {
 }
 
 export default Otp;
+
