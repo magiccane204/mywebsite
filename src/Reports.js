@@ -25,7 +25,7 @@ function Reports() {
           return;
         }
 
-        const res = await axios.get(`http://localhost:5002/customers/${userEmail}`);
+        const res = await axios.get(`/customers/${userEmail}`);
         setCustomers(res.data);
 
         if (res.data.length > 0) {
@@ -104,3 +104,4 @@ function Reports() {
 }
 
 export default Reports;
+
