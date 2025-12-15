@@ -52,7 +52,7 @@ function Signup({ setMode }) {
         }
 
         try {
-            const res = await axios.post("http://localhost:5002/register", {
+            const res = await axios.post("/register", {
                 name: username,
                 email,
                 password,
@@ -128,3 +128,4 @@ function Signup({ setMode }) {
 }
 
 export default Signup;
+
