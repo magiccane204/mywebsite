@@ -20,7 +20,7 @@ function Customer() {
     try {
       const userEmail = localStorage.getItem("loggedInUser");
       if (!userEmail) return;
-      const res = await axios.get(`http://localhost:5002/user/${userEmail}`);
+      const res = await axios.get(`/user/${userEmail}`);
       setRole(res.data.Role || "Employee");
     } catch (err) {
       console.error("Failed to fetch role:", err);
@@ -37,7 +37,7 @@ function Customer() {
         return;
       }
 
-      const res = await axios.get(`http://localhost:5002/customers/${userEmail}`);
+      const res = await axios.get(`/customers/${userEmail}`);
       setCustomerData(res.data);
     } catch (err) {
       console.error("Error fetching customers:", err);
@@ -78,13 +78,13 @@ function Customer() {
     try {
       if (editEmail) {
         await axios.put(
-          `http://localhost:5002/update-customer/${editEmail}/${userEmail}`,
+          `/update-customer/${editEmail}/${userEmail}`,
           payload
         );
         setMessage("✏️ Customer updated successfully!");
         setEditEmail(null);
       } else {
-        await axios.post("http://localhost:5002/add-customer", payload);
+        await axios.post("/add-customer", payload);
         setMessage("✅ Customer added successfully!");
       }
 
@@ -105,7 +105,7 @@ function Customer() {
     if (!window.confirm(`Are you sure you want to delete ${email}?`)) return;
 
     try {
-      await axios.delete(`http://localhost:5002/customer/${email}/${userEmail}`);
+      await axios.delete(`/customer/${email}/${userEmail}`);
       setMessage("🗑️ Customer deleted successfully!");
       fetchCustomers();
     } catch (err) {
@@ -274,3 +274,4 @@ function Customer() {
 }
 
 export default Customer;
+
