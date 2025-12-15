@@ -12,8 +12,25 @@ const app = express();
 
 /* ================== CONFIG ================== */
 const PORT = process.env.PORT || 10000;
+
+/*
+⚠️ DO NOT WRITE PASSWORD HERE
+---------------------------------
+You must set this in RENDER like this:
+
+Key   : MONGODB_URI
+Value : mongodb+srv://Dhruv_Bhatia:YOUR_PASSWORD@cluster0.3x1e5p2.mongodb.net/Users
+
+The password NEVER goes inside this file.
+*/
 const MONGO_URI = process.env.MONGODB_URI;
+
 const OWNER_EMAIL = "dhruvbhatiaxcyz@gmail.com";
+
+if (!MONGO_URI) {
+  console.error("❌ MONGODB_URI is missing (set it in Render env)");
+  process.exit(1);
+}
 
 /* ================== MIDDLEWARE ================== */
 app.use(cors());
@@ -21,13 +38,17 @@ app.use(express.json({ limit: "100mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 /* ================== DATABASE ================== */
-const client = new MongoClient(MONGO_URI);
+const client = new MongoClient(MONGO_URI, {
+  serverSelectionTimeoutMS: 5000,
+});
+
 let usersCollection;
 let customersCollection;
 
 async function connectDB() {
   try {
     await client.connect();
+
     const db = client.db("Users");
     usersCollection = db.collection("user");
     customersCollection = db.collection("Customers");
@@ -37,12 +58,14 @@ async function connectDB() {
     await customersCollection.createIndex({ Email: 1 });
 
     await ensureSuperAdmin();
+
     console.log("✅ MongoDB connected");
   } catch (err) {
-    console.error("❌ MongoDB error:", err);
+    console.error("❌ MongoDB connection failed");
+    console.error(err.message);
+    process.exit(1);
   }
 }
-connectDB();
 
 /* ================== SUPER ADMIN ================== */
 async function ensureSuperAdmin() {
@@ -98,8 +121,8 @@ async function checkAccess(email, action) {
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
-    user: process.env.MAIL_USER,
-    pass: process.env.MAIL_PASS,
+    user: process.env.MAIL_USER, // set in Render
+    pass: process.env.MAIL_PASS, // set in Render (app password)
   },
 });
 
@@ -108,6 +131,7 @@ const otpStore = {};
 /* ================== AUTH ================== */
 app.post("/register", async (req, res) => {
   const { name, email, password, company } = req.body;
+
   if (!name || !email || !password || !company)
     return res.status(400).json({ message: "Missing fields" });
 
@@ -131,8 +155,8 @@ app.post("/register", async (req, res) => {
 
 app.post("/login", async (req, res) => {
   const { email, password } = req.body;
-  const user = await usersCollection.findOne({ Email: email });
 
+  const user = await usersCollection.findOne({ Email: email });
   if (!user || user.Password !== password)
     return res.status(401).json({ message: "Invalid credentials" });
 
@@ -215,6 +239,8 @@ app.get("*", (_, res) => {
 });
 
 /* ================== START ================== */
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+connectDB().then(() => {
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+  });
 });
