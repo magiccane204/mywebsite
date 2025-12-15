@@ -25,13 +25,13 @@ function App() {
     }
 
     try {
-      await axios.post("http://localhost:5002/login", { email, password });
+      await axios.post("/login", { email, password });
 
    
       localStorage.setItem("loggedInUser", email);
 
      
-      await axios.post("http://localhost:5002/send-otp", { email, password });
+      await axios.post("/send-otp", { email, password });
 
       setMode("otp");
     } catch (err) {
