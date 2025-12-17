@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const express = require("express");
 const cors = require("cors");
 const { MongoClient } = require("mongodb");
@@ -16,12 +18,12 @@ const MONGO_URI = process.env.MONGODB_URI;
 const OWNER_EMAIL = "dhruvbhatiaxcyz@gmail.com";
 
 if (!MONGO_URI) {
-  console.error("❌ MONGODB_URI is missing");
+  console.error("❌ MONGODB_URI missing");
   process.exit(1);
 }
 
 if (!process.env.RESEND_API_KEY) {
-  console.error("❌ RESEND_API_KEY is missing");
+  console.error("❌ RESEND_API_KEY missing");
   process.exit(1);
 }
 
@@ -30,11 +32,12 @@ app.use(cors());
 app.use(express.json({ limit: "100mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-/* ================== DATABASE ================== */
-const client = new MongoClient(MONGO_URI, {
-  serverSelectionTimeoutMS: 5000,
-});
+/* ================== EMAIL ================== */
+const resend = new Resend(process.env.RESEND_API_KEY);
+console.log("RESEND KEY:", process.env.RESEND_API_KEY ? "OK" : "MISSING");
 
+/* ================== DATABASE ================== */
+const client = new MongoClient(MONGO_URI);
 let usersCollection;
 let customersCollection;
 
@@ -47,7 +50,6 @@ async function connectDB() {
 
   await usersCollection.createIndex({ Email: 1 }, { unique: true });
   await customersCollection.createIndex({ Company: 1 });
-  await customersCollection.createIndex({ Email: 1 });
 
   await ensureSuperAdmin();
   console.log("✅ MongoDB connected");
@@ -55,9 +57,8 @@ async function connectDB() {
 
 /* ================== SUPER ADMIN ================== */
 async function ensureSuperAdmin() {
-  const existing = await usersCollection.findOne({ Email: OWNER_EMAIL });
-
-  if (!existing) {
+  const exists = await usersCollection.findOne({ Email: OWNER_EMAIL });
+  if (!exists) {
     await usersCollection.insertOne({
       Name: "Dhruv Bhatia",
       Email: OWNER_EMAIL,
@@ -70,26 +71,20 @@ async function ensureSuperAdmin() {
   }
 }
 
-/* ================== EMAIL ================== */
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 /* ================== OTP STORE ================== */
-const otpStore = {};
+const otpStore = {}; // { email: otp }
 
 /* ================== AUTH ================== */
 
 // REGISTER
 app.post("/register", async (req, res) => {
   const { name, email, password, company } = req.body;
-
   if (!name || !email || !password || !company) {
     return res.status(400).json({ message: "Missing fields" });
   }
 
   const exists = await usersCollection.findOne({ Email: email });
-  if (exists) {
-    return res.status(400).json({ message: "User exists" });
-  }
+  if (exists) return res.status(400).json({ message: "User exists" });
 
   const role = email === OWNER_EMAIL ? "SuperAdmin" : "Employee";
 
@@ -109,6 +104,7 @@ app.post("/register", async (req, res) => {
 // LOGIN → SEND OTP
 app.post("/login", async (req, res) => {
   const { email, password } = req.body;
+  console.log("LOGIN:", email);
 
   const user = await usersCollection.findOne({ Email: email });
   if (!user || user.Password !== password) {
@@ -118,44 +114,39 @@ app.post("/login", async (req, res) => {
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   otpStore[email] = otp;
 
+  console.log("OTP GENERATED:", otp);
+
   try {
-    await resend.emails.send({
-      from: "OTP <onboarding@resend.dev>",
+    const response = await resend.emails.send({
+      from: "CRM <onboarding@resend.dev>",
       to: email,
       subject: "OTP Verification",
       html: `<h2>Your OTP is ${otp}</h2>`,
     });
-  } catch (err) {
-    console.error("❌ EMAIL ERROR (LOGIN):", err);
-    return res.status(500).json({ message: "Email failed" });
-  }
 
-  res.json({ message: "OTP sent" });
+    console.log("EMAIL SENT:", response.id);
+    res.json({ message: "OTP sent" });
+  } catch (err) {
+    console.error("EMAIL ERROR:", err);
+    res.status(500).json({ message: "Email failed" });
+  }
 });
 
 // RESEND OTP
 app.post("/send-otp", async (req, res) => {
   const { email } = req.body;
 
-  const user = await usersCollection.findOne({ Email: email });
-  if (!user) {
-    return res.status(404).json({ message: "User not found" });
-  }
-
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   otpStore[email] = otp;
 
-  try {
-    await resend.emails.send({
-      from: "OTP <onboarding@resend.dev>",
-      to: email,
-      subject: "OTP Verification",
-      html: `<h2>Your OTP is ${otp}</h2>`,
-    });
-  } catch (err) {
-    console.error("❌ EMAIL ERROR (RESEND):", err);
-    return res.status(500).json({ message: "Email failed" });
-  }
+  console.log("OTP RESENT:", otp);
+
+  await resend.emails.send({
+    from: "CRM <onboarding@resend.dev>",
+    to: email,
+    subject: "OTP Verification",
+    html: `<h2>Your OTP is ${otp}</h2>`,
+  });
 
   res.json({ message: "OTP resent" });
 });
@@ -166,6 +157,7 @@ app.post("/verify-otp", (req, res) => {
 
   if (otpStore[email] === otp) {
     delete otpStore[email];
+    console.log("OTP VERIFIED");
     return res.json({ success: true });
   }
 
@@ -186,48 +178,21 @@ app.get("/customers/:email", async (req, res) => {
   res.json(customers);
 });
 
-app.post("/add-customer", async (req, res) => {
-  const { userEmail, Name, Email, Salary } = req.body;
-
-  const user = await usersCollection.findOne(
-    { Email: userEmail },
-    { projection: { Company: 1, Role: 1 } }
-  );
-
-  if (!user || user.Role === "Employee") {
-    return res.status(403).json({ message: "Forbidden" });
-  }
-
-  await customersCollection.insertOne({
-    Company: user.Company,
-    Name,
-    Email,
-    Salary: Number(Salary),
-    createdAt: new Date(),
-  });
-
-  res.json({ message: "Customer added" });
-});
-
 /* ================== FILE UPLOAD ================== */
 const upload = multer({ dest: "uploads/" });
 
 app.post("/resume-extract", upload.single("resume"), async (req, res) => {
-  try {
-    const buffer = fs.readFileSync(req.file.path);
-    let text = "";
+  const buffer = fs.readFileSync(req.file.path);
+  let text = "";
 
-    if (req.file.mimetype === "application/pdf") {
-      text = (await pdfParse(buffer)).text;
-    } else {
-      text = (await mammoth.extractRawText({ buffer })).value;
-    }
-
-    fs.unlinkSync(req.file.path);
-    res.json({ text });
-  } catch {
-    res.status(500).json({ message: "Resume parse failed" });
+  if (req.file.mimetype === "application/pdf") {
+    text = (await pdfParse(buffer)).text;
+  } else {
+    text = (await mammoth.extractRawText({ buffer })).value;
   }
+
+  fs.unlinkSync(req.file.path);
+  res.json({ text });
 });
 
 /* ================== FRONTEND ================== */
