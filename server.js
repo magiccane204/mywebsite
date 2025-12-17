@@ -82,11 +82,14 @@ const otpStore = {};
 app.post("/register", async (req, res) => {
   const { name, email, password, company } = req.body;
 
-  if (!name || !email || !password || !company)
+  if (!name || !email || !password || !company) {
     return res.status(400).json({ message: "Missing fields" });
+  }
 
   const exists = await usersCollection.findOne({ Email: email });
-  if (exists) return res.status(400).json({ message: "User exists" });
+  if (exists) {
+    return res.status(400).json({ message: "User exists" });
+  }
 
   const role = email === OWNER_EMAIL ? "SuperAdmin" : "Employee";
 
@@ -103,32 +106,28 @@ app.post("/register", async (req, res) => {
   res.json({ message: "Registered" });
 });
 
-// LOGIN
+// LOGIN → SEND OTP
 app.post("/login", async (req, res) => {
-  console.log("🔥 LOGIN HIT", req.body);
-
   const { email, password } = req.body;
 
   const user = await usersCollection.findOne({ Email: email });
   if (!user || user.Password !== password) {
-    console.log("❌ INVALID CREDS");
     return res.status(401).json({ message: "Invalid credentials" });
   }
 
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   otpStore[email] = otp;
 
-  console.log("🔥 OTP GENERATED", email, otp);
-
   try {
     await resend.emails.send({
-      from: "onboarding@resend.dev",
+      from: "OTP <onboarding@resend.dev>",
       to: email,
       subject: "OTP Verification",
       html: `<h2>Your OTP is ${otp}</h2>`,
     });
   } catch (err) {
-    console.error("❌ EMAIL FAILED, OTP:", otp);
+    console.error("❌ EMAIL ERROR (LOGIN):", err);
+    return res.status(500).json({ message: "Email failed" });
   }
 
   res.json({ message: "OTP sent" });
@@ -136,27 +135,26 @@ app.post("/login", async (req, res) => {
 
 // RESEND OTP
 app.post("/send-otp", async (req, res) => {
-  console.log("🔥 RESEND OTP HIT", req.body);
-
   const { email } = req.body;
 
   const user = await usersCollection.findOne({ Email: email });
-  if (!user) return res.status(404).json({ message: "User not found" });
+  if (!user) {
+    return res.status(404).json({ message: "User not found" });
+  }
 
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   otpStore[email] = otp;
 
-  console.log("🔥 OTP RE-GENERATED", email, otp);
-
   try {
     await resend.emails.send({
-      from: "onboarding@resend.dev",
+      from: "OTP <onboarding@resend.dev>",
       to: email,
       subject: "OTP Verification",
       html: `<h2>Your OTP is ${otp}</h2>`,
     });
   } catch (err) {
-    console.error("❌ EMAIL FAILED, OTP:", otp);
+    console.error("❌ EMAIL ERROR (RESEND):", err);
+    return res.status(500).json({ message: "Email failed" });
   }
 
   res.json({ message: "OTP resent" });
@@ -164,8 +162,6 @@ app.post("/send-otp", async (req, res) => {
 
 // VERIFY OTP
 app.post("/verify-otp", (req, res) => {
-  console.log("🔥 VERIFY OTP HIT", req.body);
-
   const { email, otp } = req.body;
 
   if (otpStore[email] === otp) {
@@ -198,8 +194,9 @@ app.post("/add-customer", async (req, res) => {
     { projection: { Company: 1, Role: 1 } }
   );
 
-  if (!user || user.Role === "Employee")
+  if (!user || user.Role === "Employee") {
     return res.status(403).json({ message: "Forbidden" });
+  }
 
   await customersCollection.insertOne({
     Company: user.Company,
@@ -241,5 +238,7 @@ app.get("*", (_, res) =>
 
 /* ================== START ================== */
 connectDB().then(() =>
-  app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`))
+  app.listen(PORT, () =>
+    console.log(`🚀 Server running on port ${PORT}`)
+  )
 );
