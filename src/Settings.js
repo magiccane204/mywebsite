@@ -11,14 +11,17 @@ export default function Settings() {
     const email = localStorage.getItem("loggedInUser");
     if (!email) return;
 
-    axios
-      .get(`/user/${email}`)
-      .then((res) => {
+    axios.get(`/user/${email}`)
+      .then(res => {
         setUser(res.data);
         setDarkMode(res.data.DarkMode || false);
       })
-      .catch(() => setMessage("⚠️ Failed to load user settings"));
+      .catch(() => setMessage("Failed to load settings"));
   }, []);
+
+  useEffect(() => {
+    document.body.classList.toggle("dark", darkMode);
+  }, [darkMode]);
 
   const handleToggleDarkMode = async () => {
     if (!user) return;
@@ -26,40 +29,36 @@ export default function Settings() {
 
     try {
       await axios.put(`/user/${user.Email}/darkmode`, {
-        DarkMode: newMode,
+        DarkMode: newMode
       });
       setDarkMode(newMode);
-      setMessage(`✅ Dark mode ${newMode ? "enabled" : "disabled"}`);
+      setMessage(`Dark mode ${newMode ? "enabled" : "disabled"}`);
     } catch {
-      setMessage("❌ Failed to update dark mode");
+      setMessage("Failed to update dark mode");
     }
   };
 
-  if (!user) return <div className="settings">Loading settings...</div>;
+  if (!user) return <div className="settings">Loading...</div>;
 
   return (
     <div className="settings">
-      <h2>⚙️ Settings</h2>
-      <div className="settings-card">
-        <p><strong>Name:</strong> {user.Name}</p>
-        <p><strong>Email:</strong> {user.Email}</p>
-        <p><strong>Role:</strong> {user.Role}</p>
-        <p><strong>Company:</strong> {user.Company}</p>
+      <h2>Settings</h2>
 
-        <div className="toggle-section">
-          <label className="toggle-label">
-            <input
-              type="checkbox"
-              checked={darkMode}
-              onChange={handleToggleDarkMode}
-            />
-            Enable Dark Mode
-          </label>
-        </div>
-      </div>
+      <p><b>Name:</b> {user.Name}</p>
+      <p><b>Email:</b> {user.Email}</p>
+      <p><b>Role:</b> {user.Role}</p>
+      <p><b>Company:</b> {user.Company}</p>
 
-      {message && <p className="settings-message">{message}</p>}
+      <label>
+        <input
+          type="checkbox"
+          checked={darkMode}
+          onChange={handleToggleDarkMode}
+        />
+        Enable Dark Mode
+      </label>
+
+      {message && <p>{message}</p>}
     </div>
   );
 }
-
