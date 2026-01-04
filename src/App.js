@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import Signup from "./SignUp";
-import Otp from "./Otp";
+import Otp from "./otp";
 import CRM from "./CRM";
 import api from "./api"; // IMPORTANT
 import "./App.css";
