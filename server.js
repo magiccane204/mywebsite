@@ -3,28 +3,37 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const { MongoClient } = require("mongodb");
+const nodemailer = require("nodemailer");
 const multer = require("multer");
 const fs = require("fs");
 const path = require("path");
 const pdfParse = require("pdf-parse");
 const mammoth = require("mammoth");
-const nodemailer = require("nodemailer");
 
 const app = express();
 
 /* ================== CONFIG ================== */
-const PORT = process.env.PORT || 10000;
+const PORT = process.env.PORT;
 const MONGO_URI = process.env.MONGODB_URI;
 const OWNER_EMAIL = "dhruvbhatiaxcyz@gmail.com";
 
-/* ================== DEBUG ENV ================== */
-console.log("EMAIL_USER:", process.env.EMAIL_USER ? "OK" : "MISSING");
-console.log("EMAIL_PASS:", process.env.EMAIL_PASS ? "OK" : "MISSING");
-console.log("MONGODB_URI:", process.env.MONGODB_URI ? "OK" : "MISSING");
+/* ================== BASIC VALIDATION ================== */
+if (!PORT) {
+  console.error("❌ PORT missing");
+  process.exit(1);
+}
+if (!MONGO_URI) {
+  console.error("❌ MONGODB_URI missing");
+  process.exit(1);
+}
+if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+  console.error("❌ EMAIL creds missing");
+  process.exit(1);
+}
 
 /* ================== MIDDLEWARE ================== */
 app.use(cors());
-app.use(express.json({ limit: "100mb" }));
+app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 /* ================== DATABASE ================== */
@@ -32,22 +41,6 @@ const client = new MongoClient(MONGO_URI);
 let usersCollection;
 let customersCollection;
 
-/* ================== OTP STORE ================== */
-const otpStore = new Map();
-
-/* ================== NODEMAILER ================== */
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-  tls: {
-    rejectUnauthorized: false,
-  },
-});
-
-/* ================== CONNECT DB ================== */
 async function connectDB() {
   await client.connect();
   const db = client.db("Users");
@@ -59,8 +52,10 @@ async function connectDB() {
   await customersCollection.createIndex({ Company: 1 });
 
   await ensureSuperAdmin();
+  console.log("✅ MongoDB connected");
 }
 
+/* ================== SUPER ADMIN ================== */
 async function ensureSuperAdmin() {
   const exists = await usersCollection.findOne({ Email: OWNER_EMAIL });
   if (!exists) {
@@ -76,17 +71,31 @@ async function ensureSuperAdmin() {
   }
 }
 
+/* ================== OTP STORE ================== */
+const otpStore = new Map();
+
+/* ================== NODEMAILER ================== */
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+  tls: { rejectUnauthorized: false },
+});
+
 /* ================== AUTH ================== */
 
 // LOGIN → SEND OTP
 app.post("/login", async (req, res) => {
-  const { email, password } = req.body;
-
   try {
+    const { email, password } = req.body;
+    if (!email || !password)
+      return res.status(400).json({ message: "Missing fields" });
+
     const user = await usersCollection.findOne({ Email: email });
-    if (!user || user.Password !== password) {
+    if (!user || user.Password !== password)
       return res.status(401).json({ message: "Invalid credentials" });
-    }
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -102,19 +111,22 @@ app.post("/login", async (req, res) => {
       text: `Your OTP is ${otp}`,
     });
 
-    console.log("OTP SENT:", otp);
-    res.json({ message: "OTP sent" });
+    console.log("✅ OTP SENT:", email);
+    res.json({ success: true });
+
   } catch (err) {
-    console.error("LOGIN OTP ERROR:", err);
-    res.status(500).json({ message: "Email failed", error: err.message });
+    console.error("LOGIN ERROR:", err);
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
 // RESEND OTP
 app.post("/send-otp", async (req, res) => {
-  const { email } = req.body;
-
   try {
+    const { email } = req.body;
+    if (!email)
+      return res.status(400).json({ success: false });
+
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
     otpStore.set(email, {
@@ -129,10 +141,11 @@ app.post("/send-otp", async (req, res) => {
       text: `Your OTP is ${otp}`,
     });
 
-    console.log("OTP RESENT:", otp);
+    console.log("✅ OTP RESENT:", email);
     res.json({ success: true });
+
   } catch (err) {
-    console.error("RESEND OTP ERROR:", err);
+    console.error("RESEND ERROR:", err);
     res.status(500).json({ success: false, error: err.message });
   }
 });
@@ -182,5 +195,5 @@ app.get("*", (_, res) =>
 
 /* ================== START ================== */
 connectDB().then(() =>
-  app.listen(PORT, () => console.log("Server running on", PORT))
+  app.listen(PORT, () => console.log("🚀 Server running on", PORT))
 );
