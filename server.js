@@ -1,9 +1,12 @@
+// server.js — FINAL (Resend + JWT + MongoDB OTP, Render-ready)
+
 require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
 const { MongoClient } = require("mongodb");
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
+const jwt = require("jsonwebtoken");
 const multer = require("multer");
 const fs = require("fs");
 const path = require("path");
@@ -15,31 +18,28 @@ const app = express();
 /* ================== CONFIG ================== */
 const PORT = process.env.PORT;
 const MONGO_URI = process.env.MONGODB_URI;
+const JWT_SECRET = process.env.JWT_SECRET;
 const OWNER_EMAIL = "dhruvbhatiaxcyz@gmail.com";
 
-/* ================== BASIC VALIDATION ================== */
-if (!PORT) {
-  console.error("❌ PORT missing");
-  process.exit(1);
-}
-if (!MONGO_URI) {
-  console.error("❌ MONGODB_URI missing");
-  process.exit(1);
-}
-if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-  console.error("❌ EMAIL creds missing");
+/* ================== VALIDATION ================== */
+if (!PORT || !MONGO_URI || !JWT_SECRET || !process.env.RESEND_API_KEY) {
+  console.error("❌ Missing required environment variables");
   process.exit(1);
 }
 
 /* ================== MIDDLEWARE ================== */
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "100mb" }));
 app.use(express.urlencoded({ extended: true }));
+
+/* ================== EMAIL (RESEND) ================== */
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 /* ================== DATABASE ================== */
 const client = new MongoClient(MONGO_URI);
 let usersCollection;
 let customersCollection;
+let otpCollection;
 
 async function connectDB() {
   await client.connect();
@@ -47,9 +47,11 @@ async function connectDB() {
 
   usersCollection = db.collection("user");
   customersCollection = db.collection("Customers");
+  otpCollection = db.collection("otp");
 
   await usersCollection.createIndex({ Email: 1 }, { unique: true });
   await customersCollection.createIndex({ Company: 1 });
+  await otpCollection.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
   await ensureSuperAdmin();
   console.log("✅ MongoDB connected");
@@ -71,19 +73,6 @@ async function ensureSuperAdmin() {
   }
 }
 
-/* ================== OTP STORE ================== */
-const otpStore = new Map();
-
-/* ================== NODEMAILER ================== */
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-  tls: { rejectUnauthorized: false },
-});
-
 /* ================== AUTH ================== */
 
 // LOGIN → SEND OTP
@@ -99,24 +88,25 @@ app.post("/login", async (req, res) => {
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    otpStore.set(email, {
+    await otpCollection.deleteMany({ email });
+
+    await otpCollection.insertOne({
+      email,
       otp,
-      expiresAt: Date.now() + 5 * 60 * 1000,
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000),
     });
 
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+    await resend.emails.send({
+      from: "CRM <onboarding@resend.dev>",
       to: email,
       subject: "OTP Verification",
-      text: `Your OTP is ${otp}`,
+      html: `<h3>Your OTP is ${otp}</h3><p>Valid for 5 minutes</p>`,
     });
 
-    console.log("✅ OTP SENT:", email);
     res.json({ success: true });
-
   } catch (err) {
     console.error("LOGIN ERROR:", err);
-    res.status(500).json({ success: false, error: err.message });
+    res.status(500).json({ success: false });
   }
 });
 
@@ -124,50 +114,87 @@ app.post("/login", async (req, res) => {
 app.post("/send-otp", async (req, res) => {
   try {
     const { email } = req.body;
-    if (!email)
-      return res.status(400).json({ success: false });
+    if (!email) return res.status(400).json({ success: false });
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    otpStore.set(email, {
+    await otpCollection.deleteMany({ email });
+
+    await otpCollection.insertOne({
+      email,
       otp,
-      expiresAt: Date.now() + 5 * 60 * 1000,
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000),
     });
 
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+    await resend.emails.send({
+      from: "CRM <onboarding@resend.dev>",
       to: email,
       subject: "OTP Verification",
-      text: `Your OTP is ${otp}`,
+      html: `<h3>Your OTP is ${otp}</h3><p>Valid for 5 minutes</p>`,
     });
 
-    console.log("✅ OTP RESENT:", email);
     res.json({ success: true });
-
   } catch (err) {
     console.error("RESEND ERROR:", err);
-    res.status(500).json({ success: false, error: err.message });
+    res.status(500).json({ success: false });
   }
 });
 
-// VERIFY OTP
-app.post("/verify-otp", (req, res) => {
-  const { email, otp } = req.body;
+// VERIFY OTP → ISSUE JWT
+app.post("/verify-otp", async (req, res) => {
+  try {
+    const { email, otp } = req.body;
 
-  const record = otpStore.get(email);
-  if (!record) return res.json({ success: false });
+    const record = await otpCollection.findOne({ email, otp });
+    if (!record) return res.status(401).json({ success: false });
 
-  if (Date.now() > record.expiresAt) {
-    otpStore.delete(email);
-    return res.json({ success: false });
+    if (record.expiresAt < new Date()) {
+      await otpCollection.deleteOne({ email });
+      return res.status(401).json({ success: false });
+    }
+
+    await otpCollection.deleteOne({ email });
+
+    const user = await usersCollection.findOne({ Email: email });
+
+    const token = jwt.sign(
+      { email: user.Email, role: user.Role },
+      JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    res.json({ success: true, token });
+  } catch (err) {
+    console.error("VERIFY ERROR:", err);
+    res.status(500).json({ success: false });
   }
+});
 
-  if (record.otp !== otp) {
-    return res.json({ success: false });
+/* ================== AUTH MIDDLEWARE ================== */
+function auth(req, res, next) {
+  const token = req.headers.authorization?.split(" ")[1];
+  if (!token) return res.sendStatus(401);
+
+  try {
+    req.user = jwt.verify(token, JWT_SECRET);
+    next();
+  } catch {
+    res.sendStatus(403);
   }
+}
 
-  otpStore.delete(email);
-  res.json({ success: true });
+/* ================== CUSTOMERS ================== */
+app.get("/customers/:email", auth, async (req, res) => {
+  const user = await usersCollection.findOne(
+    { Email: req.params.email },
+    { projection: { Company: 1 } }
+  );
+
+  const customers = await customersCollection
+    .find({ Company: user?.Company })
+    .toArray();
+
+  res.json(customers);
 });
 
 /* ================== FILE UPLOAD ================== */
