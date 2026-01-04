@@ -1,5 +1,3 @@
-
-
 require("dotenv").config();
 
 const express = require("express");
@@ -18,6 +16,11 @@ const app = express();
 const PORT = process.env.PORT || 10000;
 const MONGO_URI = process.env.MONGODB_URI;
 const OWNER_EMAIL = "dhruvbhatiaxcyz@gmail.com";
+
+/* ================== DEBUG ENV ================== */
+console.log("EMAIL_USER:", process.env.EMAIL_USER ? "OK" : "MISSING");
+console.log("EMAIL_PASS:", process.env.EMAIL_PASS ? "OK" : "MISSING");
+console.log("MONGODB_URI:", process.env.MONGODB_URI ? "OK" : "MISSING");
 
 /* ================== MIDDLEWARE ================== */
 app.use(cors());
@@ -38,6 +41,9 @@ const transporter = nodemailer.createTransport({
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
+  },
+  tls: {
+    rejectUnauthorized: false,
   },
 });
 
@@ -76,19 +82,19 @@ async function ensureSuperAdmin() {
 app.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
-  const user = await usersCollection.findOne({ Email: email });
-  if (!user || user.Password !== password) {
-    return res.status(401).json({ message: "Invalid credentials" });
-  }
-
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-  otpStore.set(email, {
-    otp,
-    expiresAt: Date.now() + 5 * 60 * 1000,
-  });
-
   try {
+    const user = await usersCollection.findOne({ Email: email });
+    if (!user || user.Password !== password) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    otpStore.set(email, {
+      otp,
+      expiresAt: Date.now() + 5 * 60 * 1000,
+    });
+
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
       to: email,
@@ -96,9 +102,11 @@ app.post("/login", async (req, res) => {
       text: `Your OTP is ${otp}`,
     });
 
+    console.log("OTP SENT:", otp);
     res.json({ message: "OTP sent" });
   } catch (err) {
-    res.status(500).json({ message: "Email failed" });
+    console.error("LOGIN OTP ERROR:", err);
+    res.status(500).json({ message: "Email failed", error: err.message });
   }
 });
 
@@ -106,14 +114,14 @@ app.post("/login", async (req, res) => {
 app.post("/send-otp", async (req, res) => {
   const { email } = req.body;
 
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-  otpStore.set(email, {
-    otp,
-    expiresAt: Date.now() + 5 * 60 * 1000,
-  });
-
   try {
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    otpStore.set(email, {
+      otp,
+      expiresAt: Date.now() + 5 * 60 * 1000,
+    });
+
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
       to: email,
@@ -121,9 +129,11 @@ app.post("/send-otp", async (req, res) => {
       text: `Your OTP is ${otp}`,
     });
 
+    console.log("OTP RESENT:", otp);
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ success: false });
+    console.error("RESEND OTP ERROR:", err);
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
