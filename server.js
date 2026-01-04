@@ -1,3 +1,5 @@
+
+
 require("dotenv").config();
 
 const express = require("express");
@@ -8,7 +10,7 @@ const fs = require("fs");
 const path = require("path");
 const pdfParse = require("pdf-parse");
 const mammoth = require("mammoth");
-const { Resend } = require("resend");
+const nodemailer = require("nodemailer");
 
 const app = express();
 
@@ -17,30 +19,29 @@ const PORT = process.env.PORT || 10000;
 const MONGO_URI = process.env.MONGODB_URI;
 const OWNER_EMAIL = "dhruvbhatiaxcyz@gmail.com";
 
-if (!MONGO_URI) {
-  console.error("❌ MONGODB_URI missing");
-  process.exit(1);
-}
-
-if (!process.env.RESEND_API_KEY) {
-  console.error("❌ RESEND_API_KEY missing");
-  process.exit(1);
-}
-
 /* ================== MIDDLEWARE ================== */
 app.use(cors());
 app.use(express.json({ limit: "100mb" }));
 app.use(express.urlencoded({ extended: true }));
-
-/* ================== EMAIL ================== */
-const resend = new Resend(process.env.RESEND_API_KEY);
-console.log("RESEND KEY:", process.env.RESEND_API_KEY ? "OK" : "MISSING");
 
 /* ================== DATABASE ================== */
 const client = new MongoClient(MONGO_URI);
 let usersCollection;
 let customersCollection;
 
+/* ================== OTP STORE ================== */
+const otpStore = new Map();
+
+/* ================== NODEMAILER ================== */
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
+
+/* ================== CONNECT DB ================== */
 async function connectDB() {
   await client.connect();
   const db = client.db("Users");
@@ -52,10 +53,8 @@ async function connectDB() {
   await customersCollection.createIndex({ Company: 1 });
 
   await ensureSuperAdmin();
-  console.log("✅ MongoDB connected");
 }
 
-/* ================== SUPER ADMIN ================== */
 async function ensureSuperAdmin() {
   const exists = await usersCollection.findOne({ Email: OWNER_EMAIL });
   if (!exists) {
@@ -71,40 +70,11 @@ async function ensureSuperAdmin() {
   }
 }
 
-/* ================== OTP STORE ================== */
-const otpStore = {}; // { email: otp }
-
 /* ================== AUTH ================== */
-
-// REGISTER
-app.post("/register", async (req, res) => {
-  const { name, email, password, company } = req.body;
-  if (!name || !email || !password || !company) {
-    return res.status(400).json({ message: "Missing fields" });
-  }
-
-  const exists = await usersCollection.findOne({ Email: email });
-  if (exists) return res.status(400).json({ message: "User exists" });
-
-  const role = email === OWNER_EMAIL ? "SuperAdmin" : "Employee";
-
-  await usersCollection.insertOne({
-    Name: name,
-    Email: email,
-    Password: password,
-    Company: company,
-    Role: role,
-    verified: false,
-    createdAt: new Date(),
-  });
-
-  res.json({ message: "Registered" });
-});
 
 // LOGIN → SEND OTP
 app.post("/login", async (req, res) => {
   const { email, password } = req.body;
-  console.log("LOGIN:", email);
 
   const user = await usersCollection.findOne({ Email: email });
   if (!user || user.Password !== password) {
@@ -112,22 +82,22 @@ app.post("/login", async (req, res) => {
   }
 
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  otpStore[email] = otp;
 
-  console.log("OTP GENERATED:", otp);
+  otpStore.set(email, {
+    otp,
+    expiresAt: Date.now() + 5 * 60 * 1000,
+  });
 
   try {
-    const response = await resend.emails.send({
-      from: "CRM <onboarding@resend.dev>",
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
       to: email,
       subject: "OTP Verification",
-      html: `<h2>Your OTP is ${otp}</h2>`,
+      text: `Your OTP is ${otp}`,
     });
 
-    console.log("EMAIL SENT:", response.id);
     res.json({ message: "OTP sent" });
   } catch (err) {
-    console.error("EMAIL ERROR:", err);
     res.status(500).json({ message: "Email failed" });
   }
 });
@@ -137,45 +107,44 @@ app.post("/send-otp", async (req, res) => {
   const { email } = req.body;
 
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  otpStore[email] = otp;
 
-  console.log("OTP RESENT:", otp);
-
-  await resend.emails.send({
-    from: "CRM <onboarding@resend.dev>",
-    to: email,
-    subject: "OTP Verification",
-    html: `<h2>Your OTP is ${otp}</h2>`,
+  otpStore.set(email, {
+    otp,
+    expiresAt: Date.now() + 5 * 60 * 1000,
   });
 
-  res.json({ message: "OTP resent" });
+  try {
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "OTP Verification",
+      text: `Your OTP is ${otp}`,
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false });
+  }
 });
 
 // VERIFY OTP
 app.post("/verify-otp", (req, res) => {
   const { email, otp } = req.body;
 
-  if (otpStore[email] === otp) {
-    delete otpStore[email];
-    console.log("OTP VERIFIED");
-    return res.json({ success: true });
+  const record = otpStore.get(email);
+  if (!record) return res.json({ success: false });
+
+  if (Date.now() > record.expiresAt) {
+    otpStore.delete(email);
+    return res.json({ success: false });
   }
 
-  res.status(401).json({ success: false });
-});
+  if (record.otp !== otp) {
+    return res.json({ success: false });
+  }
 
-/* ================== CUSTOMERS ================== */
-app.get("/customers/:email", async (req, res) => {
-  const user = await usersCollection.findOne(
-    { Email: req.params.email },
-    { projection: { Company: 1 } }
-  );
-
-  const customers = await customersCollection
-    .find({ Company: user?.Company })
-    .toArray();
-
-  res.json(customers);
+  otpStore.delete(email);
+  res.json({ success: true });
 });
 
 /* ================== FILE UPLOAD ================== */
@@ -203,7 +172,5 @@ app.get("*", (_, res) =>
 
 /* ================== START ================== */
 connectDB().then(() =>
-  app.listen(PORT, () =>
-    console.log(`🚀 Server running on port ${PORT}`)
-  )
+  app.listen(PORT, () => console.log("Server running on", PORT))
 );
