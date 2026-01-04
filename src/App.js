@@ -91,14 +91,14 @@ function App() {
           Forgot Password?
         </span>
       </div>
-
-      <button
-        className="button"
-        onClick={handleLogin}
-        style={{ backgroundColor: "#ffffff", color: "#000000" }}
-      >
-        Login
-      </button>
+<button
+  type="button"
+  className="button"
+  onClick={handleLogin}
+  style={{ backgroundColor: "#ffffff", color: "#000000" }}
+>
+  Login
+</button>
 
       <p style={{ marginTop: "15px" }}>
         Don’t have an account?{" "}
