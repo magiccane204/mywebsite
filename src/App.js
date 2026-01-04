@@ -1,22 +1,21 @@
 import { useState, useEffect } from "react";
 import Signup from "./SignUp";
-import Otp from "./otp";
+import Otp from "./Otp";
 import CRM from "./CRM";
-import axios from "axios";
+import api from "./api"; // IMPORTANT
 import "./App.css";
 
 function App() {
-  const [mode, setMode] = useState("login"); 
+  const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   useEffect(() => {
-    const loggedIn = localStorage.getItem("isLoggedIn");
-    if (loggedIn === "true") {
+    const token = localStorage.getItem("token");
+    if (token) {
       setMode("crm");
     }
   }, []);
-
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -25,21 +24,19 @@ function App() {
     }
 
     try {
-      await axios.post("/login", { email, password });
+      const res = await api.post("/login", { email, password });
 
-   
-      localStorage.setItem("loggedInUser", email);
-
-     
-      await axios.post("/send-otp", { email, password });
-
-      setMode("otp");
+      if (res.data.success) {
+        localStorage.setItem("loggedInUser", email);
+        setMode("otp"); // ✅ GO TO OTP PAGE
+      } else {
+        alert("Invalid credentials");
+      }
     } catch (err) {
-      if (err.response?.status === 401) alert("Invalid credentials.");
-      else alert("Server error. Try again later.");
+      console.log(err.response);
+      alert("Invalid credentials or try again");
     }
   };
-
 
   if (mode === "signup") return <Signup setMode={setMode} />;
   if (mode === "otp") return <Otp Email={email} setMode={setMode} />;
@@ -60,14 +57,13 @@ function App() {
         value={email}
         onChange={(e) => setEmail(e.target.value)}
       />
-      
+
       <input
         type="password"
         placeholder="Password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
       />
-      
 
       <div
         style={{
