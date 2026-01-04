@@ -12,7 +12,7 @@ body {
 .Signup-card {
   display: flex;
   width: 880px;
-  height: auto; /* ✅ allow auto height to fit content properly */
+  height: 600px; /* ✅ allow auto height to fit content properly */
   background: rgba(255, 255, 255, 0.97);
   border-radius: 20px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
@@ -156,3 +156,4 @@ select {
     max-width: 100%;
   }
 }
+
