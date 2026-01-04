@@ -2,7 +2,7 @@
 .floating-card {
   background-color: #ffffff;
   padding: 40px 60px;       /* smaller vertical padding */
-  width: 600px;              /* horizontal width stays wide */
+  width: 500px;              /* horizontal width stays wide */
   max-width: 90%;
   margin: 50px auto;
   text-align: center;
