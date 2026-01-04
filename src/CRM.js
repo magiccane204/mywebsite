@@ -22,22 +22,18 @@ function CRM({ setMode }) {
     ["15", "25", "35"],
     ["12", "22", "32"],
   ]);
-  const [isCheckingLogin, setIsCheckingLogin] = useState(true);
   const [selectedStats, setSelectedStats] = useState([]);
-  const [selectedColumnName, setSelectedColumnName] = useState("No Column Selected");
+  const [selectedColumnName, setSelectedColumnName] =
+    useState("No Column Selected");
   const [expandedChart, setExpandedChart] = useState(null);
 
   useEffect(() => {
-    const userEmail = localStorage.getItem("loggedInUser");
-    const loggedIn = localStorage.getItem("isLoggedIn");
-    if (!userEmail || loggedIn !== "true") {
-      window.location.replace("/");
-    } else {
-      setIsCheckingLogin(false);
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setMode("login");
     }
-  }, []);
+  }, [setMode]);
 
-  // ✅ Close chart modal with ESC key
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === "Escape") setExpandedChart(null);
@@ -46,36 +42,29 @@ function CRM({ setMode }) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  const handleLogout = async () => {
-    try {
-      await api.post("/logout");
-    } catch (err) {
-      console.warn("Logout backend not reachable, continuing logout.");
-    }
+  const handleLogout = () => {
+    localStorage.removeItem("token");
     localStorage.removeItem("loggedInUser");
     localStorage.removeItem("loggedInName");
-    localStorage.removeItem("isLoggedIn");
     setMode("login");
-    window.location.replace("/");
   };
 
-const fetchData = async (route, section) => {
-  try {
-    setActiveSection(section);
-    const res = await api.get(route);
+  const fetchData = async (route, section) => {
+    try {
+      setActiveSection(section);
+      const res = await api.get(route);
 
-    if (section === "customers") {
-      setCustomers(res.data);
-      setBackendData(null);
-    } else {
-      setBackendData(res.data);
+      if (section === "customers") {
+        setCustomers(res.data);
+        setBackendData(null);
+      } else {
+        setBackendData(res.data);
+      }
+    } catch (err) {
+      console.error("Error fetching data:", err);
     }
-  } catch (err) {
-    console.error("Error fetching data:", err);
-  }
-};
+  };
 
-  // ✅ Handle column click from ExcelTable
   const handleColumnSelect = (columnValues, colIndex) => {
     const columnName = headers[colIndex] || `Column ${colIndex + 1}`;
     const numericValues = columnValues
@@ -84,8 +73,6 @@ const fetchData = async (route, section) => {
     setSelectedColumnName(columnName);
     setSelectedStats(numericValues.length > 0 ? numericValues : []);
   };
-
-  if (isCheckingLogin) return <div>Checking login...</div>;
 
   const storedName = localStorage.getItem("loggedInName");
   const storedEmail = localStorage.getItem("loggedInUser");
@@ -101,7 +88,6 @@ const fetchData = async (route, section) => {
 
   return (
     <div className="app">
-      {/* Sidebar */}
       <div className="sidebar">
         <div className="logo">
           <img src="D&T.png" alt="logo" />
@@ -128,7 +114,6 @@ const fetchData = async (route, section) => {
         </button>
       </div>
 
-      {/* Content */}
       <div className="content">
         <div className="horizontalbar">
           <span>Data and Technology CRM Systems</span>
@@ -179,7 +164,6 @@ const fetchData = async (route, section) => {
               />
             </div>
 
-            {/* ✅ Full-Screen Modal */}
             {expandedChart && (
               <div className="chart-modal" onClick={() => setExpandedChart(null)}>
                 <div
@@ -216,18 +200,28 @@ const fetchData = async (route, section) => {
                   )}
                   {expandedChart === "scatter" && (
                     <ScatterChart
-                      chartDataX={selectedStats.slice(0, selectedStats.length - 1)}
+                      chartDataX={selectedStats.slice(
+                        0,
+                        selectedStats.length - 1
+                      )}
                       chartDataY={selectedStats.slice(1)}
                       title={selectedColumnName}
                     />
                   )}
 
-                  {/* ✅ Stats summary */}
                   {selectedStats && selectedStats.length > 0 ? (
                     <div className="chart-stats">
-                      <p><strong>Count:</strong> {selectedStats.length}</p>
-                      <p><strong>Min:</strong> {Math.min(...selectedStats).toFixed(2)}</p>
-                      <p><strong>Max:</strong> {Math.max(...selectedStats).toFixed(2)}</p>
+                      <p>
+                        <strong>Count:</strong> {selectedStats.length}
+                      </p>
+                      <p>
+                        <strong>Min:</strong>{" "}
+                        {Math.min(...selectedStats).toFixed(2)}
+                      </p>
+                      <p>
+                        <strong>Max:</strong>{" "}
+                        {Math.max(...selectedStats).toFixed(2)}
+                      </p>
                       <p>
                         <strong>Average:</strong>{" "}
                         {(
@@ -237,7 +231,9 @@ const fetchData = async (route, section) => {
                       </p>
                     </div>
                   ) : (
-                    <div className="chart-stats">No numeric statistics found</div>
+                    <div className="chart-stats">
+                      No numeric statistics found
+                    </div>
                   )}
                 </div>
               </div>
@@ -308,5 +304,3 @@ const fetchData = async (route, section) => {
 }
 
 export default CRM;
-
-
