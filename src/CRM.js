@@ -8,7 +8,7 @@ import Reports from "./Reports";
 import Settings from "./Settings";
 import ScatterChart from "./ScatterChart";
 import LineChart from "./LineChart";
-import axios from "axios";
+import api from "./api";
 import "./CRM.css";
 
 function CRM({ setMode }) {
@@ -48,7 +48,7 @@ function CRM({ setMode }) {
 
   const handleLogout = async () => {
     try {
-      await axios.post("/logout");
+      await api.post("/logout");
     } catch (err) {
       console.warn("Logout backend not reachable, continuing logout.");
     }
@@ -62,7 +62,7 @@ function CRM({ setMode }) {
 const fetchData = async (route, section) => {
   try {
     setActiveSection(section);
-    const res = await axios.get(route);
+    const res = await api.get(route);
 
     if (section === "customers") {
       setCustomers(res.data);
@@ -308,4 +308,5 @@ const fetchData = async (route, section) => {
 }
 
 export default CRM;
+
 
