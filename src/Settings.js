@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import api from "./api";
 import "./CRM.css";
 
 export default function Settings() {
@@ -8,11 +8,13 @@ export default function Settings() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    const email = localStorage.getItem("loggedInUser");
-    if (!email) return;
-
-    axios.get(`/user/${email}`)
-      .then(res => {
+    api
+      .get("/me", {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      })
+      .then((res) => {
         setUser(res.data);
         setDarkMode(res.data.DarkMode || false);
       })
@@ -24,13 +26,19 @@ export default function Settings() {
   }, [darkMode]);
 
   const handleToggleDarkMode = async () => {
-    if (!user) return;
     const newMode = !darkMode;
 
     try {
-      await axios.put(`/user/${user.Email}/darkmode`, {
-        DarkMode: newMode
-      });
+      await api.put(
+        "/me/darkmode",
+        { DarkMode: newMode },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
       setDarkMode(newMode);
       setMessage(`Dark mode ${newMode ? "enabled" : "disabled"}`);
     } catch {
