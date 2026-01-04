@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import Signup from "./SignUp";
-import Otp from "./otp";
+import Otp from "./Otp";
 import CRM from "./CRM";
-import api from "./api"; // IMPORTANT
+import api from "./api";
 import "./App.css";
 
 function App() {
@@ -10,11 +10,10 @@ function App() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  // ONLY trust JWT, nothing else
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (token) {
-      setMode("crm");
-    }
+    if (token) setMode("crm");
   }, []);
 
   const handleLogin = async () => {
@@ -27,14 +26,13 @@ function App() {
       const res = await api.post("/login", { email, password });
 
       if (res.data.success) {
-        localStorage.setItem("loggedInUser", email);
-        setMode("otp"); // ✅ GO TO OTP PAGE
+        setMode("otp"); // 🔑 OTP SENT BY BACKEND
       } else {
         alert("Invalid credentials");
       }
     } catch (err) {
       console.log(err.response);
-      alert("Invalid credentials or try again");
+      alert("Login failed");
     }
   };
 
@@ -44,11 +42,6 @@ function App() {
 
   return (
     <div className="floating-card">
-      <img
-        src="/user.png"
-        alt="profile pic"
-        style={{ width: 150, height: 150, borderRadius: "50%" }}
-      />
       <h1>Login</h1>
 
       <input
@@ -65,41 +58,11 @@ function App() {
         onChange={(e) => setPassword(e.target.value)}
       />
 
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          width: "100%",
-          margin: "10px 0",
-        }}
-      >
-        <label style={{ display: "flex", alignItems: "center" }}>
-          <input type="checkbox" style={{ marginRight: "5px" }} />
-          Remember me?
-        </label>
+      <button onClick={handleLogin}>Login</button>
 
-        <span
-          style={{ color: "blue", cursor: "pointer" }}
-          onClick={() => setMode("signup")}
-        >
-          Forgot Password?
-        </span>
-      </div>
-
-      <button
-        className="button"
-        onClick={handleLogin}
-        style={{ backgroundColor: "#ffffff", color: "#000000" }}
-      >
-        Login
-      </button>
-
-      <p style={{ marginTop: "15px" }}>
+      <p>
         Don’t have an account?{" "}
-        <span
-          style={{ color: "blue", cursor: "pointer" }}
-          onClick={() => setMode("signup")}
-        >
+        <span style={{ color: "blue", cursor: "pointer" }} onClick={() => setMode("signup")}>
           Sign Up
         </span>
       </p>
