@@ -268,8 +268,30 @@ app.get("*", (_, res) =>
   res.sendFile(path.join(__dirname, "build", "index.html"))
 );
 
+// GET current user (by token)
+app.get("/me", auth, async (req, res) => {
+  const user = await usersCollection.findOne(
+    { Email: req.user.email },
+    { projection: { Password: 0 } }
+  );
+  res.json(user);
+});
+
+// UPDATE dark mode
+app.put("/me/darkmode", auth, async (req, res) => {
+  const { DarkMode } = req.body;
+
+  await usersCollection.updateOne(
+    { Email: req.user.email },
+    { $set: { DarkMode } }
+  );
+
+  res.json({ success: true });
+});
+
 /* ================== START ================== */
 connectDB().then(() =>
   app.listen(PORT, () => console.log("🚀 Server running on", PORT))
 );
+
 
