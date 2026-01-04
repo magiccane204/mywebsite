@@ -1,4 +1,4 @@
-// server.js — FINAL (Resend + JWT + MongoDB OTP, Render-ready)
+// server.js — FINAL (Resend + JWT + MongoDB OTP + Countdown + Cooldown, Render-ready)
 
 require("dotenv").config();
 
@@ -20,6 +20,9 @@ const PORT = process.env.PORT;
 const MONGO_URI = process.env.MONGODB_URI;
 const JWT_SECRET = process.env.JWT_SECRET;
 const OWNER_EMAIL = "dhruvbhatiaxcyz@gmail.com";
+
+const OTP_VALID_MS = 5 * 60 * 1000;   // 5 minutes
+const OTP_RESEND_MS = 30 * 1000;      // 30 seconds
 
 /* ================== VALIDATION ================== */
 if (!PORT || !MONGO_URI || !JWT_SECRET || !process.env.RESEND_API_KEY) {
@@ -75,25 +78,40 @@ async function ensureSuperAdmin() {
 
 /* ================== AUTH ================== */
 
-// LOGIN → SEND OTP
+// LOGIN → SEND OTP (with cooldown + expiry info)
 app.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password)
-      return res.status(400).json({ message: "Missing fields" });
+      return res.status(400).json({ success: false });
 
     const user = await usersCollection.findOne({ Email: email });
     if (!user || user.Password !== password)
-      return res.status(401).json({ message: "Invalid credentials" });
+      return res.status(401).json({ success: false });
+
+    const now = new Date();
+
+    const existing = await otpCollection.findOne({ email });
+    if (existing && existing.resendAfter > now) {
+      return res.status(429).json({
+        success: false,
+        retryAfter: Math.ceil((existing.resendAfter - now) / 1000),
+        expiresIn: Math.ceil((existing.expiresAt - now) / 1000),
+      });
+    }
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
     await otpCollection.deleteMany({ email });
 
+    const expiresAt = new Date(now.getTime() + OTP_VALID_MS);
+    const resendAfter = new Date(now.getTime() + OTP_RESEND_MS);
+
     await otpCollection.insertOne({
       email,
       otp,
-      expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+      expiresAt,
+      resendAfter,
     });
 
     await resend.emails.send({
@@ -103,28 +121,52 @@ app.post("/login", async (req, res) => {
       html: `<h3>Your OTP is ${otp}</h3><p>Valid for 5 minutes</p>`,
     });
 
-    res.json({ success: true });
+    res.json({
+      success: true,
+      expiresIn: Math.ceil(OTP_VALID_MS / 1000),
+      resendIn: Math.ceil(OTP_RESEND_MS / 1000),
+    });
   } catch (err) {
     console.error("LOGIN ERROR:", err);
     res.status(500).json({ success: false });
   }
 });
 
-// RESEND OTP
+// RESEND OTP (cooldown enforced)
 app.post("/send-otp", async (req, res) => {
   try {
     const { email } = req.body;
     if (!email) return res.status(400).json({ success: false });
 
+    const now = new Date();
+    const record = await otpCollection.findOne({ email });
+
+    if (!record)
+      return res.status(400).json({ success: false });
+
+    if (record.resendAfter > now) {
+      return res.status(429).json({
+        success: false,
+        retryAfter: Math.ceil((record.resendAfter - now) / 1000),
+        expiresIn: Math.ceil((record.expiresAt - now) / 1000),
+      });
+    }
+
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    await otpCollection.deleteMany({ email });
+    const expiresAt = new Date(now.getTime() + OTP_VALID_MS);
+    const resendAfter = new Date(now.getTime() + OTP_RESEND_MS);
 
-    await otpCollection.insertOne({
-      email,
-      otp,
-      expiresAt: new Date(Date.now() + 5 * 60 * 1000),
-    });
+    await otpCollection.updateOne(
+      { email },
+      {
+        $set: {
+          otp,
+          expiresAt,
+          resendAfter,
+        },
+      }
+    );
 
     await resend.emails.send({
       from: "CRM <onboarding@resend.dev>",
@@ -133,7 +175,11 @@ app.post("/send-otp", async (req, res) => {
       html: `<h3>Your OTP is ${otp}</h3><p>Valid for 5 minutes</p>`,
     });
 
-    res.json({ success: true });
+    res.json({
+      success: true,
+      expiresIn: Math.ceil(OTP_VALID_MS / 1000),
+      resendIn: Math.ceil(OTP_RESEND_MS / 1000),
+    });
   } catch (err) {
     console.error("RESEND ERROR:", err);
     res.status(500).json({ success: false });
