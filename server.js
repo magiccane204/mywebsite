@@ -92,13 +92,14 @@ app.post("/login", async (req, res) => {
     const now = new Date();
 
     const existing = await otpCollection.findOne({ email });
-    if (existing && existing.resendAfter > now) {
-      return res.status(429).json({
-        success: false,
-        retryAfter: Math.ceil((existing.resendAfter - now) / 1000),
-        expiresIn: Math.ceil((existing.expiresAt - now) / 1000),
-      });
-    }
+if (existing && existing.resendAfter > now) {
+  return res.json({
+    success: true,
+    expiresIn: Math.ceil((existing.expiresAt - now) / 1000),
+    resendIn: Math.ceil((existing.resendAfter - now) / 1000),
+  });
+}
+
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -145,11 +146,12 @@ app.post("/send-otp", async (req, res) => {
       return res.status(400).json({ success: false });
 
     if (record.resendAfter > now) {
-      return res.status(429).json({
-        success: false,
-        retryAfter: Math.ceil((record.resendAfter - now) / 1000),
-        expiresIn: Math.ceil((record.expiresAt - now) / 1000),
-      });
+   return res.json({
+  success: true,
+  expiresIn: Math.ceil((record.expiresAt - now) / 1000),
+  resendIn: Math.ceil((record.resendAfter - now) / 1000),
+});
+
     }
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -270,3 +272,4 @@ app.get("*", (_, res) =>
 connectDB().then(() =>
   app.listen(PORT, () => console.log("🚀 Server running on", PORT))
 );
+
