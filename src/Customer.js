@@ -1,46 +1,28 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import api from "./api";
 import "./CRM.css";
 
 function Customer() {
   const [customerData, setCustomerData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
-  const [role, setRole] = useState(""); // ✅ Logged-in user's role
+  const [role, setRole] = useState("");
 
-  // Form states
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [position, setPosition] = useState("");
   const [salary, setSalary] = useState("");
-  const [editEmail, setEditEmail] = useState(null); // for update mode
+  const [editEmail, setEditEmail] = useState(null);
 
-  // ✅ Fetch logged-in user's role
-  const fetchRole = async () => {
+  const fetchUserAndCustomers = async () => {
     try {
-      const userEmail = localStorage.getItem("loggedInUser");
-      if (!userEmail) return;
-      const res = await axios.get(`/user/${userEmail}`);
-      setRole(res.data.Role || "Employee");
-    } catch (err) {
-      console.error("Failed to fetch role:", err);
-    }
-  };
+      const userRes = await api.get("/me");
+      setRole(userRes.data.Role);
 
-  // ✅ Load customers for logged-in user
-  const fetchCustomers = async () => {
-    try {
-      const userEmail = localStorage.getItem("loggedInUser");
-      if (!userEmail) {
-        setMessage("You must be logged in to view customers.");
-        setLoading(false);
-        return;
-      }
-
-      const res = await axios.get(`/customers/${userEmail}`);
-      setCustomerData(res.data);
+      const custRes = await api.get("/customers");
+      setCustomerData(custRes.data);
     } catch (err) {
-      console.error("Error fetching customers:", err);
+      console.error(err);
       setMessage("Failed to load customers.");
     } finally {
       setLoading(false);
@@ -48,27 +30,18 @@ function Customer() {
   };
 
   useEffect(() => {
-    fetchRole();
-    fetchCustomers();
-    const interval = setInterval(fetchCustomers, 5000);
+    fetchUserAndCustomers();
+    const interval = setInterval(fetchUserAndCustomers, 5000);
     return () => clearInterval(interval);
   }, []);
 
-  // ✅ Add or Update customer
   const handleAddOrUpdate = async () => {
-    const userEmail = localStorage.getItem("loggedInUser");
-    if (!userEmail) {
-      setMessage("You must be logged in to add a customer.");
-      return;
-    }
-
     if (!name || !email || !position || !salary) {
       setMessage("All fields are required.");
       return;
     }
 
     const payload = {
-      userEmail,
       Name: name,
       Email: email,
       "Applied Position": position,
@@ -77,14 +50,11 @@ function Customer() {
 
     try {
       if (editEmail) {
-        await axios.put(
-          `/update-customer/${editEmail}/${userEmail}`,
-          payload
-        );
+        await api.put(`/update-customer/${editEmail}`, payload);
         setMessage("✏️ Customer updated successfully!");
         setEditEmail(null);
       } else {
-        await axios.post("/add-customer", payload);
+        await api.post("/add-customer", payload);
         setMessage("✅ Customer added successfully!");
       }
 
@@ -92,29 +62,26 @@ function Customer() {
       setEmail("");
       setPosition("");
       setSalary("");
-      fetchCustomers();
+      fetchUserAndCustomers();
     } catch (err) {
-      console.error("Save customer error:", err);
+      console.error(err);
       setMessage("Failed to save customer.");
     }
   };
 
-  // 🗑️ Delete customer
   const handleDeleteCustomer = async (email) => {
-    const userEmail = localStorage.getItem("loggedInUser");
-    if (!window.confirm(`Are you sure you want to delete ${email}?`)) return;
+    if (!window.confirm(`Delete ${email}?`)) return;
 
     try {
-      await axios.delete(`/customer/${email}/${userEmail}`);
+      await api.delete(`/customer/${email}`);
       setMessage("🗑️ Customer deleted successfully!");
-      fetchCustomers();
+      fetchUserAndCustomers();
     } catch (err) {
-      console.error("Delete error:", err);
+      console.error(err);
       setMessage("Failed to delete customer.");
     }
   };
 
-  // ✏️ Start editing
   const handleEditCustomer = (c) => {
     setEditEmail(c.Email);
     setName(c.Name);
@@ -133,68 +100,26 @@ function Customer() {
       <div className="customers-section">
         <h3>{editEmail ? "Edit Customer" : "Add New Customer"}</h3>
 
-        <div className="add-customer-form">
-          {/* ✅ Only allow Add/Edit for non-Employees */}
-          {role !== "Employee" ? (
-            <>
-              <input
-                type="text"
-                placeholder="Name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-              <input
-                type="email"
-                placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={!!editEmail}
-              />
-              <input
-                type="text"
-                placeholder="Applied Position"
-                value={position}
-                onChange={(e) => setPosition(e.target.value)}
-              />
-              <input
-                type="number"
-                placeholder="Salary"
-                value={salary}
-                onChange={(e) => setSalary(e.target.value)}
-              />
-              <button onClick={handleAddOrUpdate}>
-                {editEmail ? "✏️ Update Customer" : "+ Add Customer"}
-              </button>
-              {editEmail && (
-                <button
-                  style={{
-                    backgroundColor: "#6b7280",
-                    color: "white",
-                    border: "none",
-                    padding: "4px 8px",
-                    borderRadius: "5px",
-                    marginLeft: "8px",
-                    cursor: "pointer",
-                  }}
-                  onClick={() => {
-                    setEditEmail(null);
-                    setName("");
-                    setEmail("");
-                    setPosition("");
-                    setSalary("");
-                    setMessage("Edit cancelled.");
-                  }}
-                >
-                  ❌ Cancel
-                </button>
-              )}
-            </>
-          ) : (
-            <p style={{ color: "#555", fontStyle: "italic" }}>
-              👀 View Only Mode — You cannot add or edit customers.
-            </p>
-          )}
-        </div>
+        {role !== "Employee" ? (
+          <div className="add-customer-form">
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" />
+            <input
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Email"
+              disabled={!!editEmail}
+            />
+            <input value={position} onChange={(e) => setPosition(e.target.value)} placeholder="Applied Position" />
+            <input value={salary} onChange={(e) => setSalary(e.target.value)} placeholder="Salary" type="number" />
+            <button onClick={handleAddOrUpdate}>
+              {editEmail ? "✏️ Update Customer" : "+ Add Customer"}
+            </button>
+          </div>
+        ) : (
+          <p style={{ fontStyle: "italic" }}>
+            👀 View Only Mode — You cannot add or edit customers.
+          </p>
+        )}
 
         {message && <div className="message">{message}</div>}
 
@@ -213,49 +138,19 @@ function Customer() {
               </tr>
             </thead>
             <tbody>
-              {customerData.length > 0 ? (
-                customerData.map((c, idx) => (
-                  <tr key={idx}>
+              {customerData.length ? (
+                customerData.map((c, i) => (
+                  <tr key={i}>
                     <td>{c.Name}</td>
                     <td>{c.Email}</td>
                     <td>{c["Applied Position"]}</td>
                     <td>{c.Salary}</td>
                     <td>
-                      {/* ✏️ Edit button for Manager/Admin/SuperAdmin */}
-                      {(role === "Manager" ||
-                        role === "Admin" ||
-                        role === "SuperAdmin") && (
-                        <button
-                          style={{
-                            backgroundColor: "#3b82f6",
-                            color: "white",
-                            border: "none",
-                            padding: "4px 8px",
-                            borderRadius: "5px",
-                            cursor: "pointer",
-                            marginRight: "5px",
-                          }}
-                          onClick={() => handleEditCustomer(c)}
-                        >
-                          ✏️ Edit
-                        </button>
-                      )}
-
-                      {/* 🗑 Delete button for Admin/SuperAdmin only */}
                       {(role === "Admin" || role === "SuperAdmin") && (
-                        <button
-                          style={{
-                            backgroundColor: "#ef4444",
-                            color: "white",
-                            border: "none",
-                            padding: "4px 8px",
-                            borderRadius: "5px",
-                            cursor: "pointer",
-                          }}
-                          onClick={() => handleDeleteCustomer(c.Email)}
-                        >
-                          🗑 Delete
-                        </button>
+                        <>
+                          <button onClick={() => handleEditCustomer(c)}>✏️</button>
+                          <button onClick={() => handleDeleteCustomer(c.Email)}>🗑️</button>
+                        </>
                       )}
                     </td>
                   </tr>
@@ -274,4 +169,3 @@ function Customer() {
 }
 
 export default Customer;
-
