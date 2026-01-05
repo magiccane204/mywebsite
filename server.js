@@ -262,12 +262,6 @@ app.post("/resume-extract", upload.single("resume"), async (req, res) => {
   res.json({ text });
 });
 
-/* ================== FRONTEND ================== */
-app.use(express.static(path.join(__dirname, "build")));
-app.get("*", (_, res) =>
-  res.sendFile(path.join(__dirname, "build", "index.html"))
-);
-
 // GET current user (by token)
 app.get("/me", auth, async (req, res) => {
   const user = await usersCollection.findOne(
@@ -289,9 +283,19 @@ app.put("/me/darkmode", auth, async (req, res) => {
   res.json({ success: true });
 });
 
+
+/* ================== FRONTEND ================== */
+app.use(express.static(path.join(__dirname, "build")));
+app.get("*", (_, res) =>
+  res.sendFile(path.join(__dirname, "build", "index.html"))
+);
+
+
+
 /* ================== START ================== */
 connectDB().then(() =>
   app.listen(PORT, () => console.log("🚀 Server running on", PORT))
 );
+
 
 
