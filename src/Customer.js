@@ -1,171 +1,143 @@
-import React, { useEffect, useState } from "react";
-import api from "./api";
-import "./CRM.css";
+const express = require("express");
+const cors = require("cors");
+const bodyParser = require("body-parser");
+const { MongoClient } = require("mongodb");
 
-function Customer() {
-  const [customerData, setCustomerData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState("");
-  const [role, setRole] = useState("");
+const app = express();
+app.use(cors());
+app.use(bodyParser.json());
 
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [position, setPosition] = useState("");
-  const [salary, setSalary] = useState("");
-  const [editEmail, setEditEmail] = useState(null);
+/* ===============================
+   MongoDB Connection
+================================ */
+const MONGO_URL = "mongodb://127.0.0.1:27017";
+const DB_NAME = "crm";
 
-  const fetchUserAndCustomers = async () => {
-    try {
-      const userRes = await api.get("/me");
-      setRole(userRes.data.Role);
+let db, customersCollection;
 
-      const custRes = await api.get("/customers");
-      setCustomerData(custRes.data);
-    } catch (err) {
-      console.error(err);
-      setMessage("Failed to load customers.");
-    } finally {
-      setLoading(false);
+MongoClient.connect(MONGO_URL)
+  .then((client) => {
+    db = client.db(DB_NAME);
+    customersCollection = db.collection("customers");
+    console.log("✅ MongoDB connected");
+  })
+  .catch((err) => console.error("❌ MongoDB error:", err));
+
+/* ===============================
+   Mock Auth / Role Endpoint
+================================ */
+app.get("/me", (req, res) => {
+  // Change role to test UI permissions
+  res.json({ Role: "Admin" }); 
+});
+
+/* ===============================
+   Get All Customers
+================================ */
+app.get("/customers", async (req, res) => {
+  try {
+    const customers = await customersCollection.find({}).toArray();
+    res.json(customers);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to fetch customers" });
+  }
+});
+
+/* ===============================
+   Add Customer (MATCHES UI)
+================================ */
+app.post("/add-customer", async (req, res) => {
+  try {
+    const {
+      Name,
+      Email,
+      Salary,
+      ["Applied Position"]: appliedPosition,
+    } = req.body;
+
+    if (!Name || !Email || !appliedPosition || Salary === undefined) {
+      return res.status(400).json({ message: "All fields are required" });
     }
-  };
 
-  useEffect(() => {
-    fetchUserAndCustomers();
-    const interval = setInterval(fetchUserAndCustomers, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const handleAddOrUpdate = async () => {
-    if (!name || !email || !position || !salary) {
-      setMessage("All fields are required.");
-      return;
+    const exists = await customersCollection.findOne({ Email });
+    if (exists) {
+      return res.status(409).json({ message: "Customer already exists" });
     }
 
-    const payload = {
-      Name: name,
-      Email: email,
-      "Applied Position": position,
-      Salary: Number(salary),
+    const customer = {
+      Name,
+      Email,
+      "Applied Position": appliedPosition,
+      Salary,
     };
 
-    try {
-      if (editEmail) {
-        await api.put(`/update-customer/${editEmail}`, payload);
-        setMessage("✏️ Customer updated successfully!");
-        setEditEmail(null);
-      } else {
-        await api.post("/add-customer", payload);
-        setMessage("✅ Customer added successfully!");
+    await customersCollection.insertOne(customer);
+    res.status(201).json({ message: "Customer added successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+/* ===============================
+   Update Customer
+================================ */
+app.put("/update-customer/:email", async (req, res) => {
+  try {
+    const email = req.params.email;
+    const {
+      Name,
+      Salary,
+      ["Applied Position"]: appliedPosition,
+    } = req.body;
+
+    const result = await customersCollection.updateOne(
+      { Email: email },
+      {
+        $set: {
+          Name,
+          Salary,
+          "Applied Position": appliedPosition,
+        },
       }
+    );
 
-      setName("");
-      setEmail("");
-      setPosition("");
-      setSalary("");
-      fetchUserAndCustomers();
-    } catch (err) {
-      console.error(err);
-      setMessage("Failed to save customer.");
+    if (!result.matchedCount) {
+      return res.status(404).json({ message: "Customer not found" });
     }
-  };
 
-  const handleDeleteCustomer = async (email) => {
-    if (!window.confirm(`Delete ${email}?`)) return;
+    res.json({ message: "Customer updated successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
-    try {
-      await api.delete(`/customer/${email}`);
-      setMessage("🗑️ Customer deleted successfully!");
-      fetchUserAndCustomers();
-    } catch (err) {
-      console.error(err);
-      setMessage("Failed to delete customer.");
+/* ===============================
+   Delete Customer
+================================ */
+app.delete("/customer/:email", async (req, res) => {
+  try {
+    const email = req.params.email;
+
+    const result = await customersCollection.deleteOne({ Email: email });
+
+    if (!result.deletedCount) {
+      return res.status(404).json({ message: "Customer not found" });
     }
-  };
 
-  const handleEditCustomer = (c) => {
-    setEditEmail(c.Email);
-    setName(c.Name);
-    setEmail(c.Email);
-    setPosition(c["Applied Position"]);
-    setSalary(c.Salary);
-    setMessage("Editing customer: " + c.Email);
-  };
+    res.json({ message: "Customer deleted successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
-  return (
-    <div className="content">
-      <div className="horizontalbar">
-        Customer Management — <strong>{role}</strong>
-      </div>
-
-      <div className="customers-section">
-        <h3>{editEmail ? "Edit Customer" : "Add New Customer"}</h3>
-
-        {role !== "Employee" ? (
-          <div className="add-customer-form">
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" />
-            <input
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Email"
-              disabled={!!editEmail}
-            />
-            <input value={position} onChange={(e) => setPosition(e.target.value)} placeholder="Applied Position" />
-            <input value={salary} onChange={(e) => setSalary(e.target.value)} placeholder="Salary" type="number" />
-            <button onClick={handleAddOrUpdate}>
-              {editEmail ? "✏️ Update Customer" : "+ Add Customer"}
-            </button>
-          </div>
-        ) : (
-          <p style={{ fontStyle: "italic" }}>
-            👀 View Only Mode — You cannot add or edit customers.
-          </p>
-        )}
-
-        {message && <div className="message">{message}</div>}
-
-        <h3>Customer List</h3>
-        {loading ? (
-          <div>Loading customers…</div>
-        ) : (
-          <table className="excel-table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Applied Position</th>
-                <th>Salary</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {customerData.length ? (
-                customerData.map((c, i) => (
-                  <tr key={i}>
-                    <td>{c.Name}</td>
-                    <td>{c.Email}</td>
-                    <td>{c["Applied Position"]}</td>
-                    <td>{c.Salary}</td>
-                    <td>
-                      {(role === "Admin" || role === "SuperAdmin") && (
-                        <>
-                          <button onClick={() => handleEditCustomer(c)}>✏️</button>
-                          <button onClick={() => handleDeleteCustomer(c.Email)}>🗑️</button>
-                        </>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="5">No customers found.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        )}
-      </div>
-    </div>
-  );
-}
-
-export default Customer;
+/* ===============================
+   Start Server
+================================ */
+const PORT = 5000;
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
+});
