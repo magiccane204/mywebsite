@@ -10,7 +10,7 @@ app.use(bodyParser.json());
 /* ===============================
    MongoDB Connection
 ================================ */
-const MONGO_URL = MONGODB_URI;
+const MONGO_URL =process.env.MONGODB_URI;
 const DB_NAME = "crm";
 
 let db, customersCollection;
@@ -141,4 +141,5 @@ const PORT = 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
+
 
