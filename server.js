@@ -1,4 +1,4 @@
-// server.js — FINAL (NO fs, Render-safe)
+// server.js — FINAL (fs-free, Render-safe, roles from DB)
 
 require("dotenv").config();
 
@@ -15,7 +15,7 @@ const mammoth = require("mammoth");
 const app = express();
 
 /* ================== CONFIG ================== */
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGODB_URI;
 const JWT_SECRET = process.env.JWT_SECRET;
 const OWNER_EMAIL = "dhruvbhatiaxcyz@gmail.com";
@@ -24,15 +24,14 @@ const OTP_VALID_MS = 5 * 60 * 1000;
 const OTP_RESEND_MS = 30 * 1000;
 
 /* ================== VALIDATION ================== */
-if (!PORT || !MONGO_URI || !JWT_SECRET || !process.env.RESEND_API_KEY) {
-  console.error("❌ Missing required environment variables");
+if (!MONGO_URI || !JWT_SECRET || !process.env.RESEND_API_KEY) {
+  console.error("❌ Missing environment variables");
   process.exit(1);
 }
 
 /* ================== MIDDLEWARE ================== */
 app.use(cors());
-app.use(express.json({ limit: "100mb" }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "50mb" }));
 
 /* ================== EMAIL ================== */
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -58,7 +57,6 @@ async function connectDB() {
   console.log("✅ MongoDB connected");
 }
 
-/* ================== SUPER ADMIN ================== */
 async function ensureSuperAdmin() {
   const exists = await usersCollection.findOne({ Email: OWNER_EMAIL });
   if (!exists) {
@@ -68,7 +66,6 @@ async function ensureSuperAdmin() {
       Password: "Password",
       Company: "Apple",
       Role: "SuperAdmin",
-      verified: true,
       createdAt: new Date(),
     });
   }
@@ -76,50 +73,45 @@ async function ensureSuperAdmin() {
 
 /* ================== AUTH ================== */
 app.post("/login", async (req, res) => {
-  try {
-    const { email, password } = req.body;
+  const { email, password } = req.body;
 
-    const user = await usersCollection.findOne({ Email: email });
-    if (!user || user.Password !== password)
-      return res.status(401).json({ success: false });
+  const user = await usersCollection.findOne({ Email: email });
+  if (!user || user.Password !== password)
+    return res.status(401).json({ success: false });
 
-    const now = new Date();
-    const existing = await otpCollection.findOne({ email });
+  const now = new Date();
+  const existing = await otpCollection.findOne({ email });
 
-    if (existing && existing.resendAfter > now) {
-      return res.json({
-        success: true,
-        expiresIn: Math.ceil((existing.expiresAt - now) / 1000),
-        resendIn: Math.ceil((existing.resendAfter - now) / 1000),
-      });
-    }
-
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-    await otpCollection.deleteMany({ email });
-
-    await otpCollection.insertOne({
-      email,
-      otp,
-      expiresAt: new Date(now.getTime() + OTP_VALID_MS),
-      resendAfter: new Date(now.getTime() + OTP_RESEND_MS),
-    });
-
-    await resend.emails.send({
-      from: "CRM <onboarding@resend.dev>",
-      to: email,
-      subject: "OTP Verification",
-      html: `<h3>Your OTP is ${otp}</h3>`,
-    });
-
-    res.json({
+  if (existing && existing.resendAfter > now) {
+    return res.json({
       success: true,
-      expiresIn: OTP_VALID_MS / 1000,
-      resendIn: OTP_RESEND_MS / 1000,
+      expiresIn: Math.ceil((existing.expiresAt - now) / 1000),
+      resendIn: Math.ceil((existing.resendAfter - now) / 1000),
     });
-  } catch {
-    res.status(500).json({ success: false });
   }
+
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+  await otpCollection.deleteMany({ email });
+  await otpCollection.insertOne({
+    email,
+    otp,
+    expiresAt: new Date(now.getTime() + OTP_VALID_MS),
+    resendAfter: new Date(now.getTime() + OTP_RESEND_MS),
+  });
+
+  await resend.emails.send({
+    from: "CRM <onboarding@resend.dev>",
+    to: email,
+    subject: "OTP Verification",
+    html: `<h3>Your OTP is ${otp}</h3>`,
+  });
+
+  res.json({
+    success: true,
+    expiresIn: OTP_VALID_MS / 1000,
+    resendIn: OTP_RESEND_MS / 1000,
+  });
 });
 
 app.post("/verify-otp", async (req, res) => {
@@ -142,7 +134,7 @@ app.post("/verify-otp", async (req, res) => {
   res.json({ success: true, token });
 });
 
-/* ================== JWT MIDDLEWARE ================== */
+/* ================== JWT ================== */
 function auth(req, res, next) {
   const token = req.headers.authorization?.split(" ")[1];
   if (!token) return res.sendStatus(401);
@@ -164,7 +156,59 @@ app.get("/me", auth, async (req, res) => {
   res.json(user);
 });
 
-/* ================== FILE UPLOAD (NO fs) ================== */
+/* ================== CUSTOMERS ================== */
+app.get("/customers/:email", auth, async (req, res) => {
+  const user = await usersCollection.findOne({ Email: req.params.email });
+  if (!user) return res.json([]);
+
+  const customers = await customersCollection
+    .find({ Company: user.Company })
+    .toArray();
+
+  res.json(customers);
+});
+
+app.post("/add-customer", auth, async (req, res) => {
+  const { Name, Email, Salary, ["Applied Position"]: position } = req.body;
+
+  const user = await usersCollection.findOne({ Email: req.user.email });
+  if (user.Role === "Employee")
+    return res.status(403).json({ message: "View only" });
+
+  await customersCollection.insertOne({
+    Name,
+    Email,
+    Salary,
+    "Applied Position": position,
+    Company: user.Company,
+  });
+
+  res.json({ success: true });
+});
+
+app.put("/update-customer/:email", auth, async (req, res) => {
+  const user = await usersCollection.findOne({ Email: req.user.email });
+  if (!["Manager", "Admin", "SuperAdmin"].includes(user.Role))
+    return res.sendStatus(403);
+
+  await customersCollection.updateOne(
+    { Email: req.params.email },
+    { $set: req.body }
+  );
+
+  res.json({ success: true });
+});
+
+app.delete("/customer/:email", auth, async (req, res) => {
+  const user = await usersCollection.findOne({ Email: req.user.email });
+  if (!["Admin", "SuperAdmin"].includes(user.Role))
+    return res.sendStatus(403);
+
+  await customersCollection.deleteOne({ Email: req.params.email });
+  res.json({ success: true });
+});
+
+/* ================== FILE UPLOAD (fs-free) ================== */
 const upload = multer({ storage: multer.memoryStorage() });
 
 app.post("/resume-extract", upload.single("resume"), async (req, res) => {
