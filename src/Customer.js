@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import "./Customer.css";
 
 function Customer() {
   const [customers, setCustomers] = useState([]);
@@ -14,115 +15,94 @@ function Customer() {
   const token = localStorage.getItem("token");
   const userEmail = localStorage.getItem("loggedInUser");
 
-  const authHeader = {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+  const auth = {
+    headers: { Authorization: `Bearer ${token}` },
   };
 
-  const fetchData = async () => {
+  const loadData = async () => {
     try {
-      const me = await axios.get("/me", authHeader);
+      const me = await axios.get("/me", auth);
       setRole(me.data.Role);
 
-      const res = await axios.get(`/customers/${userEmail}`, authHeader);
+      const res = await axios.get(`/customers/${userEmail}`, auth);
       setCustomers(res.data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+    } catch {}
+    setLoading(false);
   };
 
   useEffect(() => {
-    fetchData();
+    loadData();
   }, []);
 
   const addCustomer = async () => {
-    if (!name || !email || !position || !salary) {
-      alert("Fill all fields");
-      return;
-    }
+    if (!name || !email || !position || !salary) return;
 
-    try {
-      await axios.post(
-        "/add-customer",
-        {
-          Name: name,
-          Email: email,
-          "Applied Position": position,
-          Salary: Number(salary),
-        },
-        authHeader
-      );
+    await axios.post(
+      "/add-customer",
+      {
+        Name: name,
+        Email: email,
+        "Applied Position": position,
+        Salary: Number(salary),
+      },
+      auth
+    );
 
-      setName("");
-      setEmail("");
-      setPosition("");
-      setSalary("");
-      fetchData();
-    } catch (err) {
-      alert("Failed to add customer");
-      console.error(err);
-    }
+    setName("");
+    setEmail("");
+    setPosition("");
+    setSalary("");
+    loadData();
   };
 
-  if (loading) return <p>Loading…</p>;
+  if (loading) return <div className="customer-wrapper">Loading…</div>;
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h2>Customer Management — {role}</h2>
+    <div className="customer-wrapper">
+      <h2 className="customer-title">
+        Customer Management — <span>{role}</span>
+      </h2>
 
-      {role !== "Employee" && (
-        <div style={{ marginBottom: "20px" }}>
-          <h3>Add Customer</h3>
+      <div className="customer-card">
+        <h3>Add Customer</h3>
 
-          <input
-            placeholder="Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <br />
-
-          <input
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <br />
-
-          <input
-            placeholder="Applied Position"
-            value={position}
-            onChange={(e) => setPosition(e.target.value)}
-          />
-          <br />
-
-          <input
-            type="number"
-            placeholder="Salary"
-            value={salary}
-            onChange={(e) => setSalary(e.target.value)}
-          />
-          <br />
-
+        <div className="customer-form">
+          <input placeholder="Name" value={name} onChange={e => setName(e.target.value)} />
+          <input placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} />
+          <input placeholder="Applied Position" value={position} onChange={e => setPosition(e.target.value)} />
+          <input type="number" placeholder="Salary" value={salary} onChange={e => setSalary(e.target.value)} />
           <button onClick={addCustomer}>Add Customer</button>
         </div>
-      )}
+      </div>
 
-      <h3>Customers</h3>
+      <div className="customer-card">
+        <h3>Customers</h3>
 
-      {customers.length === 0 ? (
-        <p>No customers found</p>
-      ) : (
-        <ul>
-          {customers.map((c, i) => (
-            <li key={i}>
-              {c.Name} — {c.Email} — {c["Applied Position"]} — ₹{c.Salary}
-            </li>
-          ))}
-        </ul>
-      )}
+        {customers.length === 0 ? (
+          <p className="empty">No customers found</p>
+        ) : (
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Position</th>
+                <th>Salary</th>
+              </tr>
+            </thead>
+            <tbody>
+              {customers.map((c, i) => (
+                <tr key={i}>
+                  <td>{c.Name}</td>
+                  <td>{c.Email}</td>
+                  <td>{c["Applied Position"]}</td>
+                  <td>₹{c.Salary}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
     </div>
   );
 }
