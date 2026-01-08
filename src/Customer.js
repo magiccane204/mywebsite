@@ -4,8 +4,7 @@ import "./Customer.css";
 
 function Customer() {
   const [customers, setCustomers] = useState([]);
-  const [role, setRole] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [role, setRole] = useState("Loading...");
   const [message, setMessage] = useState("");
 
   const [name, setName] = useState("");
@@ -13,117 +12,103 @@ function Customer() {
   const [position, setPosition] = useState("");
   const [salary, setSalary] = useState("");
 
-  const loggedInUser = localStorage.getItem("loggedInUser");
+  const token = localStorage.getItem("token");
+  const loggedEmail = localStorage.getItem("loggedInUser");
+
+  /* ================= LOAD USER ROLE ================= */
+  const loadMe = async () => {
+    try {
+      const res = await api.get("/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setRole(res.data.Role);
+    } catch {
+      setRole("Unknown");
+    }
+  };
+
+  /* ================= LOAD CUSTOMERS ================= */
+  const loadCustomers = async () => {
+    try {
+      const res = await api.get(`/customers/${loggedEmail}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setCustomers(res.data);
+    } catch {
+      setCustomers([]);
+    }
+  };
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const meRes = await api.get("/me");
-        setRole(meRes.data.Role);
+    loadMe();
+    loadCustomers();
+  }, []);
 
-        const custRes = await api.get(`/customers/${loggedInUser}`);
-        setCustomers(custRes.data);
-      } catch (err) {
-        setMessage("Unauthorized or failed to load data");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, [loggedInUser]);
-
+  /* ================= ADD CUSTOMER ================= */
   const addCustomer = async () => {
     if (!name || !email || !position || !salary) {
-      setMessage("All fields are required");
+      setMessage("All fields required");
       return;
     }
 
     try {
-      await api.post("/add-customer", {
-        Name: name,
-        Email: email,
-        Salary: Number(salary),
-        "Applied Position": position,
-      });
+      await api.post(
+        "/add-customer",
+        {
+          Name: name,
+          Email: email,
+          "Applied Position": position,
+          Salary: Number(salary),
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
-      setMessage("Customer added successfully");
-
+      setMessage("✅ Customer added");
       setName("");
       setEmail("");
       setPosition("");
       setSalary("");
-
-      const res = await api.get(`/customers/${loggedInUser}`);
-      setCustomers(res.data);
+      loadCustomers();
     } catch (err) {
       if (err.response?.status === 403) {
-        setMessage("You are not authorized to add customers");
+        setMessage("❌ You are not authorized to add customers");
       } else {
-        setMessage("Failed to add customer");
+        setMessage("❌ Failed to add customer");
       }
     }
   };
 
-  if (loading) return <div className="customer-page">Loading…</div>;
-
   return (
-    <div className="customer-page">
-      <h2>
-        Customer Management{" "}
-        <span className="role-badge">{role || "Unknown"}</span>
-      </h2>
-
-      {message && <div className="message">{message}</div>}
-
-      {role !== "Employee" && (
-        <div className="customer-form">
-          <h3>Add Customer</h3>
-
-          <input
-            type="text"
-            placeholder="Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-
-          <input
-            type="text"
-            placeholder="Applied Position"
-            value={position}
-            onChange={(e) => setPosition(e.target.value)}
-          />
-
-          <input
-            type="number"
-            placeholder="Salary"
-            value={salary}
-            onChange={(e) => setSalary(e.target.value)}
-          />
-
-          <button onClick={addCustomer}>Add Customer</button>
-        </div>
-      )}
+    <div className="customers-page">
+      <h2>Customer Management — {role}</h2>
 
       {role === "Employee" && (
-        <div className="view-only">
-          View only mode — you cannot add customers
-        </div>
+        <p className="warning">
+          👀 View Only Mode — You are not authorized to add customers
+        </p>
       )}
+
+      <div className="add-form">
+        <input placeholder="Name" value={name} onChange={e => setName(e.target.value)} />
+        <input placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} />
+        <input placeholder="Applied Position" value={position} onChange={e => setPosition(e.target.value)} />
+        <input placeholder="Salary" type="number" value={salary} onChange={e => setSalary(e.target.value)} />
+
+        <button onClick={addCustomer} disabled={role === "Employee"}>
+          Add Customer
+        </button>
+      </div>
+
+      {message && <p className="message">{message}</p>}
 
       <h3>Customer List</h3>
 
       {customers.length === 0 ? (
         <p>No customers found</p>
       ) : (
-        <table className="customer-table">
+        <table>
           <thead>
             <tr>
               <th>Name</th>
