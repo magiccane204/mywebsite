@@ -1,4 +1,4 @@
-// server.js — FINAL (Resend + JWT + MongoDB OTP + Countdown + Cooldown, Render-ready)
+// server.js — FINAL (NO fs, Render-safe)
 
 require("dotenv").config();
 
@@ -8,7 +8,6 @@ const { MongoClient } = require("mongodb");
 const { Resend } = require("resend");
 const jwt = require("jsonwebtoken");
 const multer = require("multer");
-const fs = require("fs");
 const path = require("path");
 const pdfParse = require("pdf-parse");
 const mammoth = require("mammoth");
@@ -21,8 +20,8 @@ const MONGO_URI = process.env.MONGODB_URI;
 const JWT_SECRET = process.env.JWT_SECRET;
 const OWNER_EMAIL = "dhruvbhatiaxcyz@gmail.com";
 
-const OTP_VALID_MS = 5 * 60 * 1000;   // 5 minutes
-const OTP_RESEND_MS = 30 * 1000;      // 30 seconds
+const OTP_VALID_MS = 5 * 60 * 1000;
+const OTP_RESEND_MS = 30 * 1000;
 
 /* ================== VALIDATION ================== */
 if (!PORT || !MONGO_URI || !JWT_SECRET || !process.env.RESEND_API_KEY) {
@@ -35,7 +34,7 @@ app.use(cors());
 app.use(express.json({ limit: "100mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-/* ================== EMAIL (RESEND) ================== */
+/* ================== EMAIL ================== */
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 /* ================== DATABASE ================== */
@@ -53,7 +52,6 @@ async function connectDB() {
   otpCollection = db.collection("otp");
 
   await usersCollection.createIndex({ Email: 1 }, { unique: true });
-  await customersCollection.createIndex({ Company: 1 });
   await otpCollection.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
   await ensureSuperAdmin();
@@ -77,148 +75,74 @@ async function ensureSuperAdmin() {
 }
 
 /* ================== AUTH ================== */
-
-// LOGIN → SEND OTP (with cooldown + expiry info)
 app.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
-    if (!email || !password)
-      return res.status(400).json({ success: false });
 
     const user = await usersCollection.findOne({ Email: email });
     if (!user || user.Password !== password)
       return res.status(401).json({ success: false });
 
     const now = new Date();
-
     const existing = await otpCollection.findOne({ email });
-if (existing && existing.resendAfter > now) {
-  return res.json({
-    success: true,
-    expiresIn: Math.ceil((existing.expiresAt - now) / 1000),
-    resendIn: Math.ceil((existing.resendAfter - now) / 1000),
-  });
-}
 
+    if (existing && existing.resendAfter > now) {
+      return res.json({
+        success: true,
+        expiresIn: Math.ceil((existing.expiresAt - now) / 1000),
+        resendIn: Math.ceil((existing.resendAfter - now) / 1000),
+      });
+    }
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
     await otpCollection.deleteMany({ email });
 
-    const expiresAt = new Date(now.getTime() + OTP_VALID_MS);
-    const resendAfter = new Date(now.getTime() + OTP_RESEND_MS);
-
     await otpCollection.insertOne({
       email,
       otp,
-      expiresAt,
-      resendAfter,
+      expiresAt: new Date(now.getTime() + OTP_VALID_MS),
+      resendAfter: new Date(now.getTime() + OTP_RESEND_MS),
     });
 
     await resend.emails.send({
       from: "CRM <onboarding@resend.dev>",
       to: email,
       subject: "OTP Verification",
-      html: `<h3>Your OTP is ${otp}</h3><p>Valid for 5 minutes</p>`,
+      html: `<h3>Your OTP is ${otp}</h3>`,
     });
 
     res.json({
       success: true,
-      expiresIn: Math.ceil(OTP_VALID_MS / 1000),
-      resendIn: Math.ceil(OTP_RESEND_MS / 1000),
+      expiresIn: OTP_VALID_MS / 1000,
+      resendIn: OTP_RESEND_MS / 1000,
     });
-  } catch (err) {
-    console.error("LOGIN ERROR:", err);
+  } catch {
     res.status(500).json({ success: false });
   }
 });
 
-// RESEND OTP (cooldown enforced)
-app.post("/send-otp", async (req, res) => {
-  try {
-    const { email } = req.body;
-    if (!email) return res.status(400).json({ success: false });
-
-    const now = new Date();
-    const record = await otpCollection.findOne({ email });
-
-    if (!record)
-      return res.status(400).json({ success: false });
-
-    if (record.resendAfter > now) {
-   return res.json({
-  success: true,
-  expiresIn: Math.ceil((record.expiresAt - now) / 1000),
-  resendIn: Math.ceil((record.resendAfter - now) / 1000),
-});
-
-    }
-
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-    const expiresAt = new Date(now.getTime() + OTP_VALID_MS);
-    const resendAfter = new Date(now.getTime() + OTP_RESEND_MS);
-
-    await otpCollection.updateOne(
-      { email },
-      {
-        $set: {
-          otp,
-          expiresAt,
-          resendAfter,
-        },
-      }
-    );
-
-    await resend.emails.send({
-      from: "CRM <onboarding@resend.dev>",
-      to: email,
-      subject: "OTP Verification",
-      html: `<h3>Your OTP is ${otp}</h3><p>Valid for 5 minutes</p>`,
-    });
-
-    res.json({
-      success: true,
-      expiresIn: Math.ceil(OTP_VALID_MS / 1000),
-      resendIn: Math.ceil(OTP_RESEND_MS / 1000),
-    });
-  } catch (err) {
-    console.error("RESEND ERROR:", err);
-    res.status(500).json({ success: false });
-  }
-});
-
-// VERIFY OTP → ISSUE JWT
 app.post("/verify-otp", async (req, res) => {
-  try {
-    const { email, otp } = req.body;
+  const { email, otp } = req.body;
 
-    const record = await otpCollection.findOne({ email, otp });
-    if (!record) return res.status(401).json({ success: false });
+  const record = await otpCollection.findOne({ email, otp });
+  if (!record || record.expiresAt < new Date())
+    return res.status(401).json({ success: false });
 
-    if (record.expiresAt < new Date()) {
-      await otpCollection.deleteOne({ email });
-      return res.status(401).json({ success: false });
-    }
+  await otpCollection.deleteOne({ email });
 
-    await otpCollection.deleteOne({ email });
+  const user = await usersCollection.findOne({ Email: email });
 
-    const user = await usersCollection.findOne({ Email: email });
+  const token = jwt.sign(
+    { email: user.Email, role: user.Role },
+    JWT_SECRET,
+    { expiresIn: "1h" }
+  );
 
-    const token = jwt.sign(
-      { email: user.Email, role: user.Role },
-      JWT_SECRET,
-      { expiresIn: "1h" }
-    );
-
-    res.json({ success: true, token });
-  } catch (err) {
-    console.error("VERIFY ERROR:", err);
-    res.status(500).json({ success: false });
-  }
+  res.json({ success: true, token });
 });
 
-/* ================== AUTH MIDDLEWARE ================== */
+/* ================== JWT MIDDLEWARE ================== */
 function auth(req, res, next) {
   const token = req.headers.authorization?.split(" ")[1];
   if (!token) return res.sendStatus(401);
@@ -231,38 +155,7 @@ function auth(req, res, next) {
   }
 }
 
-/* ================== CUSTOMERS ================== */
-app.get("/customers/:email", auth, async (req, res) => {
-  const user = await usersCollection.findOne(
-    { Email: req.params.email },
-    { projection: { Company: 1 } }
-  );
-
-  const customers = await customersCollection
-    .find({ Company: user?.Company })
-    .toArray();
-
-  res.json(customers);
-});
-
-/* ================== FILE UPLOAD ================== */
-const upload = multer({ dest: "uploads/" });
-
-app.post("/resume-extract", upload.single("resume"), async (req, res) => {
-  const buffer = fs.readFileSync(req.file.path);
-  let text = "";
-
-  if (req.file.mimetype === "application/pdf") {
-    text = (await pdfParse(buffer)).text;
-  } else {
-    text = (await mammoth.extractRawText({ buffer })).value;
-  }
-
-  fs.unlinkSync(req.file.path);
-  res.json({ text });
-});
-
-// GET current user (by token)
+/* ================== CURRENT USER ================== */
 app.get("/me", auth, async (req, res) => {
   const user = await usersCollection.findOne(
     { Email: req.user.email },
@@ -271,18 +164,20 @@ app.get("/me", auth, async (req, res) => {
   res.json(user);
 });
 
-// UPDATE dark mode
-app.put("/me/darkmode", auth, async (req, res) => {
-  const { DarkMode } = req.body;
+/* ================== FILE UPLOAD (NO fs) ================== */
+const upload = multer({ storage: multer.memoryStorage() });
 
-  await usersCollection.updateOne(
-    { Email: req.user.email },
-    { $set: { DarkMode } }
-  );
+app.post("/resume-extract", upload.single("resume"), async (req, res) => {
+  let text = "";
 
-  res.json({ success: true });
+  if (req.file.mimetype === "application/pdf") {
+    text = (await pdfParse(req.file.buffer)).text;
+  } else {
+    text = (await mammoth.extractRawText({ buffer: req.file.buffer })).value;
+  }
+
+  res.json({ text });
 });
-
 
 /* ================== FRONTEND ================== */
 app.use(express.static(path.join(__dirname, "build")));
@@ -290,12 +185,7 @@ app.get("*", (_, res) =>
   res.sendFile(path.join(__dirname, "build", "index.html"))
 );
 
-
-
 /* ================== START ================== */
 connectDB().then(() =>
   app.listen(PORT, () => console.log("🚀 Server running on", PORT))
 );
-
-
-
