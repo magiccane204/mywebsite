@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import api from "./api";
 
 function Customer() {
   const [customers, setCustomers] = useState([]);
@@ -21,7 +21,7 @@ function Customer() {
   useEffect(() => {
     if (!token || !userEmail) return;
 
-    axios.get("/me", authHeader).then((res) => {
+    api.get("/me", authHeader).then((res) => {
       setRole(res.data.Role);
     });
 
@@ -29,7 +29,7 @@ function Customer() {
   }, []);
 
   const fetchCustomers = () => {
-    axios
+    api
       .get(`/customers/${userEmail}`, authHeader)
       .then((res) => setCustomers(res.data))
       .catch(() => setCustomers([]));
@@ -38,7 +38,7 @@ function Customer() {
   const addCustomer = async () => {
     if (!name || !email || !position || !salary) return;
 
-    await axios.post(
+    await api.post(
       "/add-customer",
       {
         Name: name,
@@ -91,3 +91,4 @@ function Customer() {
 }
 
 export default Customer;
+
