@@ -1,4 +1,4 @@
-// server.js — FIXED (adds /api routes + root route)
+// server.js — FINAL (serves React + API on same URL)
 
 require("dotenv").config();
 
@@ -6,22 +6,18 @@ const express = require("express");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
 const { MongoClient } = require("mongodb");
+const path = require("path");
 
 const app = express();
 
 /* ================= CONFIG ================= */
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 10000;
 const MONGO_URI = process.env.MONGODB_URI;
 const JWT_SECRET = process.env.JWT_SECRET;
 
 /* ================= MIDDLEWARE ================= */
 app.use(cors());
 app.use(express.json());
-
-/* ================= ROOT ================= */
-app.get("/", (req, res) => {
-  res.send("Backend running");
-});
 
 /* ================= DATABASE ================= */
 const client = new MongoClient(MONGO_URI);
@@ -31,7 +27,6 @@ let customers;
 async function connectDB() {
   await client.connect();
   const db = client.db("Users");
-
   users = db.collection("user");
   customers = db.collection("Customers");
 }
@@ -49,7 +44,7 @@ function auth(req, res, next) {
   }
 }
 
-/* ================= AUTH ================= */
+/* ================= API ROUTES ================= */
 app.post("/api/login", async (req, res) => {
   const { email, password } = req.body;
 
@@ -66,17 +61,14 @@ app.post("/api/login", async (req, res) => {
   res.json({ success: true, token });
 });
 
-/* ================= CURRENT USER ================= */
 app.get("/api/me", auth, async (req, res) => {
   const user = await users.findOne(
     { Email: req.user.email },
     { projection: { Password: 0 } }
   );
-
   res.json(user);
 });
 
-/* ================= CUSTOMERS ================= */
 app.get("/api/customers/:email", auth, async (req, res) => {
   const user = await users.findOne({ Email: req.params.email });
   if (!user) return res.json([]);
@@ -123,6 +115,13 @@ app.delete("/api/customer/:email", auth, async (req, res) => {
 
   await customers.deleteOne({ Email: req.params.email });
   res.json({ success: true });
+});
+
+/* ================= REACT STATIC ================= */
+app.use(express.static(path.join(__dirname, "build")));
+
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "build", "index.html"));
 });
 
 /* ================= START ================= */
