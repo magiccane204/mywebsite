@@ -5,12 +5,18 @@ import CRM from "./CRM";
 import axios from "axios";
 import "./App.css";
 
+const api = axios.create({
+  baseURL: "https://mywebsite-im3c.onrender.com",
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
 function App() {
   const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  // ONLY trust JWT, not old flags
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
@@ -19,28 +25,16 @@ function App() {
   }, []);
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      alert("Please enter email and password");
-      return;
-    }
+    if (!email || !password) return;
 
     try {
-      const res = await axios.post("/login", { email, password });
+      const res = await api.post("/api/login", { email, password });
 
-      // ✅ BACKEND ALREADY SENT OTP
       if (res.data.success) {
         localStorage.setItem("loggedInUser", email);
         setMode("otp");
-      } else {
-        alert("Invalid credentials.");
       }
-    } catch (err) {
-      if (err.response?.status === 401) {
-        alert("Invalid credentials.");
-      } else {
-        alert("Server error. Try again later.");
-      }
-    }
+    } catch {}
   };
 
   if (mode === "signup") return <Signup setMode={setMode} />;
@@ -59,56 +53,23 @@ function App() {
 
       <input
         type="email"
-        placeholder="Email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
       />
 
       <input
         type="password"
-        placeholder="Password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
       />
 
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          width: "100%",
-          margin: "10px 0",
-        }}
+      <button
+        type="button"
+        className="button"
+        onClick={handleLogin}
       >
-        <label style={{ display: "flex", alignItems: "center" }}>
-          <input type="checkbox" style={{ marginRight: "5px" }} />
-          Remember me?
-        </label>
-
-        <span
-          style={{ color: "blue", cursor: "pointer" }}
-          onClick={() => setMode("signup")}
-        >
-          Forgot Password?
-        </span>
-      </div>
-<button
-  type="button"
-  className="button"
-  onClick={handleLogin}
-  style={{ backgroundColor: "#ffffff", color: "#000000" }}
->
-  Login
-</button>
-
-      <p style={{ marginTop: "15px" }}>
-        Don’t have an account?{" "}
-        <span
-          style={{ color: "blue", cursor: "pointer" }}
-          onClick={() => setMode("signup")}
-        >
-          Sign Up
-        </span>
-      </p>
+        Login
+      </button>
     </div>
   );
 }
