@@ -1,3 +1,5 @@
+// Settings.js — FIXED (correct routes + works with backend)
+
 import React, { useState, useEffect } from "react";
 import api from "./api";
 import "./CRM.css";
@@ -7,12 +9,12 @@ export default function Settings() {
   const [darkMode, setDarkMode] = useState(false);
   const [message, setMessage] = useState("");
 
+  const token = localStorage.getItem("token");
+
   useEffect(() => {
     api
-      .get("/me", {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
+      .get("/api/me", {
+        headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
         setUser(res.data);
@@ -30,12 +32,10 @@ export default function Settings() {
 
     try {
       await api.put(
-        "/me/darkmode",
+        "/api/me/darkmode",
         { DarkMode: newMode },
         {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
 
