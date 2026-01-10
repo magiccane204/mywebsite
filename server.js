@@ -1,4 +1,4 @@
-// server.js — CLEAN, STABLE, PRODUCTION-READY (single source of truth = JWT)
+// server.js — FINAL FIX (API routes protected from React catch-all)
 
 require("dotenv").config();
 
@@ -29,15 +29,11 @@ async function connectDB() {
   const db = client.db("Users");
   users = db.collection("user");
   customers = db.collection("Customers");
-  console.log("MongoDB connected");
 }
 
-/* ================= AUTH MIDDLEWARE ================= */
+/* ================= AUTH ================= */
 function auth(req, res, next) {
-  const header = req.headers.authorization;
-  if (!header) return res.sendStatus(401);
-
-  const token = header.split(" ")[1];
+  const token = req.headers.authorization?.split(" ")[1];
   if (!token) return res.sendStatus(401);
 
   try {
@@ -48,7 +44,7 @@ function auth(req, res, next) {
   }
 }
 
-/* ================= AUTH ================= */
+/* ================= API ================= */
 app.post("/api/login", async (req, res) => {
   const { email, password } = req.body;
 
@@ -69,7 +65,6 @@ app.post("/api/login", async (req, res) => {
   res.json({ success: true, token });
 });
 
-/* ================= CURRENT USER ================= */
 app.get("/api/me", auth, (req, res) => {
   res.json({
     Email: req.user.email,
@@ -78,7 +73,6 @@ app.get("/api/me", auth, (req, res) => {
   });
 });
 
-/* ================= DARK MODE ================= */
 app.put("/api/me/darkmode", auth, async (req, res) => {
   const { DarkMode } = req.body;
 
@@ -90,7 +84,6 @@ app.put("/api/me/darkmode", auth, async (req, res) => {
   res.json({ success: true });
 });
 
-/* ================= CUSTOMERS ================= */
 app.get("/api/customers", auth, async (req, res) => {
   const list = await customers
     .find({ Company: req.user.company })
@@ -119,34 +112,10 @@ app.post("/api/add-customer", auth, async (req, res) => {
   res.json({ success: true });
 });
 
-app.put("/api/update-customer/:email", auth, async (req, res) => {
-  if (!["Manager", "Admin", "SuperAdmin"].includes(req.user.role))
-    return res.sendStatus(403);
-
-  await customers.updateOne(
-    { Email: req.params.email, Company: req.user.company },
-    { $set: req.body }
-  );
-
-  res.json({ success: true });
-});
-
-app.delete("/api/customer/:email", auth, async (req, res) => {
-  if (!["Admin", "SuperAdmin"].includes(req.user.role))
-    return res.sendStatus(403);
-
-  await customers.deleteOne({
-    Email: req.params.email,
-    Company: req.user.company,
-  });
-
-  res.json({ success: true });
-});
-
-/* ================= REACT STATIC ================= */
+/* ================= REACT ================= */
 app.use(express.static(path.join(__dirname, "build")));
 
-app.get("*", (req, res) => {
+app.get(/^\/(?!api).*/, (req, res) => {
   res.sendFile(path.join(__dirname, "build", "index.html"));
 });
 
