@@ -1,6 +1,6 @@
-// Settings.js — FIXED (correct routes + works with backend)
+// Settings.js — FIXED (prevents infinite loading, matches backend)
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import api from "./api";
 import "./CRM.css";
 
@@ -8,19 +8,21 @@ export default function Settings() {
   const [user, setUser] = useState(null);
   const [darkMode, setDarkMode] = useState(false);
   const [message, setMessage] = useState("");
-
-  const token = localStorage.getItem("token");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     api
-      .get("/api/me", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      .get("/api/me")
       .then((res) => {
         setUser(res.data);
         setDarkMode(res.data.DarkMode || false);
       })
-      .catch(() => setMessage("Failed to load settings"));
+      .catch(() => {
+        setMessage("Failed to load settings");
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, []);
 
   useEffect(() => {
@@ -31,14 +33,7 @@ export default function Settings() {
     const newMode = !darkMode;
 
     try {
-      await api.put(
-        "/api/me/darkmode",
-        { DarkMode: newMode },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
+      await api.put("/api/me/darkmode", { DarkMode: newMode });
       setDarkMode(newMode);
       setMessage(`Dark mode ${newMode ? "enabled" : "disabled"}`);
     } catch {
@@ -46,13 +41,15 @@ export default function Settings() {
     }
   };
 
-  if (!user) return <div className="settings">Loading...</div>;
+  if (loading) return <div className="settings">Loading...</div>;
+
+  if (!user)
+    return <div className="settings">Unable to load user settings</div>;
 
   return (
     <div className="settings">
       <h2>Settings</h2>
 
-      <p><b>Name:</b> {user.Name}</p>
       <p><b>Email:</b> {user.Email}</p>
       <p><b>Role:</b> {user.Role}</p>
       <p><b>Company:</b> {user.Company}</p>
