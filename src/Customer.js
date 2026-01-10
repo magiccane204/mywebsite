@@ -15,7 +15,15 @@ function Customer() {
   const token = localStorage.getItem("token");
   const loggedEmail = localStorage.getItem("loggedInUser");
 
-  /* ================= LOAD USER ROLE ================= */
+  useEffect(() => {
+    if (!token || !loggedEmail) {
+      setRole("Unknown");
+      return;
+    }
+    loadMe();
+    loadCustomers();
+  }, []);
+
   const loadMe = async () => {
     try {
       const res = await api.get("/api/me", {
@@ -27,7 +35,6 @@ function Customer() {
     }
   };
 
-  /* ================= LOAD CUSTOMERS ================= */
   const loadCustomers = async () => {
     try {
       const res = await api.get(`/api/customers/${loggedEmail}`, {
@@ -39,12 +46,6 @@ function Customer() {
     }
   };
 
-  useEffect(() => {
-    loadMe();
-    loadCustomers();
-  }, []);
-
-  /* ================= ADD CUSTOMER ================= */
   const addCustomer = async () => {
     if (!name || !email || !position || !salary) {
       setMessage("All fields required");
@@ -65,87 +66,89 @@ function Customer() {
         }
       );
 
-      setMessage("✅ Customer added");
+      setMessage("Customer added");
       setName("");
       setEmail("");
       setPosition("");
       setSalary("");
       loadCustomers();
     } catch (err) {
-      if (err.response?.status === 403) {
-        setMessage("❌ You are not authorized to add customers");
-      } else {
-        setMessage("❌ Failed to add customer");
-      }
+      setMessage("You are not authorized to add customers");
     }
   };
 
   return (
-    <div className="customers-page">
-      <h2>Customer Management — {role}</h2>
+    <div className="customer-wrapper">
+      <h2 className="customer-title">
+        Customer Management — <span>{role}</span>
+      </h2>
 
-      {role === "Employee" && (
-        <p className="warning">
-          👀 View Only Mode — You are not authorized to add customers
-        </p>
-      )}
+      <div className="customer-card">
+        <h3>Add Customer</h3>
 
-      <div className="add-form">
-        <input
-          placeholder="Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        <input
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <input
-          placeholder="Applied Position"
-          value={position}
-          onChange={(e) => setPosition(e.target.value)}
-        />
-        <input
-          placeholder="Salary"
-          type="number"
-          value={salary}
-          onChange={(e) => setSalary(e.target.value)}
-        />
+        {role === "Employee" && (
+          <p className="empty">View only mode</p>
+        )}
 
-        <button onClick={addCustomer} disabled={role === "Employee"}>
-          Add Customer
-        </button>
+        <div className="customer-form">
+          <input
+            placeholder="Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <input
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <input
+            placeholder="Applied Position"
+            value={position}
+            onChange={(e) => setPosition(e.target.value)}
+          />
+          <input
+            placeholder="Salary"
+            type="number"
+            value={salary}
+            onChange={(e) => setSalary(e.target.value)}
+          />
+
+          <button onClick={addCustomer} disabled={role === "Employee"}>
+            Add Customer
+          </button>
+        </div>
+
+        {message && <p className="empty">{message}</p>}
       </div>
 
-      {message && <p className="message">{message}</p>}
+      <div className="customer-card">
+        <h3>Customer List</h3>
 
-      <h3>Customer List</h3>
-
-      {customers.length === 0 ? (
-        <p>No customers found</p>
-      ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Position</th>
-              <th>Salary</th>
-            </tr>
-          </thead>
-          <tbody>
-            {customers.map((c, i) => (
-              <tr key={i}>
-                <td>{c.Name}</td>
-                <td>{c.Email}</td>
-                <td>{c["Applied Position"]}</td>
-                <td>{c.Salary}</td>
+        {customers.length === 0 ? (
+          <p className="empty">No customers found</p>
+        ) : (
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Position</th>
+                <th>Salary</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+            </thead>
+            <tbody>
+              {customers.map((c, i) => (
+                <tr key={i}>
+                  <td>{c.Name}</td>
+                  <td>{c.Email}</td>
+                  <td>{c["Applied Position"]}</td>
+                  <td>{c.Salary}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
     </div>
   );
 }
