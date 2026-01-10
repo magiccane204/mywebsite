@@ -1,4 +1,4 @@
-// server.js — FINAL (serves React + API on same URL)
+// server.js — FINAL backend aligned with frontend (/api routes)
 
 require("dotenv").config();
 
@@ -44,7 +44,7 @@ function auth(req, res, next) {
   }
 }
 
-/* ================= API ROUTES ================= */
+/* ================= API ================= */
 app.post("/api/login", async (req, res) => {
   const { email, password } = req.body;
 
@@ -82,6 +82,8 @@ app.post("/api/add-customer", auth, async (req, res) => {
   if (user.Role === "Employee") return res.sendStatus(403);
 
   const { Name, Email, Salary, ["Applied Position"]: Position } = req.body;
+  if (!Name || !Email || !Position || Salary == null)
+    return res.sendStatus(400);
 
   await customers.insertOne({
     Name,
@@ -117,7 +119,7 @@ app.delete("/api/customer/:email", auth, async (req, res) => {
   res.json({ success: true });
 });
 
-/* ================= REACT STATIC ================= */
+/* ================= REACT ================= */
 app.use(express.static(path.join(__dirname, "build")));
 
 app.get("*", (req, res) => {
