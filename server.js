@@ -1,4 +1,4 @@
-// server.js — FINAL backend aligned with frontend (/api routes)
+// server.js — CLEAN, STABLE, PRODUCTION-READY (single source of truth = JWT)
 
 require("dotenv").config();
 
@@ -29,11 +29,15 @@ async function connectDB() {
   const db = client.db("Users");
   users = db.collection("user");
   customers = db.collection("Customers");
+  console.log("MongoDB connected");
 }
 
-/* ================= JWT ================= */
+/* ================= AUTH MIDDLEWARE ================= */
 function auth(req, res, next) {
-  const token = req.headers.authorization?.split(" ")[1];
+  const header = req.headers.authorization;
+  if (!header) return res.sendStatus(401);
+
+  const token = header.split(" ")[1];
   if (!token) return res.sendStatus(401);
 
   try {
@@ -44,7 +48,7 @@ function auth(req, res, next) {
   }
 }
 
-/* ================= API ================= */
+/* ================= AUTH ================= */
 app.post("/api/login", async (req, res) => {
   const { email, password } = req.body;
 
@@ -53,44 +57,62 @@ app.post("/api/login", async (req, res) => {
     return res.status(401).json({ success: false });
 
   const token = jwt.sign(
-    { email: user.Email, role: user.Role },
+    {
+      email: user.Email,
+      role: user.Role,
+      company: user.Company,
+    },
     JWT_SECRET,
-    { expiresIn: "1h" }
+    { expiresIn: "2h" }
   );
 
   res.json({ success: true, token });
 });
 
-app.get("/api/me", auth, async (req, res) => {
-  const user = await users.findOne(
-    { Email: req.user.email },
-    { projection: { Password: 0 } }
-  );
-  res.json(user);
+/* ================= CURRENT USER ================= */
+app.get("/api/me", auth, (req, res) => {
+  res.json({
+    Email: req.user.email,
+    Role: req.user.role,
+    Company: req.user.company,
+  });
 });
 
-app.get("/api/customers/:email", auth, async (req, res) => {
-  const user = await users.findOne({ Email: req.params.email });
-  if (!user) return res.json([]);
+/* ================= DARK MODE ================= */
+app.put("/api/me/darkmode", auth, async (req, res) => {
+  const { DarkMode } = req.body;
 
-  const list = await customers.find({ Company: user.Company }).toArray();
+  await users.updateOne(
+    { Email: req.user.email },
+    { $set: { DarkMode } }
+  );
+
+  res.json({ success: true });
+});
+
+/* ================= CUSTOMERS ================= */
+app.get("/api/customers", auth, async (req, res) => {
+  const list = await customers
+    .find({ Company: req.user.company })
+    .toArray();
+
   res.json(list);
 });
 
 app.post("/api/add-customer", auth, async (req, res) => {
-  const user = await users.findOne({ Email: req.user.email });
-  if (user.Role === "Employee") return res.sendStatus(403);
+  if (req.user.role === "Employee")
+    return res.status(403).json({ message: "View only" });
 
   const { Name, Email, Salary, ["Applied Position"]: Position } = req.body;
   if (!Name || !Email || !Position || Salary == null)
-    return res.sendStatus(400);
+    return res.status(400).json({ message: "Missing fields" });
 
   await customers.insertOne({
     Name,
     Email,
     Salary,
     "Applied Position": Position,
-    Company: user.Company,
+    Company: req.user.company,
     createdAt: new Date(),
   });
 
@@ -98,12 +120,11 @@ app.post("/api/add-customer", auth, async (req, res) => {
 });
 
 app.put("/api/update-customer/:email", auth, async (req, res) => {
-  const user = await users.findOne({ Email: req.user.email });
-  if (!["Manager", "Admin", "SuperAdmin"].includes(user.Role))
+  if (!["Manager", "Admin", "SuperAdmin"].includes(req.user.role))
     return res.sendStatus(403);
 
   await customers.updateOne(
-    { Email: req.params.email },
+    { Email: req.params.email, Company: req.user.company },
     { $set: req.body }
   );
 
@@ -111,15 +132,18 @@ app.put("/api/update-customer/:email", auth, async (req, res) => {
 });
 
 app.delete("/api/customer/:email", auth, async (req, res) => {
-  const user = await users.findOne({ Email: req.user.email });
-  if (!["Admin", "SuperAdmin"].includes(user.Role))
+  if (!["Admin", "SuperAdmin"].includes(req.user.role))
     return res.sendStatus(403);
 
-  await customers.deleteOne({ Email: req.params.email });
+  await customers.deleteOne({
+    Email: req.params.email,
+    Company: req.user.company,
+  });
+
   res.json({ success: true });
 });
 
-/* ================= REACT ================= */
+/* ================= REACT STATIC ================= */
 app.use(express.static(path.join(__dirname, "build")));
 
 app.get("*", (req, res) => {
