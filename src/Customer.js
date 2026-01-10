@@ -18,7 +18,7 @@ function Customer() {
   /* ================= LOAD USER ROLE ================= */
   const loadMe = async () => {
     try {
-      const res = await api.get("/me", {
+      const res = await api.get("/api/me", {
         headers: { Authorization: `Bearer ${token}` },
       });
       setRole(res.data.Role);
@@ -30,7 +30,7 @@ function Customer() {
   /* ================= LOAD CUSTOMERS ================= */
   const loadCustomers = async () => {
     try {
-      const res = await api.get(`/customers/${loggedEmail}`, {
+      const res = await api.get(`/api/customers/${loggedEmail}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setCustomers(res.data);
@@ -53,7 +53,7 @@ function Customer() {
 
     try {
       await api.post(
-        "/add-customer",
+        "/api/add-customer",
         {
           Name: name,
           Email: email,
@@ -91,10 +91,27 @@ function Customer() {
       )}
 
       <div className="add-form">
-        <input placeholder="Name" value={name} onChange={e => setName(e.target.value)} />
-        <input placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} />
-        <input placeholder="Applied Position" value={position} onChange={e => setPosition(e.target.value)} />
-        <input placeholder="Salary" type="number" value={salary} onChange={e => setSalary(e.target.value)} />
+        <input
+          placeholder="Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+        <input
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <input
+          placeholder="Applied Position"
+          value={position}
+          onChange={(e) => setPosition(e.target.value)}
+        />
+        <input
+          placeholder="Salary"
+          type="number"
+          value={salary}
+          onChange={(e) => setSalary(e.target.value)}
+        />
 
         <button onClick={addCustomer} disabled={role === "Employee"}>
           Add Customer
