@@ -1,10 +1,12 @@
+// Customer.js — FIXED to match new backend (no email params, no glitches)
+
 import React, { useEffect, useState } from "react";
 import api from "./api";
 import "./Customer.css";
 
-function Customer() {
+export default function Customer() {
   const [customers, setCustomers] = useState([]);
-  const [role, setRole] = useState("Loading...");
+  const [role, setRole] = useState(null);
   const [message, setMessage] = useState("");
 
   const [name, setName] = useState("");
@@ -12,23 +14,14 @@ function Customer() {
   const [position, setPosition] = useState("");
   const [salary, setSalary] = useState("");
 
-  const token = localStorage.getItem("token");
-  const loggedEmail = localStorage.getItem("loggedInUser");
-
   useEffect(() => {
-    if (!token || !loggedEmail) {
-      setRole("Unknown");
-      return;
-    }
     loadMe();
     loadCustomers();
   }, []);
 
   const loadMe = async () => {
     try {
-      const res = await api.get("/api/me", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api.get("/api/me");
       setRole(res.data.Role);
     } catch {
       setRole("Unknown");
@@ -37,9 +30,7 @@ function Customer() {
 
   const loadCustomers = async () => {
     try {
-      const res = await api.get(`/api/customers/${loggedEmail}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api.get("/api/customers");
       setCustomers(res.data);
     } catch {
       setCustomers([]);
@@ -53,18 +44,12 @@ function Customer() {
     }
 
     try {
-      await api.post(
-        "/api/add-customer",
-        {
-          Name: name,
-          Email: email,
-          "Applied Position": position,
-          Salary: Number(salary),
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      await api.post("/api/add-customer", {
+        Name: name,
+        Email: email,
+        "Applied Position": position,
+        Salary: Number(salary),
+      });
 
       setMessage("Customer added");
       setName("");
@@ -72,10 +57,12 @@ function Customer() {
       setPosition("");
       setSalary("");
       loadCustomers();
-    } catch (err) {
-      setMessage("You are not authorized to add customers");
+    } catch {
+      setMessage("Not authorized");
     }
   };
+
+  if (!role) return <div className="customer-wrapper">Loading...</div>;
 
   return (
     <div className="customer-wrapper">
@@ -152,5 +139,3 @@ function Customer() {
     </div>
   );
 }
-
-export default Customer;
