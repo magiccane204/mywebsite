@@ -9,7 +9,7 @@ const api = axios.create({
   },
 });
 
-// attach token automatically
+// attach token
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
   if (token) {
@@ -17,5 +17,17 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+// handle expired / invalid token
+api.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+      localStorage.clear();
+      window.location.href = "/";
+    }
+    return Promise.reject(err);
+  }
+);
 
 export default api;
