@@ -43,24 +43,17 @@ export default function Customer() {
     setPosition("");
     setSalary("");
     setEditingId(null);
+    setMessage("");
   };
 
   const submitCustomer = async () => {
-    if (!name || !email || !position || !salary) {
+    if (!name || !email || !position || salary === "") {
       setMessage("All fields required");
       return;
     }
 
     try {
-      if (editingId === null) {
-        await api.post("/api/add-customer", {
-          Name: name,
-          Email: email,
-          "Applied Position": position,
-          Salary: Number(salary),
-        });
-        setMessage("Customer added");
-      } else {
+      if (editingId) {
         await api.put("/api/update-customer", {
           Id: editingId,
           Name: name,
@@ -69,6 +62,14 @@ export default function Customer() {
           Salary: Number(salary),
         });
         setMessage("Customer updated");
+      } else {
+        await api.post("/api/add-customer", {
+          Name: name,
+          Email: email,
+          "Applied Position": position,
+          Salary: Number(salary),
+        });
+        setMessage("Customer added");
       }
 
       resetForm();
@@ -77,7 +78,7 @@ export default function Customer() {
       if (err.response?.status === 403) {
         setMessage("Permission denied");
       } else if (err.response?.status === 400) {
-        setMessage(err.response.data.message || "Invalid data");
+        setMessage(err.response.data?.message || "Invalid data");
       } else {
         setMessage("Something went wrong");
       }
@@ -85,7 +86,7 @@ export default function Customer() {
   };
 
   const editCustomer = (c) => {
-    setEditingId(c.Id);
+    setEditingId(c.Id || c._id);
     setName(c.Name);
     setEmail(c.Email);
     setPosition(c["Applied Position"]);
@@ -155,7 +156,7 @@ export default function Customer() {
             </thead>
             <tbody>
               {customers.map((c) => (
-                <tr key={c.Id}>
+                <tr key={c.Id || c._id}>
                   <td>{c.Name}</td>
                   <td>{c.Email}</td>
                   <td>{c["Applied Position"]}</td>
