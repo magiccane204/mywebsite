@@ -1,5 +1,3 @@
-// Customer.js — FIXED to match new backend (no email params, no glitches)
-
 import React, { useEffect, useState } from "react";
 import api from "./api";
 import "./Customer.css";
@@ -13,6 +11,8 @@ export default function Customer() {
   const [email, setEmail] = useState("");
   const [position, setPosition] = useState("");
   const [salary, setSalary] = useState("");
+
+  const [editingId, setEditingId] = useState(null);
 
   useEffect(() => {
     loadMe();
@@ -37,29 +37,54 @@ export default function Customer() {
     }
   };
 
-  const addCustomer = async () => {
+  const resetForm = () => {
+    setName("");
+    setEmail("");
+    setPosition("");
+    setSalary("");
+    setEditingId(null);
+  };
+
+  const submitCustomer = async () => {
     if (!name || !email || !position || !salary) {
       setMessage("All fields required");
       return;
     }
 
     try {
-      await api.post("/api/add-customer", {
-        Name: name,
-        Email: email,
-        "Applied Position": position,
-        Salary: Number(salary),
-      });
+      if (editingId === null) {
+        await api.post("/api/add-customer", {
+          Name: name,
+          Email: email,
+          "Applied Position": position,
+          Salary: Number(salary),
+        });
+        setMessage("Customer added");
+      } else {
+        await api.put("/api/update-customer", {
+          Id: editingId,
+          Name: name,
+          Email: email,
+          "Applied Position": position,
+          Salary: Number(salary),
+        });
+        setMessage("Customer updated");
+      }
 
-      setMessage("Customer added");
-      setName("");
-      setEmail("");
-      setPosition("");
-      setSalary("");
+      resetForm();
       loadCustomers();
     } catch {
       setMessage("Not authorized");
     }
+  };
+
+  const editCustomer = (c) => {
+    setEditingId(c.Id);
+    setName(c.Name);
+    setEmail(c.Email);
+    setPosition(c["Applied Position"]);
+    setSalary(c.Salary);
+    setMessage("");
   };
 
   if (!role) return <div className="customer-wrapper">Loading...</div>;
@@ -71,37 +96,18 @@ export default function Customer() {
       </h2>
 
       <div className="customer-card">
-        <h3>Add Customer</h3>
+        <h3>{editingId ? "Update Customer" : "Add Customer"}</h3>
 
-        {role === "Employee" && (
-          <p className="empty">View only mode</p>
-        )}
+        {role === "Employee" && <p className="empty">View only mode</p>}
 
         <div className="customer-form">
-          <input
-            placeholder="Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <input
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <input
-            placeholder="Applied Position"
-            value={position}
-            onChange={(e) => setPosition(e.target.value)}
-          />
-          <input
-            placeholder="Salary"
-            type="number"
-            value={salary}
-            onChange={(e) => setSalary(e.target.value)}
-          />
+          <input placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} />
+          <input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <input placeholder="Applied Position" value={position} onChange={(e) => setPosition(e.target.value)} />
+          <input placeholder="Salary" type="number" value={salary} onChange={(e) => setSalary(e.target.value)} />
 
-          <button onClick={addCustomer} disabled={role === "Employee"}>
-            Add Customer
+          <button onClick={submitCustomer} disabled={role === "Employee"}>
+            {editingId ? "Update Customer" : "Add Customer"}
           </button>
         </div>
 
@@ -121,15 +127,21 @@ export default function Customer() {
                 <th>Email</th>
                 <th>Position</th>
                 <th>Salary</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody>
-              {customers.map((c, i) => (
-                <tr key={i}>
+              {customers.map((c) => (
+                <tr key={c.Id}>
                   <td>{c.Name}</td>
                   <td>{c.Email}</td>
                   <td>{c["Applied Position"]}</td>
                   <td>{c.Salary}</td>
+                  <td>
+                    <button onClick={() => editCustomer(c)} disabled={role === "Employee"}>
+                      Edit
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
