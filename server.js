@@ -263,6 +263,21 @@ app.put("/api/update-customer", auth, async (req, res) => {
   logAudit("UPDATE_CUSTOMER", req.user.email, { Email });
   res.json({ success: true });
 });
+/* ================= DELETE CUSTOMER ================= */
+app.delete("/api/delete-customer/:id", auth, async (req, res) => {
+  if (req.user.role !== "SuperAdmin")
+    return res.status(403).json({ message: "Only SuperAdmin can delete" });
+
+  const { ObjectId } = require("mongodb");
+
+  await customers.deleteOne({
+    _id: new ObjectId(req.params.id),
+    Company: req.user.company,
+  });
+
+  logAudit("DELETE_CUSTOMER", req.user.email, { id: req.params.id });
+  res.json({ success: true });
+});
 
 /* ================= LOGOUT ================= */
 app.post("/api/logout", auth, async (req, res) => {
@@ -293,4 +308,5 @@ connectDB().then(() => {
     console.log(`Server running on ${PORT}`);
   });
 });
+
 
