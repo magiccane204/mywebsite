@@ -2,62 +2,42 @@ import { useEffect, useState } from "react";
 import api from "./api";
 import "./Otp.css";
 
-function Otp({ Email, setMode }) {
+function Otp({ setMode }) {
   const [otp, setOtp] = useState("");
   const [expiresIn, setExpiresIn] = useState(300);
-  const [resendIn, setResendIn] = useState(30);
   const [loading, setLoading] = useState(false);
 
-  // Countdown
+  // 🔥 ALWAYS read email from localStorage
+  const email = localStorage.getItem("otp_email");
+
+  // countdown
   useEffect(() => {
     const timer = setInterval(() => {
       setExpiresIn((v) => (v > 0 ? v - 1 : 0));
-      setResendIn((v) => (v > 0 ? v - 1 : 0));
     }, 1000);
-
     return () => clearInterval(timer);
   }, []);
 
   const verifyOtp = async () => {
     if (!otp) return alert("Enter OTP");
+    if (!email) return alert("Email missing. Please login again.");
 
     setLoading(true);
     try {
-      const res = await api.post("/verify-otp", {
-        email: Email,
-        otp,
+      const res = await api.post("/api/verify-otp", {
+        email,
+        otp: String(otp),
       });
 
       if (res.data.success) {
         localStorage.setItem("token", res.data.token);
-        setMode("crm"); // ✅ LOGIN COMPLETE
+        localStorage.removeItem("otp_email"); // cleanup
+        setMode("crm");
       } else {
         alert("Invalid OTP");
       }
     } catch (err) {
-      console.log(err.response);
       alert("OTP expired or invalid");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const resendOtp = async () => {
-    if (resendIn > 0) return;
-
-    setLoading(true);
-    try {
-      const res = await api.post("/send-otp", { email: Email });
-      setExpiresIn(res.data.expiresIn);
-      setResendIn(res.data.resendIn);
-    } catch (err) {
-      if (err.response?.data?.expiresIn) {
-        setExpiresIn(err.response.data.expiresIn);
-        setResendIn(err.response.data.resendIn || 0);
-        return;
-      }
-      console.log(err.response);
-      alert("Could not resend OTP");
     } finally {
       setLoading(false);
     }
@@ -69,7 +49,9 @@ function Otp({ Email, setMode }) {
   return (
     <div className="OB">
       <h2>OTP Verification</h2>
-      <p>OTP sent to <b>{Email}</b></p>
+      <p>
+        OTP sent to <b>{email}</b>
+      </p>
 
       <input
         type="number"
@@ -83,14 +65,6 @@ function Otp({ Email, setMode }) {
       <button onClick={verifyOtp} disabled={loading || expiresIn <= 0}>
         Verify OTP
       </button>
-
-      {resendIn > 0 ? (
-        <p>Resend in {resendIn}s</p>
-      ) : (
-        <p style={{ color: "blue", cursor: "pointer" }} onClick={resendOtp}>
-          Resend OTP
-        </p>
-      )}
     </div>
   );
 }
