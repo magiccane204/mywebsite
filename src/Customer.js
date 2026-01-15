@@ -157,7 +157,7 @@ export default function Customer() {
                   <td>{c["Applied Position"]}</td>
                   <td>{c.Salary}</td>
                   <td>
-                    <button onClick={() => editCustomer(c)}>Edit</button> </br>
+                    <button onClick={() => editCustomer(c)}>Edit</button> <br/>
 
                     {role === "SuperAdmin" && (
                       <button
@@ -177,4 +177,5 @@ export default function Customer() {
     </div>
   );
 }
+
 
