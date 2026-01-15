@@ -54,12 +54,14 @@ function App() {
       <input
         type="email"
         value={email}
+        placeholder="Email"
         onChange={(e) => setEmail(e.target.value)}
       />
 
       <input
         type="password"
         value={password}
+        placeholder="Password"
         onChange={(e) => setPassword(e.target.value)}
       />
 
