@@ -29,7 +29,6 @@ function App() {
 
     try {
       const res = await api.post("/api/login", { email, password });
-
       if (res.data.success) {
         localStorage.setItem("loggedInUser", email);
         setMode("otp");
@@ -65,13 +64,19 @@ function App() {
         onChange={(e) => setPassword(e.target.value)}
       />
 
-      <button
-        type="button"
-        className="button"
-        onClick={handleLogin}
-      >
+      <button type="button" className="button" onClick={handleLogin}>
         Login
       </button>
+
+      <p style={{ marginTop: "15px" }}>
+        Not registered?{" "}
+        <span
+          style={{ color: "blue", cursor: "pointer" }}
+          onClick={() => setMode("signup")}
+        >
+          Register Now
+        </span>
+      </p>
     </div>
   );
 }
