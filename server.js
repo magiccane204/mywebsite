@@ -1,4 +1,4 @@
-// server.js — INDUSTRIAL-GRADE, FULLY-FEATURED BACKEND (OTP FIXED & RELIABLE)
+// server.js — INDUSTRIAL-GRADE, FULLY-FEATURED BACKEND (OTP ACTUALLY FIXED)
 
 require("dotenv").config();
 
@@ -87,20 +87,21 @@ function auth(req, res, next) {
   }
 }
 
-/* ================= RATE LIMIT ================= */
+/* ================= RATE LIMIT (LOGIN ONLY) ================= */
 const rateMap = new Map();
 function rateLimit(req, res, next) {
   const ip = req.ip;
   const now = Date.now();
   const last = rateMap.get(ip) || 0;
-  if (now - last < 500) return res.status(429).json({ message: "Too fast" });
+  if (now - last < 800) return res.status(429).json({ message: "Too fast" });
   rateMap.set(ip, now);
   next();
 }
 
 /* ================= LOGIN (SEND OTP) ================= */
 app.post("/api/login", rateLimit, async (req, res) => {
-  const { email, password } = req.body;
+  const email = String(req.body.email || "").trim();
+  const password = String(req.body.password || "");
 
   const user = await users.findOne({ Email: email });
   if (!user || user.Password !== password) {
@@ -128,25 +129,29 @@ app.post("/api/login", rateLimit, async (req, res) => {
   res.json({ success: true });
 });
 
-/* ================= VERIFY OTP (FIXED) ================= */
-app.post("/api/verify-otp", rateLimit, async (req, res) => {
-  const { email, otp } = req.body;
+/* ================= VERIFY OTP (FINAL FIX) ================= */
+app.post("/api/verify-otp", async (req, res) => {
+  const email = String(req.body.email || "").trim();
+  const otp = String(req.body.otp || "").trim();
 
   if (!email || !otp)
     return res.status(400).json({ success: false });
 
   const record = await otps.findOne({
     Email: email,
-    OTP: String(otp),
+    OTP: otp,
   });
 
   if (!record) {
     logAudit("OTP_FAIL", email);
-    return res.status(401).json({ success: false });
+    return res
+      .status(401)
+      .json({ success: false, message: "OTP invalid or expired" });
   }
 
   const user = await users.findOne({ Email: email });
-  if (!user) return res.status(401).json({ success: false });
+  if (!user)
+    return res.status(401).json({ success: false });
 
   const token = jwt.sign(
     {
