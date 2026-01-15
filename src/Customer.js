@@ -94,6 +94,18 @@ export default function Customer() {
     setMessage("");
   };
 
+  const deleteCustomer = async (id) => {
+    if (!window.confirm("Delete this customer?")) return;
+
+    try {
+      await api.delete(`/api/delete-customer/${id}`);
+      setMessage("Customer deleted");
+      loadCustomers();
+    } catch {
+      setMessage("Delete failed");
+    }
+  };
+
   if (!role) return <div className="customer-wrapper">Loading...</div>;
 
   return (
@@ -108,27 +120,10 @@ export default function Customer() {
         {role === "Employee" && <p className="empty">View only mode</p>}
 
         <div className="customer-form">
-          <input
-            placeholder="Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <input
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <input
-            placeholder="Applied Position"
-            value={position}
-            onChange={(e) => setPosition(e.target.value)}
-          />
-          <input
-            placeholder="Salary"
-            type="number"
-            value={salary}
-            onChange={(e) => setSalary(e.target.value)}
-          />
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" />
+          <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" />
+          <input value={position} onChange={(e) => setPosition(e.target.value)} placeholder="Applied Position" />
+          <input type="number" value={salary} onChange={(e) => setSalary(e.target.value)} placeholder="Salary" />
 
           <button onClick={submitCustomer} disabled={role === "Employee"}>
             {editingId ? "Update Customer" : "Add Customer"}
@@ -162,12 +157,16 @@ export default function Customer() {
                   <td>{c["Applied Position"]}</td>
                   <td>{c.Salary}</td>
                   <td>
-                    <button
-                      onClick={() => editCustomer(c)}
-                      disabled={role === "Employee"}
-                    >
-                      Edit
-                    </button>
+                    <button onClick={() => editCustomer(c)}>Edit</button>
+
+                    {role === "SuperAdmin" && (
+                      <button
+                        style={{ marginLeft: "8px", background: "red" }}
+                        onClick={() => deleteCustomer(c.Id || c._id)}
+                      >
+                        Delete
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
