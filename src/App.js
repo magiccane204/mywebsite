@@ -30,14 +30,17 @@ function App() {
     try {
       const res = await api.post("/api/login", { email, password });
       if (res.data.success) {
-        localStorage.setItem("loggedInUser", email);
+        // 🔥 CRITICAL FIX
+        localStorage.setItem("otp_email", email);
         setMode("otp");
       }
-    } catch {}
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   if (mode === "signup") return <Signup setMode={setMode} />;
-  if (mode === "otp") return <Otp Email={email} setMode={setMode} />;
+  if (mode === "otp") return <Otp setMode={setMode} />;
   if (mode === "crm") return <CRM setMode={setMode} />;
 
   return (
