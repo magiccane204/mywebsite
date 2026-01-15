@@ -73,8 +73,14 @@ export default function Customer() {
 
       resetForm();
       loadCustomers();
-    } catch {
-      setMessage("Not authorized");
+    } catch (err) {
+      if (err.response?.status === 403) {
+        setMessage("Permission denied");
+      } else if (err.response?.status === 400) {
+        setMessage(err.response.data.message || "Invalid data");
+      } else {
+        setMessage("Something went wrong");
+      }
     }
   };
 
@@ -101,10 +107,27 @@ export default function Customer() {
         {role === "Employee" && <p className="empty">View only mode</p>}
 
         <div className="customer-form">
-          <input placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} />
-          <input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
-          <input placeholder="Applied Position" value={position} onChange={(e) => setPosition(e.target.value)} />
-          <input placeholder="Salary" type="number" value={salary} onChange={(e) => setSalary(e.target.value)} />
+          <input
+            placeholder="Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <input
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <input
+            placeholder="Applied Position"
+            value={position}
+            onChange={(e) => setPosition(e.target.value)}
+          />
+          <input
+            placeholder="Salary"
+            type="number"
+            value={salary}
+            onChange={(e) => setSalary(e.target.value)}
+          />
 
           <button onClick={submitCustomer} disabled={role === "Employee"}>
             {editingId ? "Update Customer" : "Add Customer"}
@@ -138,7 +161,10 @@ export default function Customer() {
                   <td>{c["Applied Position"]}</td>
                   <td>{c.Salary}</td>
                   <td>
-                    <button onClick={() => editCustomer(c)} disabled={role === "Employee"}>
+                    <button
+                      onClick={() => editCustomer(c)}
+                      disabled={role === "Employee"}
+                    >
                       Edit
                     </button>
                   </td>
