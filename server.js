@@ -223,6 +223,47 @@ app.post("/api/add-customer", auth, async (req, res) => {
   res.json({ success: true });
 });
 
+/* ================= UPDATE CUSTOMER ================= */
+app.put("/api/update-customer", auth, async (req, res) => {
+  if (req.user.role === "Employee")
+    return res.status(403).json({ message: "View only" });
+
+  const {
+    Id,
+    Name,
+    Email,
+    Salary,
+    ["Applied Position"]: Position,
+  } = req.body;
+
+  if (!Id || !Name || !Email || !Position || Salary == null)
+    return res.status(400).json({ message: "Missing fields" });
+
+  const { ObjectId } = require("mongodb");
+
+  const result = await customers.updateOne(
+    {
+      _id: new ObjectId(Id),
+      Company: req.user.company,
+    },
+    {
+      $set: {
+        Name,
+        Email,
+        Salary,
+        "Applied Position": Position,
+        updatedAt: new Date(),
+      },
+    }
+  );
+
+  if (result.matchedCount === 0)
+    return res.status(404).json({ message: "Customer not found" });
+
+  logAudit("UPDATE_CUSTOMER", req.user.email, { Email });
+  res.json({ success: true });
+});
+
 /* ================= LOGOUT ================= */
 app.post("/api/logout", auth, async (req, res) => {
   await sessions.deleteMany({ email: req.user.email });
@@ -252,3 +293,4 @@ connectDB().then(() => {
     console.log(`Server running on ${PORT}`);
   });
 });
+
