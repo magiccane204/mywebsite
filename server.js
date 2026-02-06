@@ -310,7 +310,7 @@ app.use(express.static(path.join(__dirname, "build")));
 app.get(/^\/(?!api).*/, (req, res) => {
   res.sendFile(path.join(__dirname, "build", "index.html"));
 });
-/* ================= RESUME PARSER (STRUCTURED) ================= */
+/* ================= RESUME PARSER (FINAL STRUCTURED) ================= */
 
 function clean(s = "") {
   return s.replace(/\s+/g, " ").trim();
@@ -321,7 +321,7 @@ function extractEmail(text) {
 }
 
 function extractPhone(text) {
-  const m = text.match(/(\+?\d[\d\s-]{8,15})/);
+  const m = text.match(/(\+?\d[\d\s-]{9,15})/);
   return m ? clean(m[1]) : "";
 }
 
@@ -348,6 +348,8 @@ function splitSections(text = "") {
     experience: [],
     education: [],
     skills: [],
+    languages: [],
+    hobbies: [],
     other: []
   };
 
@@ -359,8 +361,10 @@ function splitSections(text = "") {
 
     if (/^(summary|objective|profile)/i.test(l)) current = "summary";
     else if (/^(experience|work experience)/i.test(l)) current = "experience";
-    else if (/^(education|academic)/i.test(l)) current = "education";
+    else if (/^(education|academic|academic credentials)/i.test(l)) current = "education";
     else if (/^(skills|technical skills|computer application skills)/i.test(l)) current = "skills";
+    else if (/^(languages)/i.test(l)) current = "languages";
+    else if (/^(hobbies|interests)/i.test(l)) current = "hobbies";
 
     sections[current].push(l);
   });
@@ -370,10 +374,23 @@ function splitSections(text = "") {
 
 /* ---------- CLEAN SKILLS ---------- */
 function extractSkills(text = "") {
+  const blacklist = new Set([
+    "LANGUAGES","HOBBIES","INTERESTS","OBJECTIVE","SUMMARY",
+    "ACADEMIC","CREDENTIALS","PERSONAL","DETAILS",
+    "ENGLISH","HINDI","FRENCH","ARABIC","SINDHI"
+  ]);
+
   const skills = text.match(/\b[A-Z][A-Za-z0-9.+#-]{1,20}\b/g) || [];
+
   return Array.from(new Set(skills))
-    .filter(s => s.length > 2 && s.length < 25)
-    .slice(0, 25);
+    .filter(s => s.length > 2 && s.length < 25 && !blacklist.has(s.toUpperCase()))
+    .slice(0, 20);
+}
+
+/* ---------- CLEAN LANGUAGES ---------- */
+function extractLanguages(text = "") {
+  const langs = text.match(/\b(English|Hindi|French|Arabic|Sindhi)\b/gi) || [];
+  return Array.from(new Set(langs));
 }
 
 /* ---------- MAIN PARSER ---------- */
@@ -393,9 +410,12 @@ async function parseResumeText(text = "") {
     summary: clean(sections.summary.join(" ")),
     experience: clean(sections.experience.join(" ")),
     education: clean(sections.education.join(" ")),
-    skills: extractSkills(sections.skills.join(" "))
+    skills: extractSkills(sections.skills.join(" ")),
+    languages: extractLanguages(sections.languages.join(" ")),
+    hobbies: clean(sections.hobbies.join(" "))
   };
 }
+
 
 /* ================= API ================= */
 
@@ -428,4 +448,5 @@ connectDB().then(() => {
     console.log(`Server running on ${PORT}`);
   });
 });
+
 
