@@ -309,7 +309,6 @@ app.get(/^\/(?!api).*/, (req, res) => {
 });
 /* =========================================================
    GLOBAL RESUME PARSER — PRODUCTION READY
-   Supports: PDF, DOCX | Global Skills | Intl Phone | NLP
 ========================================================= */
 
 /* ---------- Utilities ---------- */
@@ -364,7 +363,7 @@ function extractName(lines, email) {
   return "";
 }
 
-/* ---------- GLOBAL SKILLS (NO HARDCODED LIST) ---------- */
+/* ---------- GLOBAL SKILLS ---------- */
 function extractSkills(text = "") {
   const blob = text.replace(/\s+/g, " ");
 
@@ -383,7 +382,7 @@ function extractSkills(text = "") {
     "Email","Phone","Address","Location"
   ]);
 
-  const skills = Array.from(
+  return Array.from(
     new Set(
       [...capitalized, ...allCaps, ...special]
         .map(s => s.trim())
@@ -393,9 +392,7 @@ function extractSkills(text = "") {
           !blacklist.has(s)
         )
     )
-  );
-
-  return skills.slice(0, 50);
+  ).slice(0, 50);
 }
 
 /* ---------- MAIN PARSER ---------- */
@@ -404,24 +401,54 @@ async function parseResumeText(text = "") {
   const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
   const blob = raw.replace(/\s+/g, " ");
 
-  const email = extractEmail(blob);
-  const phone = extractPhone(blob);
-  const linkedIn = extractLinkedIn(blob);
-  const experienceYears = extractExperience(blob);
-  const location = extractLocation(blob);
-  const name = extractName(lines, email);
-  const skills = extractSkills(blob);
-
   return {
-    name: clean(name),
-    email: clean(email),
-    phone: clean(phone),
-    linkedIn: clean(linkedIn),
-    experienceYears: clean(experienceYears),
-    location: clean(location),
-    skills
+    name: clean(extractName(lines, extractEmail(blob))),
+    email: clean(extractEmail(blob)),
+    phone: clean(extractPhone(blob)),
+    linkedIn: clean(extractLinkedIn(blob)),
+    experienceYears: clean(extractExperience(blob)),
+    location: clean(extractLocation(blob)),
+    skills: extractSkills(blob)
   };
 }
+
+/* =========================================================
+   API PATH — FRONTEND CALLS THIS
+========================================================= */
+
+app.post("/api/resume/extract", upload.single("resume"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No resume uploaded" });
+    }
+
+    const buffer = fs.readFileSync(req.file.path);
+    let text = "";
+
+    if (req.file.mimetype === "application/pdf") {
+      const parsed = await pdfParse(buffer);
+      text = parsed.text || "";
+    } else if (
+      req.file.mimetype ===
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    ) {
+      const out = await mammoth.extractRawText({ buffer });
+      text = out.value || "";
+    } else {
+      fs.unlinkSync(req.file.path);
+      return res.status(400).json({ message: "Unsupported file type" });
+    }
+
+    fs.unlinkSync(req.file.path);
+
+    const data = await parseResumeText(text);
+    return res.json({ success: true, data });
+  } catch (err) {
+    console.error("Resume parse error:", err);
+    return res.status(500).json({ success: false, message: "Parsing failed" });
+  }
+});
+
 
 
 
@@ -431,6 +458,7 @@ connectDB().then(() => {
     console.log(`Server running on ${PORT}`);
   });
 });
+
 
 
 
