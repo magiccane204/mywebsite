@@ -18,7 +18,7 @@ const pdfParse = require("pdf-parse");
 const mammoth = require("mammoth");
 const nlp = require("compromise");
 const phoneUtil = require("libphonenumber-js");
-
+import OpenAI from "openai";
 /* ================= APP INIT ================= */
 const app = express();
 const upload = multer({ dest: "uploads/" });
@@ -313,154 +313,116 @@ app.get(/^\/(?!api).*/, (req, res) => {
 /* ================== UTIL ================== */
 
 const clean = (s = "") => s.replace(/\s+/g, " ").trim();
-const YEAR_REGEX = /\b(19|20)\d{2}\b/;
+const isNoise = l =>
+  /profile info|resume|curriculum vitae|page \d+/i.test(l);
 
-function escapeRegex(str) {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
+/* ================== AI CLASSIFIER ================== */
 
-/* ================== BASIC EXTRACTORS ================== */
+async function classifyLines(lines) {
+  const prompt = `
+You are a resume parsing AI.
 
-const extractEmail = text =>
-  text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi)?.[0] || "No email";
+Classify each line strictly into ONE category:
+- NAME
+- EMAIL
+- PHONE
+- LINKEDIN
+- SKILL
+- LANGUAGE
+- EXPERIENCE
+- EDUCATION
+- HOBBY
+- NOISE
 
-const extractLinkedIn = text =>
-  text.match(/https?:\/\/(www\.)?linkedin\.com\/[^\s)]+/i)?.[0] || "No LinkedIn";
+Rules:
+- "PROFILE INFO", "SUMMARY", headers → NOISE
+- Languages ≠ skills
+- Locations ≠ skills
+- Names are human names only
 
-function extractPhone(text) {
-  const matches = text.match(/(\+?\d[\d\s().-]{7,20}\d)/g) || [];
+Return JSON array:
+[{ "line": "...", "type": "..." }]
 
-  for (const m of matches) {
-    const digits = m.replace(/\D/g, "");
-    if (digits.length >= 8 && digits.length <= 15 && !YEAR_REGEX.test(m)) {
-      return m.startsWith("+") ? m : "+" + digits;
-    }
-  }
-  return "No phone";
-}
+Lines:
+${lines.map(l => `- ${l}`).join("\n")}
+`;
 
-/* ================== NAME ================== */
-
-function extractName(lines, email) {
-  for (const l of lines.slice(0, 6)) {
-    if (l.length < 40 && !/\d|@/.test(l)) return clean(l);
-  }
-
-  return email !== "No email"
-    ? email.split("@")[0].replace(/[._-]/g, " ").toUpperCase()
-    : "No name";
-}
-
-/* ================== SECTION SPLITTER (STRICT) ================== */
-
-function splitSections(text) {
-  const sections = {
-    summary: [],
-    experience: [],
-    education: [],
-    skills: [],
-    languages: [],
-    hobbies: []
-  };
-
-  let current = null;
-
-  text.split(/\r?\n/).forEach(line => {
-    const l = line.trim();
-    if (!l) return;
-
-    if (/^(summary|objective|profile)\b/i.test(l)) return (current = "summary");
-    if (/^(experience|work)\b/i.test(l)) return (current = "experience");
-    if (/^(education|academic|qualification)\b/i.test(l)) return (current = "education");
-    if (/^(skills|technical|competencies)\b/i.test(l)) return (current = "skills");
-    if (/^languages\b/i.test(l)) return (current = "languages");
-    if (/^(hobbies|interests)\b/i.test(l)) return (current = "hobbies");
-
-    if (current) sections[current].push(l);
+  const res = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    temperature: 0,
+    messages: [{ role: "user", content: prompt }]
   });
 
-  return sections;
-}
-
-/* ================== EXPERIENCE (AI-LIKE FILTER) ================== */
-
-function extractExperience(lines) {
-  const BAD = /objective|profile|seeking|personal|family|driver/i;
-  const GOOD = /assistant|engineer|developer|analyst|intern|technician|manager/i;
-
-  return lines
-    .filter(l => l.length < 160)
-    .filter(l => !BAD.test(l))
-    .filter(l => GOOD.test(l) || YEAR_REGEX.test(l))
-    .slice(0, 2)
-    .map(clean);
-}
-
-/* ================== EDUCATION ================== */
-
-function extractEducation(lines) {
-  return lines
-    .filter(l =>
-      /school|college|university|degree|bachelor|master|diploma/i.test(l)
-    )
-    .slice(0, 2)
-    .map(clean);
-}
-
-/* ================== SKILLS (SAFE + CLEAN) ================== */
-
-function extractSkills(text) {
-  const SKILLS = [
-    "Java","Python","C","C++","C#",
-    "SQL","HTML","CSS","JavaScript",
-    "React","Node","Express",
-    "ASP.NET",".NET",
-    "Linux","Git",
-    "Communication","Leadership","Management","Teamwork"
-  ];
-
-  const found = SKILLS.filter(skill => {
-    const safe = escapeRegex(skill);
-    return new RegExp(`\\b${safe}\\b`, "i").test(text);
-  });
-
-  return found.length ? found.slice(0, 8) : ["No skills"];
-}
-
-/* ================== LANGUAGES ================== */
-
-function extractLanguages(text) {
-  const LANGS = ["English","Hindi","Arabic","French","Urdu","Tagalog"];
-
-  const found = LANGS.filter(lang =>
-    new RegExp(`\\b${lang}\\b`, "i").test(text)
-  );
-
-  return found.length ? found : ["No languages"];
+  return JSON.parse(res.choices[0].message.content);
 }
 
 /* ================== MAIN PARSER ================== */
 
 async function parseResumeText(text) {
-  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-  const blob = clean(text);
+  const rawLines = text
+    .split(/\r?\n/)
+    .map(l => clean(l))
+    .filter(l => l.length > 2 && !isNoise(l))
+    .slice(0, 120); // cost control
 
-  const sections = splitSections(text);
+  const classified = await classifyLines(rawLines);
 
-  return {
-    name: extractName(lines, extractEmail(blob)),
-    email: extractEmail(blob),
-    phone: extractPhone(blob),
-    linkedIn: extractLinkedIn(blob),
-
-    summary: clean(sections.summary.join(" ")) || "No summary",
-    experience: extractExperience(sections.experience),
-    education: extractEducation(sections.education),
-
-    skills: extractSkills(sections.skills.join(" ")),
-    languages: extractLanguages(sections.languages.join(" ")),
-    hobbies: clean(sections.hobbies.join(" ")) || "No hobbies"
+  const result = {
+    name: "No name",
+    email: "No email",
+    phone: "No phone",
+    linkedIn: "No LinkedIn",
+    skills: [],
+    languages: [],
+    experience: [],
+    education: [],
+    hobbies: []
   };
+
+  for (const item of classified) {
+    const l = item.line;
+    switch (item.type) {
+      case "NAME":
+        if (result.name === "No name") result.name = l;
+        break;
+      case "EMAIL":
+        result.email = l;
+        break;
+      case "PHONE":
+        result.phone = l;
+        break;
+      case "LINKEDIN":
+        result.linkedIn = l;
+        break;
+      case "SKILL":
+        result.skills.push(l);
+        break;
+      case "LANGUAGE":
+        result.languages.push(l);
+        break;
+      case "EXPERIENCE":
+        result.experience.push(l);
+        break;
+      case "EDUCATION":
+        result.education.push(l);
+        break;
+      case "HOBBY":
+        result.hobbies.push(l);
+        break;
+    }
+  }
+
+  // FINAL CLEANUP
+  result.skills = [...new Set(result.skills)].slice(0, 10);
+  result.languages = [...new Set(result.languages)].slice(0, 5);
+  result.experience = result.experience.slice(0, 3);
+  result.education = result.education.slice(0, 2);
+
+  if (!result.skills.length) result.skills = ["No skills"];
+  if (!result.languages.length) result.languages = ["No languages"];
+  if (!result.hobbies.length) result.hobbies = ["No hobbies"];
+
+  return result;
 }
 
 /* ================== API ================== */
@@ -484,7 +446,7 @@ app.post("/api/resume/extract", upload.single("resume"), async (req, res) => {
     res.json({ success: true, data });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false });
+    res.status(500).json({ success: false, error: "Parsing failed" });
   }
 });
 /* ================= START ================= */
@@ -493,3 +455,4 @@ connectDB().then(() => {
     console.log(`Server running on ${PORT}`);
   });
 });
+
