@@ -69,7 +69,7 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
   formData.append("resume", file);
 
   try {
-    const res = await axios.post("/resume-extract", formData, {
+    const res = await axios.post("/api/resume/extract", formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
 
@@ -207,4 +207,5 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
     </div>
   );
 }
+
 
