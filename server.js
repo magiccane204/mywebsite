@@ -313,86 +313,47 @@ app.get(/^\/(?!api).*/, (req, res) => {
 /* ================== UTIL ================== */
 
 const clean = (s = "") => s.replace(/\s+/g, " ").trim();
-
 const YEAR_REGEX = /\b(19|20)\d{2}\b/;
 
-const extractEmail = (t) =>
+const extractEmail = t =>
   t.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi)?.[0] || "No email";
 
-const extractLinkedIn = (t) =>
+const extractLinkedIn = t =>
   t.match(/https?:\/\/(www\.)?linkedin\.com\/[^\s)]+/i)?.[0] || "No LinkedIn";
-function extractPhone(text) {
-  // 1️⃣ Best-case: semantic extraction (library intelligence)
-  try {
-    if (typeof phoneUtil.parsePhoneNumberFromText === "function") {
-      const phone = phoneUtil.parsePhoneNumberFromText(text);
-      if (phone && phone.isValid()) {
-        return phone.formatInternational();
-      }
-    }
-  } catch {}
 
-  // 2️⃣ Fallback: scan numeric candidates, then VALIDATE (not guess)
+function extractPhone(text) {
   const candidates = text.match(/(\+?\d[\d\s().-]{6,20}\d)/g) || [];
 
-  for (let raw of candidates) {
+  for (const raw of candidates) {
     const digits = raw.replace(/\D/g, "");
-
-    // ❌ Reject dates / years / ranges
-    if (
-      /\b(19|20)\d{2}\b/.test(raw) ||
-      raw.includes("-") && /\d{4}\s*-\s*\d{4}/.test(raw)
-    ) continue;
-
-    // ❌ Impossible phone lengths
-    if (digits.length < 7 || digits.length > 15) continue;
-
-    // Normalize: enforce international format without assuming country
-    const normalized = raw.startsWith("+")
-      ? raw
-      : "+" + digits;
-
-    try {
-      if (typeof phoneUtil.parsePhoneNumber === "function") {
-        const parsed = phoneUtil.parsePhoneNumber(normalized);
-        if (parsed && parsed.isValid()) {
-          return parsed.formatInternational();
-        }
-      }
-    } catch {}
+    if (digits.length < 8 || digits.length > 15) continue;
+    if (YEAR_REGEX.test(raw)) continue;
+    return raw.startsWith("+") ? raw : "+" + digits;
   }
 
   return "No phone";
 }
-/* ===== NAME (FIXED) ===== */
+
+/* ================== NAME ================== */
+
 function extractName(lines, email) {
-  const blacklist = /profile|info|resume|cv|personal|details/i;
-
-  for (const l of lines.slice(0, 8)) {
-    if (
-      l.length < 40 &&
-      !/\d/.test(l) &&
-      !blacklist.test(l)
-    ) {
-      return clean(l);
-    }
+  for (const l of lines.slice(0, 6)) {
+    if (l.length < 40 && !/\d|@/.test(l)) return clean(l);
   }
 
-  if (email !== "No email") {
-    return email.split("@")[0].replace(/[._-]/g, " ").toUpperCase();
-  }
-
-  return "No name";
+  return email !== "No email"
+    ? email.split("@")[0].replace(/[._-]/g, " ").toUpperCase()
+    : "No name";
 }
 
 /* ================== SECTION SPLITTER ================== */
 
 function splitSections(text) {
   const sections = {
+    summary: [],
     experience: [],
     education: [],
     skills: [],
-    summary: [],
     languages: [],
     hobbies: []
   };
@@ -403,12 +364,12 @@ function splitSections(text) {
     const l = line.trim();
     if (!l) return;
 
-    if (/summary|objective|profile/i.test(l)) current = "summary";
-    else if (/experience|work/i.test(l)) current = "experience";
-    else if (/education|academic|qualification/i.test(l)) current = "education";
-    else if (/skills|technical|competencies/i.test(l)) current = "skills";
-    else if (/languages/i.test(l)) current = "languages";
-    else if (/hobbies|interests/i.test(l)) current = "hobbies";
+    if (/^(summary|objective|profile)\b/i.test(l)) return (current = "summary");
+    if (/^(experience|work)\b/i.test(l)) return (current = "experience");
+    if (/^(education|academic)\b/i.test(l)) return (current = "education");
+    if (/^(skills|technical)\b/i.test(l)) return (current = "skills");
+    if (/^languages\b/i.test(l)) return (current = "languages");
+    if (/^(hobbies|interests)\b/i.test(l)) return (current = "hobbies");
 
     if (current) sections[current].push(l);
   });
@@ -416,66 +377,65 @@ function splitSections(text) {
   return sections;
 }
 
-/* ================== DATE-AWARE ROUTING ================== */
+/* ================== EXPERIENCE (SHORT & CLEAN) ================== */
 
-function routeByDates(lines) {
-  const experience = [];
-  const education = [];
+function extractExperience(lines) {
+  const bad = /objective|profile|seeking|personal|family|driver/i;
+  const good = /assistant|engineer|developer|analyst|intern|technician|manager/i;
 
-  for (const l of lines) {
-    if (YEAR_REGEX.test(l)) {
-      if (/school|college|university|degree|bachelor|master/i.test(l)) {
-        education.push(l);
-      } else {
-        experience.push(l);
-      }
-    }
-  }
-
-  return { experience, education };
+  return lines
+    .filter(l => l.length < 150)
+    .filter(l => !bad.test(l))
+    .filter(l => good.test(l) || YEAR_REGEX.test(l))
+    .slice(0, 2)
+    .map(clean);
 }
 
-/* ================== CLEAN SKILLS ================== */
+/* ================== EDUCATION ================== */
+
+function extractEducation(lines) {
+  return lines
+    .filter(l => /school|college|university|degree|bachelor|master/i.test(l))
+    .slice(0, 2)
+    .map(clean);
+}
+
+/* ================== SKILLS ================== */
 
 function extractSkills(text) {
-  const blacklist = new Set([
-    "PROFILE","INFO","SUMMARY","EXPERIENCE","EDUCATION",
-    "LANGUAGE","LANGUAGES","HOBBIES","INTERESTS",
-    "UAE","DUBAI","DRIVER"
-  ]);
+  const SKILLS = [
+    "Java","Python","C","C++","C#","SQL",
+    "HTML","CSS","JavaScript","React","Node",
+    "ASP.NET",".NET","Linux","Git",
+    "Communication","Leadership","Management","Teamwork"
+  ];
 
-  const words = text.match(/\b[A-Z][A-Za-z0-9.+#-]{2,20}\b/g) || [];
+  const found = SKILLS.filter(s =>
+    new RegExp(`\\b${s}\\b`, "i").test(text)
+  );
 
-  const skills = Array.from(new Set(words))
-    .filter(w => !blacklist.has(w.toUpperCase()))
-    .slice(0, 20);
-
-  return skills.length ? skills : ["No skills"];
+  return found.length ? found.slice(0, 8) : ["No skills"];
 }
 
+/* ================== LANGUAGES ================== */
+
 function extractLanguages(text) {
-  const langs = text.match(/\b(English|Hindi|Arabic|French|Tagalog|Urdu)\b/gi) || [];
-  return langs.length ? Array.from(new Set(langs)) : ["No languages"];
+  const LANGS = ["English","Hindi","Arabic","French","Urdu","Tagalog"];
+
+  const found = LANGS.filter(l =>
+    new RegExp(`\\b${l}\\b`, "i").test(text)
+  );
+
+  return found.length ? found : ["No languages"];
 }
 
 /* ================== MAIN PARSER ================== */
 
 async function parseResumeText(text) {
   const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-  const blob = text.replace(/\s+/g, " ");
+  const blob = clean(text);
 
   const sections = splitSections(text);
-  const dateRouted = routeByDates(lines);
-
-  const experienceText = [
-    ...sections.experience,
-    ...dateRouted.experience
-  ];
-
-  const educationText = [
-    ...sections.education,
-    ...dateRouted.education
-  ];
 
   return {
     name: extractName(lines, extractEmail(blob)),
@@ -484,8 +444,8 @@ async function parseResumeText(text) {
     linkedIn: extractLinkedIn(blob),
 
     summary: clean(sections.summary.join(" ")) || "No summary",
-    experience: clean(experienceText.join(" ")) || "No experience",
-    education: clean(educationText.join(" ")) || "No education",
+    experience: extractExperience(sections.experience),
+    education: extractEducation(sections.education),
 
     skills: extractSkills(sections.skills.join(" ")),
     languages: extractLanguages(sections.languages.join(" ")),
@@ -524,9 +484,3 @@ connectDB().then(() => {
     console.log(`Server running on ${PORT}`);
   });
 });
-
-
-
-
-
-
