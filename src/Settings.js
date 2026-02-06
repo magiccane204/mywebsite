@@ -1,7 +1,7 @@
 // Settings.js — FIXED (prevents infinite loading, matches backend)
 
 import React, { useEffect, useState } from "react";
-import api from "./api";
+import api from "./api.js";
 import "./CRM.css";
 
 export default function Settings() {
@@ -67,3 +67,4 @@ export default function Settings() {
     </div>
   );
 }
+
