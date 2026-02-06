@@ -10,6 +10,12 @@ const crypto = require("crypto");
 const path = require("path");
 const { MongoClient } = require("mongodb");
 const { Resend } = require("resend");
+const multer = require("multer");
+const fs = require("fs");
+const pdfParse = require("pdf-parse");
+const mammoth = require("mammoth");
+const nlp = require("compromise");
+const { parsePhoneNumberFromText } = require("libphonenumber-js");
 
 /* ================= APP INIT ================= */
 const app = express();
@@ -301,6 +307,123 @@ app.use(express.static(path.join(__dirname, "build")));
 app.get(/^\/(?!api).*/, (req, res) => {
   res.sendFile(path.join(__dirname, "build", "index.html"));
 });
+/* =========================================================
+   GLOBAL RESUME PARSER — PRODUCTION READY
+   Supports: PDF, DOCX | Global Skills | Intl Phone | NLP
+========================================================= */
+
+/* ---------- Utilities ---------- */
+function clean(s = "") {
+  return s.replace(/\s+/g, " ").trim();
+}
+
+/* ---------- Extractors ---------- */
+function extractEmail(text) {
+  return text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi)?.[0] || "";
+}
+
+function extractPhone(text) {
+  const phone = parsePhoneNumberFromText(text);
+  return phone ? phone.formatInternational() : "";
+}
+
+function extractLinkedIn(text) {
+  return text.match(/https?:\/\/(www\.)?linkedin\.com\/[^\s)]+/i)?.[0] || "";
+}
+
+function extractExperience(text) {
+  const match = text.match(
+    /(\d+(?:\.\d+)?)\s*(\+)?\s*(years?|yrs?|year|experience)/i
+  );
+  return match ? match[1] : "";
+}
+
+function extractLocation(text) {
+  const places = nlp(text).places().out("array");
+  return places.length ? places[0] : "";
+}
+
+function extractName(lines, email) {
+  for (const line of lines.slice(0, 8)) {
+    if (
+      line.length > 2 &&
+      line.length < 40 &&
+      !/\d/.test(line) &&
+      !/resume|curriculum|vitae|cv/i.test(line)
+    ) {
+      return clean(line);
+    }
+  }
+
+  if (email) {
+    return email
+      .split("@")[0]
+      .replace(/[._-]/g, " ")
+      .replace(/\b\w/g, c => c.toUpperCase());
+  }
+  return "";
+}
+
+/* ---------- GLOBAL SKILLS (NO HARDCODED LIST) ---------- */
+function extractSkills(text = "") {
+  const blob = text.replace(/\s+/g, " ");
+
+  const capitalized =
+    blob.match(/\b[A-Z][a-zA-Z0-9.+#-]{1,30}\b/g) || [];
+
+  const allCaps =
+    blob.match(/\b[A-Z]{2,10}\b/g) || [];
+
+  const special =
+    blob.match(/\b(?:[A-Za-z]+\.js|\.NET|C\+\+|C#)\b/g) || [];
+
+  const blacklist = new Set([
+    "Resume","Experience","Education","Skills","Projects",
+    "Summary","Profile","University","College","School",
+    "Email","Phone","Address","Location"
+  ]);
+
+  const skills = Array.from(
+    new Set(
+      [...capitalized, ...allCaps, ...special]
+        .map(s => s.trim())
+        .filter(s =>
+          s.length >= 2 &&
+          s.length <= 30 &&
+          !blacklist.has(s)
+        )
+    )
+  );
+
+  return skills.slice(0, 50);
+}
+
+/* ---------- MAIN PARSER ---------- */
+async function parseResumeText(text = "") {
+  const raw = text || "";
+  const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const blob = raw.replace(/\s+/g, " ");
+
+  const email = extractEmail(blob);
+  const phone = extractPhone(blob);
+  const linkedIn = extractLinkedIn(blob);
+  const experienceYears = extractExperience(blob);
+  const location = extractLocation(blob);
+  const name = extractName(lines, email);
+  const skills = extractSkills(blob);
+
+  return {
+    name: clean(name),
+    email: clean(email),
+    phone: clean(phone),
+    linkedIn: clean(linkedIn),
+    experienceYears: clean(experienceYears),
+    location: clean(location),
+    skills
+  };
+}
+
+
 
 /* ================= START ================= */
 connectDB().then(() => {
@@ -308,5 +431,6 @@ connectDB().then(() => {
     console.log(`Server running on ${PORT}`);
   });
 });
+
 
 
