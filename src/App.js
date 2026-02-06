@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import Signup from "./SignUp";
-import Otp from "./otp";
-import CRM from "./CRM";
+import Signup from "./SignUp.js";
+import Otp from "./otp.js";
+import CRM from "./CRM.js";
 import axios from "axios";
 import "./App.css";
 
