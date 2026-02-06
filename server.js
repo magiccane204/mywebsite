@@ -322,17 +322,47 @@ const extractEmail = (t) =>
 const extractLinkedIn = (t) =>
   t.match(/https?:\/\/(www\.)?linkedin\.com\/[^\s)]+/i)?.[0] || "No LinkedIn";
 
-/* ===== INDUSTRIAL PHONE ===== */
 function extractPhone(text) {
   try {
-    const phone = parsePhoneNumberFromText(text);
-    if (!phone || !phone.isValid()) return "No phone";
-    return phone.formatInternational();
-  } catch {
-    return "No phone";
-  }
-}
+    // 1️⃣ Best case: library auto-detection
+    if (phoneUtil.parsePhoneNumberFromText) {
+      const phone = phoneUtil.parsePhoneNumberFromText(text);
+      if (phone && phone.isValid()) {
+        return phone.formatInternational();
+      }
+    }
+  } catch {}
 
+  // 2️⃣ Fallback: manual detection (+91, +971, 0091, 00971)
+  const matches = text.match(/(\+?\d[\d\s\-()]{7,20}\d)/g) || [];
+
+  for (let raw of matches) {
+    const digits = raw.replace(/\D/g, "");
+
+    // ❌ Reject year/date ranges
+    if (/(19|20)\d{2}/.test(raw) && raw.includes("-")) continue;
+    if (digits.length < 7 || digits.length > 15) continue;
+
+    let normalized = raw.trim();
+
+    if (normalized.startsWith("0091")) normalized = "+91" + digits.slice(2);
+    else if (normalized.startsWith("00971")) normalized = "+971" + digits.slice(2);
+    else if (digits.startsWith("91") && digits.length === 12) normalized = "+91" + digits.slice(2);
+    else if (digits.startsWith("971") && digits.length === 12) normalized = "+971" + digits.slice(3);
+    else if (!normalized.startsWith("+")) normalized = "+" + digits;
+
+    try {
+      if (phoneUtil.parsePhoneNumber) {
+        const parsed = phoneUtil.parsePhoneNumber(normalized);
+        if (parsed && parsed.isValid()) {
+          return parsed.formatInternational();
+        }
+      }
+    } catch {}
+  }
+
+  return "No phone";
+}
 /* ===== NAME (FIXED) ===== */
 function extractName(lines, email) {
   const blacklist = /profile|info|resume|cv|personal|details/i;
@@ -493,6 +523,7 @@ connectDB().then(() => {
     console.log(`Server running on ${PORT}`);
   });
 });
+
 
 
 
