@@ -310,155 +310,109 @@ app.use(express.static(path.join(__dirname, "build")));
 app.get(/^\/(?!api).*/, (req, res) => {
   res.sendFile(path.join(__dirname, "build", "index.html"));
 });
-/* =========================================================
-   GLOBAL RESUME PARSER — PRODUCTION READY
-========================================================= */
+/* ================= RESUME PARSER ================= */
 
-/* ---------- Utilities ---------- */
 function clean(s = "") {
   return s.replace(/\s+/g, " ").trim();
 }
 
-/* ---------- Extractors ---------- */
 function extractEmail(text) {
   return text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi)?.[0] || "";
-}
-
-function extractPhone(text) {
-  try {
-    if (!phoneUtil.parsePhoneNumberFromText) return "";
-    const phone = phoneUtil.parsePhoneNumberFromText(text);
-    return phone ? phone.formatInternational() : "";
-  } catch {
-    return "";
-  }
 }
 
 function extractLinkedIn(text) {
   return text.match(/https?:\/\/(www\.)?linkedin\.com\/[^\s)]+/i)?.[0] || "";
 }
 
-function extractExperience(text) {
-  const match = text.match(
-    /(\d+(?:\.\d+)?)\s*(\+)?\s*(years?|yrs?|year|experience)/i
-  );
-  return match ? match[1] : "";
-}
-
-function extractLocation(text) {
-  const places = nlp(text).places().out("array");
-  return places.length ? places[0] : "";
+function extractExperienceYears(text) {
+  const m = text.match(/(\d+(?:\.\d+)?)\s*(years?|yrs?)/i);
+  return m ? m[1] : "";
 }
 
 function extractName(lines, email) {
-  for (const line of lines.slice(0, 8)) {
-    if (
-      line.length > 2 &&
-      line.length < 40 &&
-      !/\d/.test(line) &&
-      !/resume|curriculum|vitae|cv/i.test(line)
-    ) {
-      return clean(line);
+  for (const l of lines.slice(0, 6)) {
+    if (l.length < 40 && !/\d/.test(l) && !/resume|cv/i.test(l)) {
+      return clean(l);
     }
   }
-
   if (email) {
-    return email
-      .split("@")[0]
-      .replace(/[._-]/g, " ")
-      .replace(/\b\w/g, c => c.toUpperCase());
+    return email.split("@")[0].replace(/[._-]/g, " ").toUpperCase();
   }
   return "";
 }
 
-/* ---------- GLOBAL SKILLS ---------- */
-function extractSkills(text = "") {
-  const blob = text.replace(/\s+/g, " ");
+function splitSections(text = "") {
+  const sections = {};
+  let current = "other";
 
-  const capitalized =
-    blob.match(/\b[A-Z][a-zA-Z0-9.+#-]{1,30}\b/g) || [];
+  text.split(/\r?\n/).forEach(line => {
+    const l = line.trim();
 
-  const allCaps =
-    blob.match(/\b[A-Z]{2,10}\b/g) || [];
+    if (/^(summary|objective|profile)/i.test(l)) current = "summary";
+    else if (/^(experience|work experience)/i.test(l)) current = "experience";
+    else if (/^(education|academic)/i.test(l)) current = "education";
+    else if (/^(skills|technical skills)/i.test(l)) current = "skills";
 
-  const special =
-    blob.match(/\b(?:[A-Za-z]+\.js|\.NET|C\+\+|C#)\b/g) || [];
+    if (!sections[current]) sections[current] = [];
+    sections[current].push(l);
+  });
 
-  const blacklist = new Set([
-    "Resume","Experience","Education","Skills","Projects",
-    "Summary","Profile","University","College","School",
-    "Email","Phone","Address","Location"
-  ]);
-
-  return Array.from(
-    new Set(
-      [...capitalized, ...allCaps, ...special]
-        .map(s => s.trim())
-        .filter(s =>
-          s.length >= 2 &&
-          s.length <= 30 &&
-          !blacklist.has(s)
-        )
-    )
-  ).slice(0, 50);
+  return sections;
 }
 
-/* ---------- MAIN PARSER ---------- */
+function extractSkills(text = "") {
+  const caps = text.match(/\b[A-Z][A-Za-z0-9.+#-]{1,25}\b/g) || [];
+  const allCaps = text.match(/\b[A-Z]{2,10}\b/g) || [];
+
+  return Array.from(new Set([...caps, ...allCaps]))
+    .filter(s => s.length > 2 && s.length < 30)
+    .slice(0, 30);
+}
+
 async function parseResumeText(text = "") {
-  const raw = text || "";
+  const raw = text;
   const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
   const blob = raw.replace(/\s+/g, " ");
 
+  const sections = splitSections(raw);
+
   return {
-    name: clean(extractName(lines, extractEmail(blob))),
-    email: clean(extractEmail(blob)),
-    phone: clean(extractPhone(blob)),
-    linkedIn: clean(extractLinkedIn(blob)),
-    experienceYears: clean(extractExperience(blob)),
-    location: clean(extractLocation(blob)),
-    skills: extractSkills(blob)
+    name: extractName(lines, extractEmail(blob)),
+    email: extractEmail(blob),
+    phone: "", // phone optional / disabled
+    linkedIn: extractLinkedIn(blob),
+    experienceYears: extractExperienceYears(blob),
+    summary: clean((sections.summary || []).join(" ")),
+    experience: clean((sections.experience || []).join(" ")),
+    education: clean((sections.education || []).join(" ")),
+    skills: extractSkills((sections.skills || []).join(" "))
   };
 }
 
-/* =========================================================
-   API PATH — FRONTEND CALLS THIS
-========================================================= */
+/* ================= API ================= */
 
 app.post("/api/resume/extract", upload.single("resume"), async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ message: "No resume uploaded" });
-    }
-
     const buffer = fs.readFileSync(req.file.path);
     let text = "";
 
     if (req.file.mimetype === "application/pdf") {
       const parsed = await pdfParse(buffer);
       text = parsed.text || "";
-    } else if (
-      req.file.mimetype ===
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    ) {
+    } else {
       const out = await mammoth.extractRawText({ buffer });
       text = out.value || "";
-    } else {
-      fs.unlinkSync(req.file.path);
-      return res.status(400).json({ message: "Unsupported file type" });
     }
 
     fs.unlinkSync(req.file.path);
 
     const data = await parseResumeText(text);
-    return res.json({ success: true, data });
-  } catch (err) {
-    console.error("Resume parse error:", err);
-    return res.status(500).json({ success: false, message: "Parsing failed" });
+    res.json({ success: true, data });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ success: false });
   }
 });
-
-
-
 
 /* ================= START ================= */
 connectDB().then(() => {
@@ -466,10 +420,3 @@ connectDB().then(() => {
     console.log(`Server running on ${PORT}`);
   });
 });
-
-
-
-
-
-
-
