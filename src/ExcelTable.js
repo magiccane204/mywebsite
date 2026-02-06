@@ -6,16 +6,24 @@ import "./ExcelTable.css";
 export default function ExcelTable({ tableData, setTableData, onColumnSelect }) {
   const [selectedColumn, setSelectedColumn] = useState(null);
 
-  /* ================= CELL EDIT ================= */
+  /* ================= NORMALIZE TABLE ================= */
+  const normalizeTable = (data) => {
+    const maxCols = Math.max(...data.map(r => r.length));
+    return data.map(row => {
+      const r = [...row];
+      while (r.length < maxCols) r.push("");
+      return r;
+    });
+  };
 
+  /* ================= CELL EDIT ================= */
   const handleChange = (r, c, value) => {
-    const newData = [...tableData];
-    newData[r][c] = value;
-    setTableData(newData);
+    const data = normalizeTable([...tableData]);
+    data[r][c] = value;
+    setTableData(data);
   };
 
   /* ================= ROW OPS ================= */
-
   const addRow = () => {
     const cols = tableData[0]?.length || 1;
     setTableData([...tableData, Array(cols).fill("")]);
@@ -23,32 +31,29 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
 
   const deleteRow = (rowIndex) => {
     const updated = tableData.filter((_, i) => i !== rowIndex);
-    setTableData(updated.length ? updated : [[""]]);
+    setTableData(updated.length ? normalizeTable(updated) : [[""]]);
   };
 
   /* ================= COLUMN OPS ================= */
-
   const insertColumnAt = (colIndex) => {
-    const newData = tableData.map((row) => {
-      const newRow = [...row];
-      newRow.splice(colIndex + 1, 0, "");
-      return newRow;
+    const data = tableData.map(row => {
+      const r = [...row];
+      r.splice(colIndex + 1, 0, "");
+      return r;
     });
-    setTableData(newData);
+    setTableData(normalizeTable(data));
   };
 
   const deleteColumn = (colIndex) => {
-    const newData = tableData.map((row) => {
-      if (row.length <= 1) return row;
-      const newRow = [...row];
-      newRow.splice(colIndex, 1);
-      return newRow;
+    const data = tableData.map(row => {
+      const r = [...row];
+      if (r.length > 1) r.splice(colIndex, 1);
+      return r;
     });
-    setTableData(newData);
+    setTableData(normalizeTable(data));
   };
 
   /* ================= EXCEL OPS ================= */
-
   const saveExcel = () => {
     const ws = XLSX.utils.aoa_to_sheet(tableData);
     const wb = XLSX.utils.book_new();
@@ -62,70 +67,65 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
 
     const reader = new FileReader();
     reader.onload = (evt) => {
-      const workbook = XLSX.read(evt.target.result, { type: "binary" });
-      const sheetName = workbook.SheetNames[0];
-      const data = XLSX.utils.sheet_to_json(
-        workbook.Sheets[sheetName],
-        { header: 1 }
-      );
-      setTableData(data);
+      const wb = XLSX.read(evt.target.result, { type: "binary" });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const data = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+      setTableData(normalizeTable(data));
     };
     reader.readAsBinaryString(file);
   };
 
-const handleUploadResume = async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
+  /* ================= RESUME UPLOAD ================= */
+  const handleUploadResume = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-  const formData = new FormData();
-  formData.append("resume", file);
+    const formData = new FormData();
+    formData.append("resume", file);
 
-  try {
-    const res = await axios.post("/api/resume/extract", formData, {
-      headers: { "Content-Type": "multipart/form-data" }
-    });
+    try {
+      const res = await axios.post("/api/resume/extract", formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
 
-    const d = res.data?.data;
-    if (!d) return;
+      const d = res.data?.data;
+      if (!d) return;
 
-    const cols = tableData[0]?.length || 1;
+      const cols = tableData[0]?.length || 1;
 
-    const values = [
-      d.name || "",
-      d.email || "",
-      d.phone || "",
-      d.linkedIn || "",
-      d.experience || "",
-      d.education || "",
-      (d.skills || []).join(", ")
-    ];
+      const values = [
+        d.name || "",
+        d.email || "",
+        d.phone || "",
+        d.linkedIn || "",
+        d.experience || "",
+        d.education || "",
+        (d.skills || []).join(", ")
+      ];
 
-    const row = Array(cols).fill("");
-    for (let i = 0; i < Math.min(cols, values.length); i++) {
-      row[i] = values[i];
+      const row = Array(cols).fill("");
+      for (let i = 0; i < Math.min(cols, values.length); i++) {
+        row[i] = values[i];
+      }
+
+      setTableData(normalizeTable([...tableData, row]));
+    } catch (err) {
+      console.error("Resume upload failed:", err);
+    } finally {
+      e.target.value = "";
     }
-
-    setTableData([...tableData, row]);
-  } catch (err) {
-    console.error(err);
-  } finally {
-    e.target.value = "";
-  }
-};
+  };
 
   /* ================= COLUMN SELECT ================= */
-
   const handleColumnClick = (colIndex) => {
     setSelectedColumn(colIndex);
-    const columnValues = tableData
-      .map((row) => parseFloat(row[colIndex]))
-      .filter((v) => !isNaN(v));
-
-    if (onColumnSelect) onColumnSelect(columnValues, colIndex);
+    const values = tableData
+      .map(row => parseFloat(row[colIndex]))
+      .filter(v => !isNaN(v));
+    onColumnSelect?.(values, colIndex);
   };
 
   /* ================= UI (UNCHANGED DESIGN) ================= */
-
   return (
     <div className="excel-container">
       <div className="table-toolbar">
@@ -166,38 +166,13 @@ const handleUploadResume = async (e) => {
                       selectedColumn === c
                         ? "rgba(173, 216, 230, 0.4)"
                         : "transparent",
-                    cursor: "pointer",
+                    cursor: "pointer"
                   }}
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: "4px",
-                    }}
-                  >
+                  <div style={{ display: "flex", gap: "4px", justifyContent: "center" }}>
                     <span>{c + 1}</span>
-                    <div className="col-buttons">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          insertColumnAt(c);
-                        }}
-                      >
-                        +
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteColumn(c);
-                        }}
-                      >
-                        🗑
-                      </button>
-                    </div>
+                    <button onClick={(e) => { e.stopPropagation(); insertColumnAt(c); }}>+</button>
+                    <button onClick={(e) => { e.stopPropagation(); deleteColumn(c); }}>🗑</button>
                   </div>
                 </th>
               ))}
@@ -213,9 +188,7 @@ const handleUploadResume = async (e) => {
                     <input
                       type="text"
                       value={cell}
-                      onChange={(e) =>
-                        handleChange(r, c, e.target.value)
-                      }
+                      onChange={(e) => handleChange(r, c, e.target.value)}
                     />
                   </td>
                 ))}
@@ -230,4 +203,3 @@ const handleUploadResume = async (e) => {
     </div>
   );
 }
-
