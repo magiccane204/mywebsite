@@ -322,7 +322,7 @@ const extractLinkedIn = (t) =>
 
 function extractPhone(text) {
   try {
-    const phone = parsePhoneNumberFromText(text, "IN");
+    const phone = parsePhoneNumberFromText(text, "AE");
     if (!phone || !phone.isValid()) return "No phone";
     return phone.formatInternational();
   } catch {
@@ -455,5 +455,6 @@ connectDB().then(() => {
     console.log(`Server running on ${PORT}`);
   });
 });
+
 
 
