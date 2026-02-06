@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import api from "./api";
+import api from "./api.js";
 import "./Otp.css";
 
 function Otp({ setMode }) {
@@ -70,3 +70,4 @@ function Otp({ setMode }) {
 }
 
 export default Otp;
+
