@@ -19,6 +19,7 @@ const { parsePhoneNumberFromText } = require("libphonenumber-js");
 
 /* ================= APP INIT ================= */
 const app = express();
+const upload = multer({ dest: "uploads/" });
 
 /* ================= ENV ================= */
 const PORT = process.env.PORT || 10000;
@@ -458,6 +459,7 @@ connectDB().then(() => {
     console.log(`Server running on ${PORT}`);
   });
 });
+
 
 
 
