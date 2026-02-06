@@ -73,52 +73,45 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
     reader.readAsBinaryString(file);
   };
 
-  /* ================= RESUME UPLOAD (FIXED ONLY HERE) ================= */
+const handleUploadResume = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
 
-  const handleUploadResume = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const formData = new FormData();
+  formData.append("resume", file);
 
-    const formData = new FormData();
-    formData.append("resume", file);
+  try {
+    const res = await axios.post("/api/resume/extract", formData, {
+      headers: { "Content-Type": "multipart/form-data" }
+    });
 
-    try {
-      const res = await axios.post("/api/resume/extract", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+    const d = res.data?.data;
+    if (!d) return;
 
-      const parsed = res.data?.data;
-      if (!parsed) return;
+    const cols = tableData[0]?.length || 1;
 
-      // Existing column count (DO NOT CHANGE DESIGN)
-      const cols = tableData[0]?.length || 1;
+    const values = [
+      d.name || "",
+      d.email || "",
+      d.phone || "",
+      d.linkedIn || "",
+      d.experience || "",
+      d.education || "",
+      (d.skills || []).join(", ")
+    ];
 
-      // Resume fields (order only, no layout logic)
-      const resumeValues = [
-        parsed.name || "",
-        parsed.email || "",
-        parsed.phone || "",
-        parsed.linkedIn || "",
-        parsed.experienceYears || "",
-        parsed.location || "",
-        (parsed.skills || []).join(", ")
-      ];
-
-      // Create row that matches existing table width
-      const newRow = Array(cols).fill("");
-      for (let i = 0; i < Math.min(cols, resumeValues.length); i++) {
-        newRow[i] = resumeValues[i];
-      }
-
-      setTableData([...tableData, newRow]);
-      alert("✅ Resume parsed and added!");
-    } catch (err) {
-      console.error("Resume upload failed:", err);
-      alert("❌ Failed to extract resume data");
-    } finally {
-      e.target.value = "";
+    const row = Array(cols).fill("");
+    for (let i = 0; i < Math.min(cols, values.length); i++) {
+      row[i] = values[i];
     }
-  };
+
+    setTableData([...tableData, row]);
+  } catch (err) {
+    console.error(err);
+  } finally {
+    e.target.value = "";
+  }
+};
 
   /* ================= COLUMN SELECT ================= */
 
@@ -237,3 +230,4 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
     </div>
   );
 }
+
