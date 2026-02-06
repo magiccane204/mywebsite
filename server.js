@@ -17,7 +17,7 @@ const fs = require("fs");
 const pdfParse = require("pdf-parse");
 const mammoth = require("mammoth");
 const nlp = require("compromise");
-const { parsePhoneNumberFromText } = require("libphonenumber-js");
+const phoneUtil = require("libphonenumber-js");
 
 /* ================= APP INIT ================= */
 const app = express();
@@ -325,8 +325,13 @@ function extractEmail(text) {
 }
 
 function extractPhone(text) {
-  const phone = parsePhoneNumberFromText(text);
-  return phone ? phone.formatInternational() : "";
+  try {
+    if (!phoneUtil.parsePhoneNumberFromText) return "";
+    const phone = phoneUtil.parsePhoneNumberFromText(text);
+    return phone ? phone.formatInternational() : "";
+  } catch {
+    return "";
+  }
 }
 
 function extractLinkedIn(text) {
@@ -461,6 +466,7 @@ connectDB().then(() => {
     console.log(`Server running on ${PORT}`);
   });
 });
+
 
 
 
