@@ -310,23 +310,24 @@ app.use(express.static(path.join(__dirname, "build")));
 app.get(/^\/(?!api).*/, (req, res) => {
   res.sendFile(path.join(__dirname, "build", "index.html"));
 });
-/* ================= RESUME PARSER (FINAL STRUCTURED) ================= */
+/* ================== UTIL ================== */
 
-function clean(s = "") {
-  return s.replace(/\s+/g, " ").trim();
-}
+const clean = (s = "") => s.replace(/\s+/g, " ").trim();
 
-function extractEmail(text) {
-  return text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi)?.[0] || "";
-}
+const extractEmail = (t) =>
+  t.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi)?.[0] || "No email";
+
+const extractLinkedIn = (t) =>
+  t.match(/https?:\/\/(www\.)?linkedin\.com\/[^\s)]+/i)?.[0] || "No LinkedIn";
 
 function extractPhone(text) {
-  const m = text.match(/(\+?\d[\d\s-]{9,15})/);
-  return m ? clean(m[1]) : "";
-}
-
-function extractLinkedIn(text) {
-  return text.match(/https?:\/\/(www\.)?linkedin\.com\/[^\s)]+/i)?.[0] || "";
+  try {
+    const phone = parsePhoneNumberFromText(text, "IN");
+    if (!phone || !phone.isValid()) return "No phone";
+    return phone.formatInternational();
+  } catch {
+    return "No phone";
+  }
 }
 
 function extractName(lines, email) {
@@ -335,25 +336,24 @@ function extractName(lines, email) {
       return clean(l);
     }
   }
-  if (email) {
-    return email.split("@")[0].replace(/[._-]/g, " ").toUpperCase();
-  }
-  return "";
+  return email !== "No email"
+    ? email.split("@")[0].replace(/[._-]/g, " ").toUpperCase()
+    : "No name";
 }
 
-/* ---------- SECTION SPLITTER ---------- */
-function splitSections(text = "") {
+/* ================== SECTION SPLITTER ================== */
+
+function splitSections(text) {
   const sections = {
     summary: [],
     experience: [],
     education: [],
     skills: [],
     languages: [],
-    hobbies: [],
-    other: []
+    hobbies: []
   };
 
-  let current = "other";
+  let current = null;
 
   text.split(/\r?\n/).forEach(line => {
     const l = line.trim();
@@ -366,40 +366,43 @@ function splitSections(text = "") {
     else if (/^(languages)/i.test(l)) current = "languages";
     else if (/^(hobbies|interests)/i.test(l)) current = "hobbies";
 
-    sections[current].push(l);
+    if (current) sections[current].push(l);
   });
 
   return sections;
 }
 
-/* ---------- CLEAN SKILLS ---------- */
-function extractSkills(text = "") {
+/* ================== CLEAN EXTRACTORS ================== */
+
+function extractSkills(text) {
   const blacklist = new Set([
-    "LANGUAGES","HOBBIES","INTERESTS","OBJECTIVE","SUMMARY",
-    "ACADEMIC","CREDENTIALS","PERSONAL","DETAILS",
-    "ENGLISH","HINDI","FRENCH","ARABIC","SINDHI"
+    "LANGUAGE","LANGUAGES","HOBBIES","INTERESTS",
+    "SUMMARY","OBJECTIVE","PROFILE",
+    "ACADEMIC","CREDENTIALS","EDUCATION",
+    "PERSONAL","DETAILS"
   ]);
 
-  const skills = text.match(/\b[A-Z][A-Za-z0-9.+#-]{1,20}\b/g) || [];
+  const words = text.match(/\b[A-Z][A-Za-z0-9.+#-]{2,20}\b/g) || [];
 
-  return Array.from(new Set(skills))
-    .filter(s => s.length > 2 && s.length < 25 && !blacklist.has(s.toUpperCase()))
+  const skills = Array.from(new Set(words))
+    .filter(w => !blacklist.has(w.toUpperCase()))
     .slice(0, 20);
+
+  return skills.length ? skills : ["No skills"];
 }
 
-/* ---------- CLEAN LANGUAGES ---------- */
-function extractLanguages(text = "") {
+function extractLanguages(text) {
   const langs = text.match(/\b(English|Hindi|French|Arabic|Sindhi)\b/gi) || [];
-  return Array.from(new Set(langs));
+  return langs.length ? Array.from(new Set(langs)) : ["No languages"];
 }
 
-/* ---------- MAIN PARSER ---------- */
-async function parseResumeText(text = "") {
-  const raw = text;
-  const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-  const blob = raw.replace(/\s+/g, " ");
+/* ================== MAIN PARSER ================== */
 
-  const sections = splitSections(raw);
+async function parseResumeText(text) {
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const blob = text.replace(/\s+/g, " ");
+
+  const sections = splitSections(text);
 
   return {
     name: extractName(lines, extractEmail(blob)),
@@ -407,20 +410,24 @@ async function parseResumeText(text = "") {
     phone: extractPhone(blob),
     linkedIn: extractLinkedIn(blob),
 
-    summary: clean(sections.summary.join(" ")),
-    experience: clean(sections.experience.join(" ")),
-    education: clean(sections.education.join(" ")),
+    summary: clean(sections.summary.join(" ")) || "No summary",
+    experience: clean(sections.experience.join(" ")) || "No experience",
+    education: clean(sections.education.join(" ")) || "No education",
+
     skills: extractSkills(sections.skills.join(" ")),
     languages: extractLanguages(sections.languages.join(" ")),
-    hobbies: clean(sections.hobbies.join(" "))
+    hobbies: clean(sections.hobbies.join(" ")) || "No hobbies"
   };
 }
 
-
-/* ================= API ================= */
+/* ================== API ================== */
 
 app.post("/api/resume/extract", upload.single("resume"), async (req, res) => {
   try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "No file" });
+    }
+
     const buffer = fs.readFileSync(req.file.path);
     let text = "";
 
@@ -436,9 +443,9 @@ app.post("/api/resume/extract", upload.single("resume"), async (req, res) => {
 
     const data = await parseResumeText(text);
     res.json({ success: true, data });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ success: false });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Parse failed" });
   }
 });
 
