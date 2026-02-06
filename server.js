@@ -3,36 +3,49 @@ import "dotenv/config";
 console.log("🔥 SERVER FILE RUNNING");
 
 /* ================= CORE DEPENDENCIES ================= */
-const express = require("express");
-const cors = require("cors");
-const jwt = require("jsonwebtoken");
-const crypto = require("crypto");
-const path = require("path");
-const { MongoClient } = require("mongodb");
-const { Resend } = require("resend");
-const multer = require("multer");
-const fs = require("fs");
-const pdfParse = require("pdf-parse");
-const mammoth = require("mammoth");
-const nlp = require("compromise");
-const phoneUtil = require("libphonenumber-js");
+
+import express from "express";
+import cors from "cors";
+import jwt from "jsonwebtoken";
+import crypto from "crypto";
+import path from "path";
+import { MongoClient } from "mongodb";
+import { Resend } from "resend";
+import multer from "multer";
+import fs from "fs";
+import pdfParse from "pdf-parse";
+import mammoth from "mammoth";
+import nlp from "compromise";
+import { parsePhoneNumberFromText } from "libphonenumber-js";
 import OpenAI from "openai";
+
 /* ================= APP INIT ================= */
+
 const app = express();
 const upload = multer({ dest: "uploads/" });
 
 /* ================= ENV ================= */
+
 const PORT = process.env.PORT || 10000;
 const MONGO_URI = process.env.MONGODB_URI;
 const JWT_SECRET = process.env.JWT_SECRET;
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const NODE_ENV = process.env.NODE_ENV || "production";
 
-/* ================= BASIC SAFETY ================= */
-if (!MONGO_URI || !JWT_SECRET || !RESEND_API_KEY) {
-  console.error("Missing env variables");
-  process.exit(1);
-}
+/* ================= SAFETY CHECKS ================= */
+
+if (!MONGO_URI) console.warn("⚠️ MONGODB_URI missing");
+if (!JWT_SECRET) console.warn("⚠️ JWT_SECRET missing");
+if (!RESEND_API_KEY) console.warn("⚠️ RESEND_API_KEY missing");
+if (!process.env.OPENAI_API_KEY) console.warn("⚠️ OPENAI_API_KEY missing");
+
+/* ================= OPENAI ================= */
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
+
+
 
 /* ================= MIDDLEWARE ================= */
 app.use(cors({ origin: true, credentials: true }));
@@ -453,5 +466,6 @@ connectDB().then(() => {
     console.log(`Server running on ${PORT}`);
   });
 });
+
 
 
