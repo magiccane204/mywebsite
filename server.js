@@ -16,7 +16,7 @@ import fs from "fs";
 import pdfParse from "pdf-parse";
 import mammoth from "mammoth";
 import nlp from "compromise";
-import { parsePhoneNumberFromText } from "libphonenumber-js";
+import phoneUtil from "libphonenumber-js";
 import OpenAI from "openai";
 
 /* ================= APP INIT ================= */
@@ -466,6 +466,7 @@ connectDB().then(() => {
     console.log(`Server running on ${PORT}`);
   });
 });
+
 
 
 
