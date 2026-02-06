@@ -2,6 +2,8 @@
 
 require("dotenv").config();
 
+console.log("🔥 SERVER FILE RUNNING");
+
 /* ================= CORE DEPENDENCIES ================= */
 const express = require("express");
 const cors = require("cors");
@@ -459,6 +461,7 @@ connectDB().then(() => {
     console.log(`Server running on ${PORT}`);
   });
 });
+
 
 
 
