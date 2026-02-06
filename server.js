@@ -1,6 +1,4 @@
-// server.js — INDUSTRIAL-GRADE, FULLY-FEATURED BACKEND (OTP ACTUALLY FIXED)
-
-require("dotenv").config();
+import "dotenv/config";
 
 console.log("🔥 SERVER FILE RUNNING");
 
@@ -455,4 +453,5 @@ connectDB().then(() => {
     console.log(`Server running on ${PORT}`);
   });
 });
+
 
