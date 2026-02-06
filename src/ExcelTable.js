@@ -6,32 +6,32 @@ import "./ExcelTable.css";
 export default function ExcelTable({ tableData, setTableData, onColumnSelect }) {
   const [selectedColumn, setSelectedColumn] = useState(null);
 
-  /* ================= NORMALIZE TABLE ================= */
-  const normalizeTable = (data) => {
+  /* ================= NORMALIZE ================= */
+  const normalize = (data) => {
     const maxCols = Math.max(...data.map(r => r.length));
-    return data.map(row => {
-      const r = [...row];
-      while (r.length < maxCols) r.push("");
-      return r;
+    return data.map(r => {
+      const row = [...r];
+      while (row.length < maxCols) row.push("");
+      return row;
     });
   };
 
   /* ================= CELL EDIT ================= */
   const handleChange = (r, c, value) => {
-    const data = normalizeTable([...tableData]);
+    const data = normalize([...tableData]);
     data[r][c] = value;
     setTableData(data);
   };
 
   /* ================= ROW OPS ================= */
   const addRow = () => {
-    const cols = tableData[0]?.length || 1;
-    setTableData([...tableData, Array(cols).fill("")]);
+    const cols = tableData[0]?.length || 10;
+    setTableData(normalize([...tableData, Array(cols).fill("")]));
   };
 
   const deleteRow = (rowIndex) => {
-    const updated = tableData.filter((_, i) => i !== rowIndex);
-    setTableData(updated.length ? normalizeTable(updated) : [[""]]);
+    const data = tableData.filter((_, i) => i !== rowIndex);
+    setTableData(data.length ? normalize(data) : [Array(10).fill("")]);
   };
 
   /* ================= COLUMN OPS ================= */
@@ -41,7 +41,7 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
       r.splice(colIndex + 1, 0, "");
       return r;
     });
-    setTableData(normalizeTable(data));
+    setTableData(normalize(data));
   };
 
   const deleteColumn = (colIndex) => {
@@ -50,7 +50,7 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
       if (r.length > 1) r.splice(colIndex, 1);
       return r;
     });
-    setTableData(normalizeTable(data));
+    setTableData(normalize(data));
   };
 
   /* ================= EXCEL OPS ================= */
@@ -58,7 +58,7 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
     const ws = XLSX.utils.aoa_to_sheet(tableData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
-    XLSX.writeFile(wb, "File1.xlsx");
+    XLSX.writeFile(wb, "Data.xlsx");
   };
 
   const handleUploadExcel = (e) => {
@@ -70,7 +70,7 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
       const wb = XLSX.read(evt.target.result, { type: "binary" });
       const sheet = wb.Sheets[wb.SheetNames[0]];
       const data = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-      setTableData(normalizeTable(data));
+      setTableData(normalize(data));
     };
     reader.readAsBinaryString(file);
   };
@@ -91,16 +91,19 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
       const d = res.data?.data;
       if (!d) return;
 
-      const cols = tableData[0]?.length || 1;
+      const cols = tableData[0]?.length || 10;
 
       const values = [
-        d.name || "",
-        d.email || "",
-        d.phone || "",
-        d.linkedIn || "",
-        d.experience || "",
-        d.education || "",
-        (d.skills || []).join(", ")
+        d.name || "No name",
+        d.email || "No email",
+        d.phone || "No phone",
+        d.linkedIn || "No LinkedIn",
+        d.summary || "No summary",
+        d.experience || "No experience",
+        d.education || "No education",
+        (d.skills || ["No skills"]).join(", "),
+        (d.languages || ["No languages"]).join(", "),
+        d.hobbies || "No hobbies"
       ];
 
       const row = Array(cols).fill("");
@@ -108,7 +111,7 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
         row[i] = values[i];
       }
 
-      setTableData(normalizeTable([...tableData, row]));
+      setTableData(normalize([...tableData, row]));
     } catch (err) {
       console.error("Resume upload failed:", err);
     } finally {
@@ -122,10 +125,10 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
     const values = tableData
       .map(row => parseFloat(row[colIndex]))
       .filter(v => !isNaN(v));
-    onColumnSelect?.(values, colIndex);
+    if (onColumnSelect) onColumnSelect(values, colIndex);
   };
 
-  /* ================= UI (UNCHANGED DESIGN) ================= */
+  /* ================= UI ================= */
   return (
     <div className="excel-container">
       <div className="table-toolbar">
@@ -138,7 +141,7 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
             type="file"
             accept=".xlsx,.xls,.csv"
             onChange={handleUploadExcel}
-            style={{ display: "none" }}
+            hidden
           />
         </label>
 
@@ -148,7 +151,7 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
             type="file"
             accept=".pdf,.doc,.docx"
             onChange={handleUploadResume}
-            style={{ display: "none" }}
+            hidden
           />
         </label>
       </div>
@@ -162,17 +165,33 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
                   key={c}
                   onClick={() => handleColumnClick(c)}
                   style={{
-                    backgroundColor:
+                    cursor: "pointer",
+                    background:
                       selectedColumn === c
-                        ? "rgba(173, 216, 230, 0.4)"
-                        : "transparent",
-                    cursor: "pointer"
+                        ? "rgba(173,216,230,0.4)"
+                        : "transparent"
                   }}
                 >
                   <div style={{ display: "flex", gap: "4px", justifyContent: "center" }}>
                     <span>{c + 1}</span>
-                    <button onClick={(e) => { e.stopPropagation(); insertColumnAt(c); }}>+</button>
-                    <button onClick={(e) => { e.stopPropagation(); deleteColumn(c); }}>🗑</button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        insertColumnAt(c);
+                      }}
+                    >
+                      +
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteColumn(c);
+                      }}
+                    >
+                      🗑
+                    </button>
                   </div>
                 </th>
               ))}
@@ -188,7 +207,9 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
                     <input
                       type="text"
                       value={cell}
-                      onChange={(e) => handleChange(r, c, e.target.value)}
+                      onChange={(e) =>
+                        handleChange(r, c, e.target.value)
+                      }
                     />
                   </td>
                 ))}
