@@ -310,7 +310,7 @@ app.use(express.static(path.join(__dirname, "build")));
 app.get(/^\/(?!api).*/, (req, res) => {
   res.sendFile(path.join(__dirname, "build", "index.html"));
 });
-/* ================= RESUME PARSER ================= */
+/* ================= RESUME PARSER (STRUCTURED) ================= */
 
 function clean(s = "") {
   return s.replace(/\s+/g, " ").trim();
@@ -320,13 +320,13 @@ function extractEmail(text) {
   return text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi)?.[0] || "";
 }
 
-function extractLinkedIn(text) {
-  return text.match(/https?:\/\/(www\.)?linkedin\.com\/[^\s)]+/i)?.[0] || "";
+function extractPhone(text) {
+  const m = text.match(/(\+?\d[\d\s-]{8,15})/);
+  return m ? clean(m[1]) : "";
 }
 
-function extractExperienceYears(text) {
-  const m = text.match(/(\d+(?:\.\d+)?)\s*(years?|yrs?)/i);
-  return m ? m[1] : "";
+function extractLinkedIn(text) {
+  return text.match(/https?:\/\/(www\.)?linkedin\.com\/[^\s)]+/i)?.[0] || "";
 }
 
 function extractName(lines, email) {
@@ -341,34 +341,42 @@ function extractName(lines, email) {
   return "";
 }
 
+/* ---------- SECTION SPLITTER ---------- */
 function splitSections(text = "") {
-  const sections = {};
+  const sections = {
+    summary: [],
+    experience: [],
+    education: [],
+    skills: [],
+    other: []
+  };
+
   let current = "other";
 
   text.split(/\r?\n/).forEach(line => {
     const l = line.trim();
+    if (!l) return;
 
     if (/^(summary|objective|profile)/i.test(l)) current = "summary";
     else if (/^(experience|work experience)/i.test(l)) current = "experience";
     else if (/^(education|academic)/i.test(l)) current = "education";
-    else if (/^(skills|technical skills)/i.test(l)) current = "skills";
+    else if (/^(skills|technical skills|computer application skills)/i.test(l)) current = "skills";
 
-    if (!sections[current]) sections[current] = [];
     sections[current].push(l);
   });
 
   return sections;
 }
 
+/* ---------- CLEAN SKILLS ---------- */
 function extractSkills(text = "") {
-  const caps = text.match(/\b[A-Z][A-Za-z0-9.+#-]{1,25}\b/g) || [];
-  const allCaps = text.match(/\b[A-Z]{2,10}\b/g) || [];
-
-  return Array.from(new Set([...caps, ...allCaps]))
-    .filter(s => s.length > 2 && s.length < 30)
-    .slice(0, 30);
+  const skills = text.match(/\b[A-Z][A-Za-z0-9.+#-]{1,20}\b/g) || [];
+  return Array.from(new Set(skills))
+    .filter(s => s.length > 2 && s.length < 25)
+    .slice(0, 25);
 }
 
+/* ---------- MAIN PARSER ---------- */
 async function parseResumeText(text = "") {
   const raw = text;
   const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
@@ -379,13 +387,13 @@ async function parseResumeText(text = "") {
   return {
     name: extractName(lines, extractEmail(blob)),
     email: extractEmail(blob),
-    phone: "", // phone optional / disabled
+    phone: extractPhone(blob),
     linkedIn: extractLinkedIn(blob),
-    experienceYears: extractExperienceYears(blob),
-    summary: clean((sections.summary || []).join(" ")),
-    experience: clean((sections.experience || []).join(" ")),
-    education: clean((sections.education || []).join(" ")),
-    skills: extractSkills((sections.skills || []).join(" "))
+
+    summary: clean(sections.summary.join(" ")),
+    experience: clean(sections.experience.join(" ")),
+    education: clean(sections.education.join(" ")),
+    skills: extractSkills(sections.skills.join(" "))
   };
 }
 
@@ -420,3 +428,4 @@ connectDB().then(() => {
     console.log(`Server running on ${PORT}`);
   });
 });
+
