@@ -321,11 +321,10 @@ const extractEmail = (t) =>
 
 const extractLinkedIn = (t) =>
   t.match(/https?:\/\/(www\.)?linkedin\.com\/[^\s)]+/i)?.[0] || "No LinkedIn";
-
 function extractPhone(text) {
+  // 1️⃣ Best-case: semantic extraction (library intelligence)
   try {
-    // 1️⃣ Best case: library auto-detection
-    if (phoneUtil.parsePhoneNumberFromText) {
+    if (typeof phoneUtil.parsePhoneNumberFromText === "function") {
       const phone = phoneUtil.parsePhoneNumberFromText(text);
       if (phone && phone.isValid()) {
         return phone.formatInternational();
@@ -333,26 +332,28 @@ function extractPhone(text) {
     }
   } catch {}
 
-  // 2️⃣ Fallback: manual detection (+91, +971, 0091, 00971)
-  const matches = text.match(/(\+?\d[\d\s\-()]{7,20}\d)/g) || [];
+  // 2️⃣ Fallback: scan numeric candidates, then VALIDATE (not guess)
+  const candidates = text.match(/(\+?\d[\d\s().-]{6,20}\d)/g) || [];
 
-  for (let raw of matches) {
+  for (let raw of candidates) {
     const digits = raw.replace(/\D/g, "");
 
-    // ❌ Reject year/date ranges
-    if (/(19|20)\d{2}/.test(raw) && raw.includes("-")) continue;
+    // ❌ Reject dates / years / ranges
+    if (
+      /\b(19|20)\d{2}\b/.test(raw) ||
+      raw.includes("-") && /\d{4}\s*-\s*\d{4}/.test(raw)
+    ) continue;
+
+    // ❌ Impossible phone lengths
     if (digits.length < 7 || digits.length > 15) continue;
 
-    let normalized = raw.trim();
-
-    if (normalized.startsWith("0091")) normalized = "+91" + digits.slice(2);
-    else if (normalized.startsWith("00971")) normalized = "+971" + digits.slice(2);
-    else if (digits.startsWith("91") && digits.length === 12) normalized = "+91" + digits.slice(2);
-    else if (digits.startsWith("971") && digits.length === 12) normalized = "+971" + digits.slice(3);
-    else if (!normalized.startsWith("+")) normalized = "+" + digits;
+    // Normalize: enforce international format without assuming country
+    const normalized = raw.startsWith("+")
+      ? raw
+      : "+" + digits;
 
     try {
-      if (phoneUtil.parsePhoneNumber) {
+      if (typeof phoneUtil.parsePhoneNumber === "function") {
         const parsed = phoneUtil.parsePhoneNumber(normalized);
         if (parsed && parsed.isValid()) {
           return parsed.formatInternational();
@@ -523,6 +524,7 @@ connectDB().then(() => {
     console.log(`Server running on ${PORT}`);
   });
 });
+
 
 
 
