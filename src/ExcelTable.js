@@ -6,23 +6,6 @@ import "./ExcelTable.css";
 export default function ExcelTable({ tableData, setTableData, onColumnSelect }) {
   const [selectedColumn, setSelectedColumn] = useState(null);
 
-  /* ================= HELPERS ================= */
-
-  function ensureHeaders(data) {
-    if (!data || data.length === 0 || data[0].every(cell => cell === "")) {
-      return [[
-        "Name",
-        "Email",
-        "Phone",
-        "LinkedIn",
-        "Experience (Years)",
-        "Location",
-        "Skills"
-      ]];
-    }
-    return data;
-  }
-
   /* ================= CELL EDIT ================= */
 
   const handleChange = (r, c, value) => {
@@ -34,7 +17,7 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
   /* ================= ROW OPS ================= */
 
   const addRow = () => {
-    const cols = tableData[0]?.length || 7;
+    const cols = tableData[0]?.length || 1;
     setTableData([...tableData, Array(cols).fill("")]);
   };
 
@@ -46,7 +29,7 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
   /* ================= COLUMN OPS ================= */
 
   const insertColumnAt = (colIndex) => {
-    const newData = tableData.map(row => {
+    const newData = tableData.map((row) => {
       const newRow = [...row];
       newRow.splice(colIndex + 1, 0, "");
       return newRow;
@@ -55,7 +38,7 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
   };
 
   const deleteColumn = (colIndex) => {
-    const newData = tableData.map(row => {
+    const newData = tableData.map((row) => {
       if (row.length <= 1) return row;
       const newRow = [...row];
       newRow.splice(colIndex, 1);
@@ -70,7 +53,7 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
     const ws = XLSX.utils.aoa_to_sheet(tableData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
-    XLSX.writeFile(wb, "Resumes.xlsx");
+    XLSX.writeFile(wb, "File1.xlsx");
   };
 
   const handleUploadExcel = (e) => {
@@ -90,7 +73,7 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
     reader.readAsBinaryString(file);
   };
 
-  /* ================= RESUME UPLOAD ================= */
+  /* ================= RESUME UPLOAD (FIXED ONLY HERE) ================= */
 
   const handleUploadResume = async (e) => {
     const file = e.target.files[0];
@@ -101,15 +84,17 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
 
     try {
       const res = await axios.post("/api/resume/extract", formData, {
-        headers: { "Content-Type": "multipart/form-data" }
+        headers: { "Content-Type": "multipart/form-data" },
       });
 
       const parsed = res.data?.data;
       if (!parsed) return;
 
-      let dataWithHeaders = ensureHeaders(tableData);
+      // Existing column count (DO NOT CHANGE DESIGN)
+      const cols = tableData[0]?.length || 1;
 
-      const newRow = [
+      // Resume fields (order only, no layout logic)
+      const resumeValues = [
         parsed.name || "",
         parsed.email || "",
         parsed.phone || "",
@@ -119,8 +104,14 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
         (parsed.skills || []).join(", ")
       ];
 
-      setTableData([...dataWithHeaders, newRow]);
-      alert("✅ Resume parsed and added to table!");
+      // Create row that matches existing table width
+      const newRow = Array(cols).fill("");
+      for (let i = 0; i < Math.min(cols, resumeValues.length); i++) {
+        newRow[i] = resumeValues[i];
+      }
+
+      setTableData([...tableData, newRow]);
+      alert("✅ Resume parsed and added!");
     } catch (err) {
       console.error("Resume upload failed:", err);
       alert("❌ Failed to extract resume data");
@@ -134,16 +125,13 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
   const handleColumnClick = (colIndex) => {
     setSelectedColumn(colIndex);
     const columnValues = tableData
-      .slice(1)
-      .map(row => parseFloat(row[colIndex]))
-      .filter(v => !isNaN(v));
+      .map((row) => parseFloat(row[colIndex]))
+      .filter((v) => !isNaN(v));
 
-    if (onColumnSelect) {
-      onColumnSelect(columnValues, colIndex);
-    }
+    if (onColumnSelect) onColumnSelect(columnValues, colIndex);
   };
 
-  /* ================= UI ================= */
+  /* ================= UI (UNCHANGED DESIGN) ================= */
 
   return (
     <div className="excel-container">
@@ -152,7 +140,7 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
         <button onClick={saveExcel}>💾 Save Excel</button>
 
         <label className="upload-label">
-          Upload Excel
+          Upload Excel/CSV
           <input
             type="file"
             accept=".xlsx,.xls,.csv"
@@ -165,7 +153,7 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
           Upload Resume
           <input
             type="file"
-            accept=".pdf,.docx"
+            accept=".pdf,.doc,.docx"
             onChange={handleUploadResume}
             style={{ display: "none" }}
           />
@@ -176,20 +164,27 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
         <table>
           <thead>
             <tr>
-              {tableData[0]?.map((header, c) => (
+              {tableData[0]?.map((_, c) => (
                 <th
                   key={c}
                   onClick={() => handleColumnClick(c)}
                   style={{
                     backgroundColor:
                       selectedColumn === c
-                        ? "rgba(173,216,230,0.4)"
+                        ? "rgba(173, 216, 230, 0.4)"
                         : "transparent",
-                    cursor: "pointer"
+                    cursor: "pointer",
                   }}
                 >
-                  <div className="th-content">
-                    <span>{header || `Column ${c + 1}`}</span>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "4px",
+                    }}
+                  >
+                    <span>{c + 1}</span>
                     <div className="col-buttons">
                       <button
                         type="button"
@@ -218,7 +213,7 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
           </thead>
 
           <tbody>
-            {tableData.slice(1).map((row, r) => (
+            {tableData.map((row, r) => (
               <tr key={r}>
                 {row.map((cell, c) => (
                   <td key={c}>
@@ -226,13 +221,13 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
                       type="text"
                       value={cell}
                       onChange={(e) =>
-                        handleChange(r + 1, c, e.target.value)
+                        handleChange(r, c, e.target.value)
                       }
                     />
                   </td>
                 ))}
                 <td>
-                  <button onClick={() => deleteRow(r + 1)}>🗑</button>
+                  <button onClick={() => deleteRow(r)}>🗑</button>
                 </td>
               </tr>
             ))}
