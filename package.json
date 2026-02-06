@@ -24,7 +24,8 @@
     "xlsx": "^0.18.5",
     "resend": "^3.2.0",
     "libphonenumber-js": "^1.10.56",
-    "compromise": "^14.10.0"
+    "compromise": "^14.10.0",
+    "openai": "^4.38.0"
   },
   "scripts": {
     "start": "node server.js",
