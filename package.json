@@ -22,7 +22,7 @@
     "recharts": "^3.2.1",
     "web-vitals": "^2.1.4",
     "xlsx": "^0.18.5",
-    "resend": "^3.2.0"
+    "resend": "^3.2.0",
     "libphonenumber-js": "^1.10.56",
     "compromise": "^14.10.0"
   },
