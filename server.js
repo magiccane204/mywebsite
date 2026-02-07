@@ -471,6 +471,3 @@ connectDB().then(() => {
     console.log(`Server running on ${PORT}`);
   });
 });
-
-
-
