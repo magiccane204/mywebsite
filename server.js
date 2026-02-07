@@ -314,62 +314,81 @@ app.use(express.static(path.join(__dirname, "build")));
 app.get(/^\/(?!api).*/, (req, res) => {
   res.sendFile(path.join(__dirname, "build", "index.html"));
 });
-/* ================== UTIL ================== */
+/* ================= APP INIT ================= */
 
-const clean = (s = "") => s.replace(/\s+/g, " ").trim();
-const isNoise = l =>
-  /profile info|resume|curriculum vitae|page \d+/i.test(l);
+const app = express();
+app.use(cors());
+app.use(express.json());
 
-/* ================== AI CLASSIFIER ================== */
+const upload = multer({ dest: "uploads/" });
 
-async function classifyLines(lines) {
-  const prompt = `
-You are a resume parsing AI.
+const PORT = process.env.PORT || 10000;
 
-Classify each line strictly into ONE category:
-- NAME
-- EMAIL
-- PHONE
-- LINKEDIN
-- SKILL
-- LANGUAGE
-- EXPERIENCE
-- EDUCATION
-- HOBBY
-- NOISE
+/* ================= UTIL ================= */
 
-Rules:
-- "PROFILE INFO", "SUMMARY", headers → NOISE
-- Languages ≠ skills
-- Locations ≠ skills
-- Names are human names only
+const clean = s => (s || "").replace(/\s+/g, " ").trim();
 
-Return JSON array:
-[{ "line": "...", "type": "..." }]
+/* ================= FREE AI-LIKE CLASSIFIER ================= */
 
-Lines:
-${lines.map(l => `- ${l}`).join("\n")}
-`;
+function classifyLinesFree(lines) {
+  return lines.map(line => {
+    const l = line.toLowerCase();
 
-  const res = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    temperature: 0,
-    messages: [{ role: "user", content: prompt }]
+    const score = {
+      NAME: 0,
+      EMAIL: 0,
+      PHONE: 0,
+      LINKEDIN: 0,
+      SKILL: 0,
+      LANGUAGE: 0,
+      EXPERIENCE: 0,
+      EDUCATION: 0,
+      NOISE: 0
+    };
+
+    if (/@/.test(l)) score.EMAIL += 5;
+    if (/linkedin\.com/.test(l)) score.LINKEDIN += 5;
+
+    if (/\+?\d[\d\s()-]{7,}/.test(l)) score.PHONE += 4;
+
+    if (/\b(english|hindi|arabic|french|urdu|tagalog)\b/.test(l))
+      score.LANGUAGE += 4;
+
+    if (/\b(java|python|sql|html|css|javascript|react|node|express|c\+\+|c#|\.net)\b/.test(l))
+      score.SKILL += 4;
+
+    if (/\b(experience|worked|intern|engineer|assistant|developer|manager)\b/.test(l))
+      score.EXPERIENCE += 4;
+
+    if (/\b(university|college|degree|bachelor|master|diploma|school)\b/.test(l))
+      score.EDUCATION += 4;
+
+    if (/profile info|summary|resume|curriculum vitae|page \d+/i.test(l))
+      score.NOISE += 6;
+
+    if (
+      /^[a-z ]{3,40}$/i.test(line) &&
+      line.split(" ").length <= 3 &&
+      !/profile|info|summary/i.test(line)
+    ) {
+      score.NAME += 4;
+    }
+
+    const type = Object.entries(score).sort((a, b) => b[1] - a[1])[0][0];
+    return { line, type };
   });
-
-  return JSON.parse(res.choices[0].message.content);
 }
 
-/* ================== MAIN PARSER ================== */
+/* ================= MAIN PARSER ================= */
 
-async function parseResumeText(text) {
-  const rawLines = text
+function parseResumeText(text) {
+  const lines = text
     .split(/\r?\n/)
     .map(l => clean(l))
-    .filter(l => l.length > 2 && !isNoise(l))
-    .slice(0, 120); // cost control
+    .filter(l => l.length > 2)
+    .slice(0, 150);
 
-  const classified = await classifyLines(rawLines);
+  const classified = classifyLinesFree(lines);
 
   const result = {
     name: "No name",
@@ -379,57 +398,63 @@ async function parseResumeText(text) {
     skills: [],
     languages: [],
     experience: [],
-    education: [],
-    hobbies: []
+    education: []
   };
 
   for (const item of classified) {
     const l = item.line;
+
     switch (item.type) {
       case "NAME":
         if (result.name === "No name") result.name = l;
         break;
+
       case "EMAIL":
         result.email = l;
         break;
+
       case "PHONE":
-        result.phone = l;
+        try {
+          const phone = phoneUtil.parsePhoneNumberFromText(l);
+          if (phone && phone.isValid()) result.phone = phone.number;
+        } catch {}
         break;
+
       case "LINKEDIN":
         result.linkedIn = l;
         break;
+
       case "SKILL":
         result.skills.push(l);
         break;
+
       case "LANGUAGE":
         result.languages.push(l);
         break;
+
       case "EXPERIENCE":
         result.experience.push(l);
         break;
+
       case "EDUCATION":
         result.education.push(l);
-        break;
-      case "HOBBY":
-        result.hobbies.push(l);
         break;
     }
   }
 
-  // FINAL CLEANUP
-  result.skills = [...new Set(result.skills)].slice(0, 10);
+  // CLEAN + LIMIT
+  result.skills = [...new Set(result.skills)].slice(0, 8);
   result.languages = [...new Set(result.languages)].slice(0, 5);
   result.experience = result.experience.slice(0, 3);
   result.education = result.education.slice(0, 2);
 
   if (!result.skills.length) result.skills = ["No skills"];
   if (!result.languages.length) result.languages = ["No languages"];
-  if (!result.hobbies.length) result.hobbies = ["No hobbies"];
 
   return result;
 }
 
-/* ================== API ================== */
+/* ================= API ================= */
 
 app.post("/api/resume/extract", upload.single("resume"), async (req, res) => {
   try {
@@ -446,22 +471,17 @@ app.post("/api/resume/extract", upload.single("resume"), async (req, res) => {
 
     fs.unlinkSync(req.file.path);
 
-    const data = await parseResumeText(text);
+    const data = parseResumeText(text);
     res.json({ success: true, data });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, error: "Parsing failed" });
+    res.status(500).json({ success: false });
   }
 });
+
 /* ================= START ================= */
 connectDB().then(() => {
   app.listen(PORT, () => {
     console.log(`Server running on ${PORT}`);
   });
 });
-
-
-
-
-
-
