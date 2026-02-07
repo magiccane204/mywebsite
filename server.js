@@ -320,27 +320,21 @@ function extractEmail(text) {
   return text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] || "No email";
 }
 
-/* ================= PHONE (FIXED: IGNORE DATES) ================= */
+/* ================= PHONE (IGNORE DATES) ================= */
 
 function extractPhone(text) {
   const candidates = text.match(/(\+?\d[\d\s().-]{7,20}\d)/g);
   if (!candidates) return "No phone";
 
   for (const raw of candidates) {
-    // ❌ reject year ranges like 2015-2020, 2018 – 2023
     if (/\b(19|20)\d{2}\s*[-–]\s*(19|20)\d{2}\b/.test(raw)) continue;
-
-    // ❌ reject single years
     if (/\b(19|20)\d{2}\b/.test(raw)) continue;
 
     const digits = raw.replace(/\D/g, "");
-
-    // realistic phone length only
     if (digits.length >= 8 && digits.length <= 15) {
       return raw.trim();
     }
   }
-
   return "No phone";
 }
 
@@ -348,14 +342,14 @@ function extractPhone(text) {
 
 function extractName(lines, email) {
   const blacklist = [
-    "profile", "info", "resume", "summary",
-    "curriculum", "vitae", "personal"
+    "profile","info","resume","summary","curriculum","vitae","personal",
+    "experience","education","skills","languages","contact"
   ];
 
-  for (const line of lines.slice(0, 6)) {
+  for (const line of lines.slice(0, 7)) {
     const l = line.toLowerCase();
     if (
-      line.length < 40 &&
+      line.length < 45 &&
       !/\d/.test(line) &&
       !blacklist.some(b => l.includes(b))
     ) {
@@ -370,30 +364,74 @@ function extractName(lines, email) {
   return "No name";
 }
 
-/* ================= SKILLS ================= */
+/* ================= UNIVERSAL SKILLS (SECTION-AGNOSTIC) ================= */
+/* Extract noun-like tokens, tech-like tokens, tools, soft skills without a list */
 
 function extractSkills(text) {
-  const SKILLS = [
-    "Java","Python","C","C++","C#","SQL",
-    "HTML","CSS","JavaScript",
-    "React","Node","Express",
-    "ASP.NET",".NET","Linux","Git",
-    "Communication","Management","Leadership"
-  ];
+  const stop = new Set([
+    "the","and","for","with","from","this","that","present","national",
+    "school","college","university","profile","resume","summary","experience",
+    "education","language","languages","contact","email","phone"
+  ]);
 
-  const found = SKILLS.filter(s =>
-    new RegExp(`\\b${s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i")
-      .test(text)
-  );
+  const tokens = text.match(/\b[A-Za-z][A-Za-z0-9.+#\/-]{2,40}\b/g) || [];
 
-  return found.length ? found : ["No skills"];
+  const skills = tokens.filter(w => {
+    const lw = w.toLowerCase();
+    if (stop.has(lw)) return false;
+    if (/^\d+$/.test(w)) return false;
+    if (/(19|20)\d{2}/.test(w)) return false;
+    if (lw.length < 3) return false;
+
+    // likely skill patterns
+    if (
+      /(\+|\#|\.net|sql|api|ui|ux|ml|ai|dev|ops|cloud|aws|azure|gcp)/i.test(w) ||
+      /^(java|python|javascript|typescript|react|node|express|angular|vue|php|ruby|go|rust|c\+\+|c#|swift|kotlin)$/i.test(w) ||
+      /^(linux|windows|macos|git|docker|kubernetes|jenkins|terraform)$/i.test(w) ||
+      /^(communication|management|leadership|teamwork|analysis|marketing|sales)$/i.test(w)
+    ) return true;
+
+    // capitalized single/multi-word skill chunks
+    if (/^[A-Z][a-z]+$/.test(w)) return true;
+
+    return false;
+  });
+
+  const unique = [...new Set(skills)];
+  return unique.length ? unique.slice(0, 15) : ["No skills"];
 }
 
-/* ================= LANGUAGES ================= */
+/* ================= UNIVERSAL LANGUAGES (NO HINTS) ================= */
+/* Detect language names by capitalization patterns + frequency control */
 
 function extractLanguages(text) {
-  const langs = text.match(/\b(English|Hindi|Arabic|French|Urdu|Tagalog)\b/gi);
-  return langs ? [...new Set(langs)] : ["No languages"];
+  const lines = text.split(/\r?\n/);
+
+  const candidates = [];
+  for (const line of lines) {
+    const words = line.match(/\b[A-Z][a-z]{3,20}\b/g) || [];
+    for (const w of words) candidates.push(w);
+  }
+
+  const blacklist = new Set([
+    "Experience","Education","Skills","Profile","Summary","Present",
+    "National","High","School","College","University","Manager","Engineer",
+    "Assistant","Developer","Consultant","Safety","Professional"
+  ]);
+
+  const freq = {};
+  for (const w of candidates) {
+    if (blacklist.has(w)) continue;
+    freq[w] = (freq[w] || 0) + 1;
+  }
+
+  // languages tend to repeat less and appear standalone or comma-separated
+  const langs = Object.entries(freq)
+    .filter(([w, c]) => c <= 3)
+    .map(([w]) => w);
+
+  const unique = [...new Set(langs)];
+  return unique.length ? unique.slice(0, 8) : ["No languages"];
 }
 
 /* ================= MAIN PARSER ================= */
@@ -440,14 +478,13 @@ app.post("/api/resume/extract", upload.single("resume"), async (req, res) => {
     res.status(500).json({ success: false });
   }
 });
-
-
 /* ================= START ================= */
 connectDB().then(() => {
   app.listen(PORT, () => {
     console.log(`Server running on ${PORT}`);
   });
 });
+
 
 
 
