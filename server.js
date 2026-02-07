@@ -181,6 +181,36 @@ app.post("/api/verify-otp", async (req, res) => {
   logAudit("LOGIN_SUCCESS", email);
   res.json({ success: true, token });
 });
+/* ================= SIGNUP ================= */
+app.post("/api/signup", async (req, res) => {
+  const {
+    Email,
+    Password,
+    Company,
+    Role = "Employee"
+  } = req.body;
+
+  if (!Email || !Password || !Company)
+    return res.status(400).json({ message: "Missing fields" });
+
+  const exists = await users.findOne({ Email });
+  if (exists)
+    return res.status(409).json({ message: "User already exists" });
+
+  await users.insertOne({
+    Email,
+    Password: hashPassword(Password),
+    Company,
+    Role,
+    DarkMode: false,
+    createdAt: new Date()
+  });
+
+  logAudit("SIGNUP", Email, { Company, Role });
+
+  res.json({ success: true });
+});
+
 
 /* ================= CURRENT USER ================= */
 app.get("/api/me", auth, (req, res) => {
@@ -481,3 +511,4 @@ connectDB().then(() => {
     console.log(`Server running on ${PORT}`);
   });
 });
+
