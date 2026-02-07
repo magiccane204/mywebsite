@@ -316,9 +316,7 @@ app.get(/^\/(?!api).*/, (req, res) => {
 });
 /* ================= APP INIT ================= */
 
-const app = express();
-app.use(cors());
-app.use(express.json());
+
 
 const upload = multer({ dest: "uploads/" });
 
@@ -485,3 +483,4 @@ connectDB().then(() => {
     console.log(`Server running on ${PORT}`);
   });
 });
+
