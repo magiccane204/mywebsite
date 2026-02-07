@@ -17,7 +17,7 @@ const pdfParse = require("pdf-parse");
 const mammoth = require("mammoth");
 const nlp = require("compromise");
 const phoneUtil = require("libphonenumber-js");
-const OpenAI = require("openai");
+
 
 /* ================= APP INIT ================= */
 
@@ -31,12 +31,6 @@ const MONGO_URI = process.env.MONGODB_URI;
 const JWT_SECRET = process.env.JWT_SECRET;
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const NODE_ENV = process.env.NODE_ENV || "production";
-
-/* ================= OPENAI ================= */
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
 
 
 
@@ -318,7 +312,7 @@ app.get(/^\/(?!api).*/, (req, res) => {
 
 
 
-const upload = multer({ dest: "uploads/" });
+
 
 const PORT = process.env.PORT || 10000;
 
@@ -483,4 +477,5 @@ connectDB().then(() => {
     console.log(`Server running on ${PORT}`);
   });
 });
+
 
