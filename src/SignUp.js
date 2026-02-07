@@ -52,7 +52,7 @@ function Signup({ setMode }) {
         }
 
         try {
-            const res = await axios.post("/register", {
+            const res = await axios.post("/api/signup", {
                 name: username,
                 email,
                 password,
@@ -128,4 +128,5 @@ function Signup({ setMode }) {
 }
 
 export default Signup;
+
 
