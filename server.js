@@ -314,130 +314,98 @@ app.get(/^\/(?!api).*/, (req, res) => {
 
 const clean = s => (s || "").replace(/\s+/g, " ").trim();
 
-/* ================= FREE AI-LIKE CLASSIFIER ================= */
+/* ================= EMAIL ================= */
 
-function classifyLinesFree(lines) {
-  return lines.map(line => {
-    const l = line.toLowerCase();
+function extractEmail(text) {
+  return text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] || "No email";
+}
 
-    const score = {
-      NAME: 0,
-      EMAIL: 0,
-      PHONE: 0,
-      LINKEDIN: 0,
-      SKILL: 0,
-      LANGUAGE: 0,
-      EXPERIENCE: 0,
-      EDUCATION: 0,
-      NOISE: 0
-    };
+/* ================= PHONE ================= */
 
-    if (/@/.test(l)) score.EMAIL += 5;
-    if (/linkedin\.com/.test(l)) score.LINKEDIN += 5;
+function extractPhone(text) {
+  const matches = text.match(/(\+?\d[\d\s().-]{7,20}\d)/g);
+  if (!matches) return "No phone";
 
-    if (/\+?\d[\d\s()-]{7,}/.test(l)) score.PHONE += 4;
-
-    if (/\b(english|hindi|arabic|french|urdu|tagalog)\b/.test(l))
-      score.LANGUAGE += 4;
-
-    if (/\b(java|python|sql|html|css|javascript|react|node|express|c\+\+|c#|\.net)\b/.test(l))
-      score.SKILL += 4;
-
-    if (/\b(experience|worked|intern|engineer|assistant|developer|manager)\b/.test(l))
-      score.EXPERIENCE += 4;
-
-    if (/\b(university|college|degree|bachelor|master|diploma|school)\b/.test(l))
-      score.EDUCATION += 4;
-
-    if (/profile info|summary|resume|curriculum vitae|page \d+/i.test(l))
-      score.NOISE += 6;
-
-    if (
-      /^[a-z ]{3,40}$/i.test(line) &&
-      line.split(" ").length <= 3 &&
-      !/profile|info|summary/i.test(line)
-    ) {
-      score.NAME += 4;
+  for (const m of matches) {
+    const digits = m.replace(/\D/g, "");
+    if (digits.length >= 8 && digits.length <= 15) {
+      return m.trim();
     }
+  }
+  return "No phone";
+}
 
-    const type = Object.entries(score).sort((a, b) => b[1] - a[1])[0][0];
-    return { line, type };
-  });
+/* ================= NAME ================= */
+
+function extractName(lines, email) {
+  const blacklist = [
+    "profile", "info", "resume", "summary",
+    "curriculum", "vitae", "personal"
+  ];
+
+  for (const line of lines.slice(0, 6)) {
+    const l = line.toLowerCase();
+    if (
+      line.length < 40 &&
+      !/\d/.test(line) &&
+      !blacklist.some(b => l.includes(b))
+    ) {
+      return line;
+    }
+  }
+
+  if (email !== "No email") {
+    return email.split("@")[0].replace(/[._-]/g, " ").toUpperCase();
+  }
+
+  return "No name";
+}
+
+/* ================= SKILLS ================= */
+
+function extractSkills(text) {
+  const SKILLS = [
+    "Java","Python","C","C++","C#","SQL",
+    "HTML","CSS","JavaScript",
+    "React","Node","Express",
+    "ASP.NET",".NET","Linux","Git",
+    "Communication","Management","Leadership"
+  ];
+
+  const found = SKILLS.filter(s =>
+    new RegExp(`\\b${s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i")
+      .test(text)
+  );
+
+  return found.length ? found : ["No skills"];
+}
+
+/* ================= LANGUAGES ================= */
+
+function extractLanguages(text) {
+  const langs = text.match(/\b(English|Hindi|Arabic|French|Urdu|Tagalog)\b/gi);
+  return langs ? [...new Set(langs)] : ["No languages"];
 }
 
 /* ================= MAIN PARSER ================= */
 
 function parseResumeText(text) {
-  const lines = text
-    .split(/\r?\n/)
-    .map(l => clean(l))
-    .filter(l => l.length > 2)
-    .slice(0, 150);
+  const lines = text.split(/\r?\n/).map(l => clean(l)).filter(Boolean);
 
-  const classified = classifyLinesFree(lines);
+  const email = extractEmail(text);
 
-  const result = {
-    name: "No name",
-    email: "No email",
-    phone: "No phone",
-    linkedIn: "No LinkedIn",
-    skills: [],
-    languages: [],
-    experience: [],
-    education: []
+  return {
+    name: extractName(lines, email),
+    email,
+    phone: extractPhone(text),
+    linkedIn:
+      text.match(/https?:\/\/(www\.)?linkedin\.com\/[^\s)]+/i)?.[0] ||
+      "No LinkedIn",
+    skills: extractSkills(text),
+    languages: extractLanguages(text),
+    experience: "Present",
+    education: "Present"
   };
-
-  for (const item of classified) {
-    const l = item.line;
-
-    switch (item.type) {
-      case "NAME":
-        if (result.name === "No name") result.name = l;
-        break;
-
-      case "EMAIL":
-        result.email = l;
-        break;
-
-      case "PHONE":
-        try {
-          const phone = phoneUtil.parsePhoneNumberFromText(l);
-          if (phone && phone.isValid()) result.phone = phone.number;
-        } catch {}
-        break;
-
-      case "LINKEDIN":
-        result.linkedIn = l;
-        break;
-
-      case "SKILL":
-        result.skills.push(l);
-        break;
-
-      case "LANGUAGE":
-        result.languages.push(l);
-        break;
-
-      case "EXPERIENCE":
-        result.experience.push(l);
-        break;
-
-      case "EDUCATION":
-        result.education.push(l);
-        break;
-    }
-  }
-
-  // CLEAN + LIMIT
-  result.skills = [...new Set(result.skills)].slice(0, 8);
-  result.languages = [...new Set(result.languages)].slice(0, 5);
-  result.experience = result.experience.slice(0, 3);
-  result.education = result.education.slice(0, 2);
-
-  if (!result.skills.length) result.skills = ["No skills"];
-  if (!result.languages.length) result.languages = ["No languages"];
-
-  return result;
 }
 
 /* ================= API ================= */
@@ -471,3 +439,4 @@ connectDB().then(() => {
     console.log(`Server running on ${PORT}`);
   });
 });
+
