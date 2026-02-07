@@ -320,15 +320,15 @@ function extractEmail(text) {
   return text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] || "No email";
 }
 
-/* ================= PHONE (IGNORE DATES) ================= */
+/* ================= PHONE (STRICT: IGNORE DATES) ================= */
 
 function extractPhone(text) {
   const candidates = text.match(/(\+?\d[\d\s().-]{7,20}\d)/g);
   if (!candidates) return "No phone";
 
   for (const raw of candidates) {
-    if (/\b(19|20)\d{2}\s*[-–]\s*(19|20)\d{2}\b/.test(raw)) continue;
-    if (/\b(19|20)\d{2}\b/.test(raw)) continue;
+    if (/\b(18|19|20)\d{2}\s*[-–]\s*(18|19|20)\d{2}\b/.test(raw)) continue;
+    if (/\b(18|19|20)\d{2}\b/.test(raw)) continue;
 
     const digits = raw.replace(/\D/g, "");
     if (digits.length >= 8 && digits.length <= 15) {
@@ -343,13 +343,14 @@ function extractPhone(text) {
 function extractName(lines, email) {
   const blacklist = [
     "profile","info","resume","summary","curriculum","vitae","personal",
-    "experience","education","skills","languages","contact"
+    "experience","education","skills","languages","contact","seeking",
+    "objective","national","state","city","country"
   ];
 
-  for (const line of lines.slice(0, 7)) {
+  for (const line of lines.slice(0, 8)) {
     const l = line.toLowerCase();
     if (
-      line.length < 45 &&
+      line.length < 50 &&
       !/\d/.test(line) &&
       !blacklist.some(b => l.includes(b))
     ) {
@@ -364,74 +365,70 @@ function extractName(lines, email) {
   return "No name";
 }
 
-/* ================= UNIVERSAL SKILLS (SECTION-AGNOSTIC) ================= */
-/* Extract noun-like tokens, tech-like tokens, tools, soft skills without a list */
+/* ================= WORLD LANGUAGES (ISO-639 + COMMON NAMES) ================= */
+
+const LANGUAGE_SET = new Set([
+  // major
+  "english","spanish","french","german","italian","portuguese","russian",
+  "arabic","hindi","urdu","bengali","punjabi","marathi","gujarati","tamil",
+  "telugu","kannada","malayalam","oriya","assamese","nepali","sinhala",
+  "chinese","mandarin","cantonese","japanese","korean",
+  // europe
+  "dutch","swedish","norwegian","danish","finnish","icelandic",
+  "polish","czech","slovak","hungarian","romanian","bulgarian",
+  "serbian","croatian","bosnian","slovenian","albanian","greek",
+  "estonian","latvian","lithuanian","irish","welsh","scottish","gaelic",
+  // asia
+  "thai","vietnamese","indonesian","malay","filipino","tagalog",
+  "burmese","khmer","lao","mongolian","kazakh","uzbek","tajik","kyrgyz",
+  // middle east / africa
+  "hebrew","farsi","persian","pashto","kurdish","turkish",
+  "swahili","zulu","xhosa","afrikaans","yoruba","igbo","hausa",
+  "amharic","tigrinya","somali",
+  // americas
+  "quechua","guarani","nahuatl","aymara",
+  // others / catch-all
+  "latin","esperanto"
+]);
+
+/* ================= GEO / LOCATION FILTER ================= */
+
+const GEO_WORDS = new Set([
+  "state","city","province","district","country","national","international",
+  "india","philippines","pakistan","china","japan","korea","uae","dubai",
+  "abu","dhabi","malaysia","singapore","indonesia","thailand","vietnam",
+  "bukidnon","misamis","oriental","malaybalay","manila","mumbai","delhi",
+  "london","paris","berlin","rome","madrid","new","york","los","angeles"
+]);
+
+/* ================= UNIVERSAL SKILLS (EVERYTHING, NO LIST DEPENDENCY) ================= */
 
 function extractSkills(text) {
-  const stop = new Set([
-    "the","and","for","with","from","this","that","present","national",
-    "school","college","university","profile","resume","summary","experience",
-    "education","language","languages","contact","email","phone"
-  ]);
-
-  const tokens = text.match(/\b[A-Za-z][A-Za-z0-9.+#\/-]{2,40}\b/g) || [];
+  const tokens = text.match(/\b[A-Za-z][A-Za-z0-9.+#\/()-]{2,40}\b/g) || [];
 
   const skills = tokens.filter(w => {
     const lw = w.toLowerCase();
-    if (stop.has(lw)) return false;
+
+    if (LANGUAGE_SET.has(lw)) return false;
+    if (GEO_WORDS.has(lw)) return false;
     if (/^\d+$/.test(w)) return false;
-    if (/(19|20)\d{2}/.test(w)) return false;
+    if (/(18|19|20)\d{2}/.test(w)) return false;
     if (lw.length < 3) return false;
 
-    // likely skill patterns
-    if (
-      /(\+|\#|\.net|sql|api|ui|ux|ml|ai|dev|ops|cloud|aws|azure|gcp)/i.test(w) ||
-      /^(java|python|javascript|typescript|react|node|express|angular|vue|php|ruby|go|rust|c\+\+|c#|swift|kotlin)$/i.test(w) ||
-      /^(linux|windows|macos|git|docker|kubernetes|jenkins|terraform)$/i.test(w) ||
-      /^(communication|management|leadership|teamwork|analysis|marketing|sales)$/i.test(w)
-    ) return true;
-
-    // capitalized single/multi-word skill chunks
-    if (/^[A-Z][a-z]+$/.test(w)) return true;
-
-    return false;
+    return true; // EVERYTHING ELSE IS A SKILL
   });
 
   const unique = [...new Set(skills)];
-  return unique.length ? unique.slice(0, 15) : ["No skills"];
+  return unique.length ? unique.slice(0, 25) : ["No skills"];
 }
 
-/* ================= UNIVERSAL LANGUAGES (NO HINTS) ================= */
-/* Detect language names by capitalization patterns + frequency control */
+/* ================= LANGUAGES (STRICT: ONLY FROM WORLD SET) ================= */
 
 function extractLanguages(text) {
-  const lines = text.split(/\r?\n/);
-
-  const candidates = [];
-  for (const line of lines) {
-    const words = line.match(/\b[A-Z][a-z]{3,20}\b/g) || [];
-    for (const w of words) candidates.push(w);
-  }
-
-  const blacklist = new Set([
-    "Experience","Education","Skills","Profile","Summary","Present",
-    "National","High","School","College","University","Manager","Engineer",
-    "Assistant","Developer","Consultant","Safety","Professional"
-  ]);
-
-  const freq = {};
-  for (const w of candidates) {
-    if (blacklist.has(w)) continue;
-    freq[w] = (freq[w] || 0) + 1;
-  }
-
-  // languages tend to repeat less and appear standalone or comma-separated
-  const langs = Object.entries(freq)
-    .filter(([w, c]) => c <= 3)
-    .map(([w]) => w);
-
+  const tokens = text.match(/\b[A-Za-z]{3,25}\b/g) || [];
+  const langs = tokens.filter(w => LANGUAGE_SET.has(w.toLowerCase()));
   const unique = [...new Set(langs)];
-  return unique.length ? unique.slice(0, 8) : ["No languages"];
+  return unique.length ? unique : ["No languages"];
 }
 
 /* ================= MAIN PARSER ================= */
@@ -484,9 +481,3 @@ connectDB().then(() => {
     console.log(`Server running on ${PORT}`);
   });
 });
-
-
-
-
-
-
