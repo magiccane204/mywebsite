@@ -172,7 +172,7 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
                         : "transparent"
                   }}
                 >
-                  <div style={{ display: "flex", gap: "4px", justifyContent: "center" }}>
+                  <div style={{ display: "flex", gap: "4px", justifyContent: "center"  }}>
                     <span>{c + 1}</span>
                     <button
                       type="button"
@@ -214,7 +214,7 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
                   </td>
                 ))}
                 <td>
-                  <button onClick={() => deleteRow(r)}>🗑</button>
+                  <button onClick={() => deleteRow(r)}style={{font:12}}>🗑</button>
                 </td>
               </tr>
             ))}
@@ -224,3 +224,4 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
     </div>
   );
 }
+
