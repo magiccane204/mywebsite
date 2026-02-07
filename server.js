@@ -320,18 +320,27 @@ function extractEmail(text) {
   return text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] || "No email";
 }
 
-/* ================= PHONE ================= */
+/* ================= PHONE (FIXED: IGNORE DATES) ================= */
 
 function extractPhone(text) {
-  const matches = text.match(/(\+?\d[\d\s().-]{7,20}\d)/g);
-  if (!matches) return "No phone";
+  const candidates = text.match(/(\+?\d[\d\s().-]{7,20}\d)/g);
+  if (!candidates) return "No phone";
 
-  for (const m of matches) {
-    const digits = m.replace(/\D/g, "");
+  for (const raw of candidates) {
+    // ❌ reject year ranges like 2015-2020, 2018 – 2023
+    if (/\b(19|20)\d{2}\s*[-–]\s*(19|20)\d{2}\b/.test(raw)) continue;
+
+    // ❌ reject single years
+    if (/\b(19|20)\d{2}\b/.test(raw)) continue;
+
+    const digits = raw.replace(/\D/g, "");
+
+    // realistic phone length only
     if (digits.length >= 8 && digits.length <= 15) {
-      return m.trim();
+      return raw.trim();
     }
   }
+
   return "No phone";
 }
 
@@ -391,7 +400,6 @@ function extractLanguages(text) {
 
 function parseResumeText(text) {
   const lines = text.split(/\r?\n/).map(l => clean(l)).filter(Boolean);
-
   const email = extractEmail(text);
 
   return {
@@ -427,11 +435,7 @@ app.post("/api/resume/extract", upload.single("resume"), async (req, res) => {
 
     const data = parseResumeText(text);
     res.json({ success: true, data });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false });
-  }
-});
+  } ca
 
 /* ================= START ================= */
 connectDB().then(() => {
@@ -439,4 +443,5 @@ connectDB().then(() => {
     console.log(`Server running on ${PORT}`);
   });
 });
+
 
