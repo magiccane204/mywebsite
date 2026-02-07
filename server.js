@@ -435,7 +435,12 @@ app.post("/api/resume/extract", upload.single("resume"), async (req, res) => {
 
     const data = parseResumeText(text);
     res.json({ success: true, data });
-  });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false });
+  }
+});
+
 
 /* ================= START ================= */
 connectDB().then(() => {
@@ -443,6 +448,7 @@ connectDB().then(() => {
     console.log(`Server running on ${PORT}`);
   });
 });
+
 
 
 
