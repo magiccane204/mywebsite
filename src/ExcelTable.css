@@ -9,7 +9,7 @@
   box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
 }
 
-/* Toolbar */
+/* ================= TOOLBAR ================= */
 .table-toolbar {
   display: flex;
   justify-content: center;
@@ -35,7 +35,7 @@
 .upload-label {
   background-color: #1e293b;
   color: white;
-  padding: 5px 7px;
+  padding: 5px 10px;
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
@@ -46,20 +46,19 @@
   background-color: #0f172a;
 }
 
-/* Table Styles */
+/* ================= TABLE ================= */
 .excel-container table {
   width: 100%;
   border-collapse: collapse;
   font-family: Arial, sans-serif;
 }
 
+.excel-container th,
 .excel-container td {
   border: 1px solid #d1d5db;
-  padding: 1px;
+  padding: 4px;
   text-align: center;
-  position: relative;
   background-color: white;
-  transition: background-color 0.2s;
 }
 
 .excel-container tr:nth-child(even) td {
@@ -70,7 +69,7 @@
   background-color: #e5e7eb;
 }
 
-/* Input Fields */
+/* ================= INPUT ================= */
 .excel-container input {
   width: 100%;
   padding: 6px;
@@ -80,47 +79,8 @@
   box-sizing: border-box;
 }
 
-/* Tiny column buttons on hover */
-.col-buttons {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  display: none;
-  gap: 2px;
-}
-
-td:hover .col-buttons {
-  display: flex;
-}
-
-.insert-col-btn,
-.delete-col-btn {
-  font-size: 10px;
-  padding: 1px 3px;
-  border: none;
-  border-radius: 3px;
-  color: white;
-  cursor: pointer;
-}
-
-.insert-col-btn {
-
-}
-
-.insert-col-btn:hover {
-  background-color: #16a34a;
-  transform: scale(1.1);
-}
-
-.delete-col-btn {
-  background-color: #ef4444;
-}
-
-.delete-col-btn:hover {
-  background-color: #dc2626;
-}
+/* ================= SQUARE COLUMN BUTTONS ================= */
 .square-btn {
-  background-color: #22c55e;
   width: 22px;
   height: 22px;
   padding: 0;
@@ -128,58 +88,45 @@ td:hover .col-buttons {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid #ccc;
-  background: white;
+  border-radius: 4px;
+  border: none;
   cursor: pointer;
+  transition: 0.2s ease;
 }
 
-.square-btn:hover {
-  background: #f0f0f0;
+/* GREEN = ADD */
+.square-btn.add {
+  background-color: #22c55e;
+  color: white;
 }
 
-/* Row delete button */
+.square-btn.add:hover {
+  background-color: #16a34a;
+  transform: scale(1.05);
+}
+
+/* RED = DELETE */
+.square-btn.delete {
+  background-color: #ef4444;
+  color: white;
+}
+
+.square-btn.delete:hover {
+  background-color: #dc2626;
+  transform: scale(1.05);
+}
+
+/* ================= ROW DELETE ================= */
 .delete-row-btn {
-  padding: 2px 5px;
-  font-size: 12px;
-  cursor: pointer;
+  background-color: #ef4444;
+  color: white;
   border: none;
   border-radius: 4px;
-  background-color: #f87171;
-  color: white;
+  padding: 4px 8px;
+  cursor: pointer;
+  transition: 0.2s;
 }
 
 .delete-row-btn:hover {
-  background-color: #ef4444;
-}
-th .col-buttons {
-  position: static;
-  display: flex;
-  gap: 4px;
-  margin-left: 6px;
-}
-
-th .col-buttons button {
-  font-size: 12px;
-  padding: 2px 5px;
-  border: none;
-  border-radius: 4px;
-  color: white;
-  cursor: pointer;
-}
-
-th .insert-col-btn {
-  background-color: #22c55e;
-}
-
-th .insert-col-btn:hover {
-  background-color: #16a34a;
-}
-
-th .delete-col-btn {
-  background-color: #ef4444;
-}
-
-th .delete-col-btn:hover {
   background-color: #dc2626;
 }
-
