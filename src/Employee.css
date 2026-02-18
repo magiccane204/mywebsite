@@ -1,22 +1,22 @@
 
-.customer-wrapper {
+.Employee-wrapper {
   padding: 30px;
   max-width: 1100px;
   margin: auto;
   font-family: "Segoe UI", sans-serif;
 }
 
-.customer-title {
+.Employee-title {
   text-align: center;
   margin-bottom: 25px;
   font-size: 26px;
 }
 
-.customer-title span {
+.Employee-title span {
   color: #2563eb;
 }
 
-.customer-card {
+.Employee-card {
   background: #ffffff;
   border-radius: 12px;
   padding: 20px;
@@ -24,25 +24,25 @@
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
 }
 
-.customer-card h3 {
+.Employee-card h3 {
   margin-bottom: 15px;
   font-size: 20px;
 }
 
-.customer-form {
+.Employee-form {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 12px;
 }
 
-.customer-form input {
+.Employee-form input {
   padding: 10px;
   border-radius: 8px;
   border: 1px solid #d1d5db;
   font-size: 14px;
 }
 
-.customer-form button {
+.Employee-form button {
   grid-column: 1 / -1;
   padding: 12px;
   border-radius: 10px;
@@ -54,7 +54,7 @@
   transition: 0.2s;
 }
 
-.customer-form button:hover {
+.Employee-form button:hover {
   background: #1e40af;
 }
 
