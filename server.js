@@ -230,6 +230,108 @@ app.put("/api/me/darkmode", auth, async (req, res) => {
   logAudit("DARKMODE_CHANGE", req.user.email);
   res.json({ success: true });
 });
+// 🔹 Backend Route: Sends Official Termination or Appointment Letter via Resend Email API
+
+app.post("/send-letter", async (req, res) => {
+  const { type, employeeName, employeeEmail, position, companyName } = req.body;
+
+  let subject = "";
+  let html = "";
+
+  if (type === "termination") {
+    subject = "Official Termination of Employment";
+
+    html = `
+    <div style="font-family: Arial, sans-serif; line-height:1.6;">
+      <h2>${companyName}</h2>
+      <p>Date: ${new Date().toLocaleDateString()}</p>
+
+      <p>To,<br/>
+      ${employeeName}<br/>
+      ${position}</p>
+
+      <p><strong>Subject: Termination of Employment</strong></p>
+
+      <p>Dear ${employeeName},</p>
+
+      <p>
+      This letter is to formally inform you that your employment with ${companyName} 
+      in the position of ${position} is terminated effective immediately.
+      </p>
+
+      <p>
+      This decision has been made after careful consideration in accordance with company policy.
+      You are requested to complete all exit formalities and return company property at the earliest.
+      </p>
+
+      <p>
+      We appreciate the contributions you have made during your time with us 
+      and wish you success in your future endeavors.
+      </p>
+
+      <p>Sincerely,<br/>
+      Human Resources Department<br/>
+      ${companyName}</p>
+    </div>
+    `;
+  }
+
+  if (type === "officiation") {
+    subject = "Official Offer of Employment";
+
+    html = `
+    <div style="font-family: Arial, sans-serif; line-height:1.6;">
+      <h2>${companyName}</h2>
+      <p>Date: ${new Date().toLocaleDateString()}</p>
+
+      <p>To,<br/>
+      ${employeeName}</p>
+
+      <p><strong>Subject: Appointment Letter</strong></p>
+
+      <p>Dear ${employeeName},</p>
+
+      <p>
+      We are pleased to offer you the position of <strong>${position}</strong> 
+      at ${companyName}, effective from a mutually agreed date.
+      </p>
+
+      <p>
+      You will be expected to perform duties and responsibilities associated with this role 
+      and adhere to company policies and standards of conduct.
+      </p>
+
+      <p>
+      Further details regarding compensation, benefits, and reporting structure 
+      will be provided in your official employment contract.
+      </p>
+
+      <p>
+      Kindly confirm your acceptance of this offer by replying to this email.
+      </p>
+
+      <p>We look forward to welcoming you to the team.</p>
+
+      <p>Sincerely,<br/>
+      Human Resources Department<br/>
+      ${companyName}</p>
+    </div>
+    `;
+  }
+
+  try {
+    await resend.emails.send({
+      from: process.env.FROM_EMAIL,
+      to: employeeEmail,
+      subject: subject,
+      html: html,
+    });
+
+    res.status(200).json({ message: "Letter sent successfully" });
+  } catch (err) {
+    res.status(500).json({ error: "Email failed" });
+  }
+});
 
 /* ================= EmployeeS ================= */
 app.get("/api/Employees", auth, async (req, res) => {
@@ -511,6 +613,7 @@ connectDB().then(() => {
     console.log(`Server running on ${PORT}`);
   });
 });
+
 
 
 
