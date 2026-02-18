@@ -47,7 +47,7 @@ async function connectDB() {
   await client.connect();
   db = client.db("Users");
   users = db.collection("user");
-  Employees = db.collection("Employees");
+  Employees = db.collection("Employee");
   otps = db.collection("OTPs");
   sessions = db.collection("Sessions");
   auditLogs = db.collection("AuditLogs");
@@ -511,5 +511,6 @@ connectDB().then(() => {
     console.log(`Server running on ${PORT}`);
   });
 });
+
 
 
