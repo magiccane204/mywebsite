@@ -41,13 +41,13 @@ app.use(express.urlencoded({ extended: true }));
 
 /* ================= DATABASE ================= */
 const client = new MongoClient(MONGO_URI);
-let db, users, customers, otps, sessions, auditLogs;
+let db, users, Employees, otps, sessions, auditLogs;
 
 async function connectDB() {
   await client.connect();
   db = client.db("Users");
   users = db.collection("user");
-  customers = db.collection("Customers");
+  Employees = db.collection("Employees");
   otps = db.collection("OTPs");
   sessions = db.collection("Sessions");
   auditLogs = db.collection("AuditLogs");
@@ -231,15 +231,15 @@ app.put("/api/me/darkmode", auth, async (req, res) => {
   res.json({ success: true });
 });
 
-/* ================= CUSTOMERS ================= */
-app.get("/api/customers", auth, async (req, res) => {
-  const list = await customers
+/* ================= EmployeeS ================= */
+app.get("/api/Employees", auth, async (req, res) => {
+  const list = await Employees
     .find({ Company: req.user.company })
     .toArray();
   res.json(list);
 });
 
-app.post("/api/add-customer", auth, async (req, res) => {
+app.post("/api/add-Employee", auth, async (req, res) => {
   if (req.user.role === "Employee")
     return res.status(403).json({ message: "View only" });
 
@@ -247,7 +247,7 @@ app.post("/api/add-customer", auth, async (req, res) => {
   if (!Name || !Email || !Position || Salary == null)
     return res.status(400).json({ message: "Missing fields" });
 
-  await customers.insertOne({
+  await Employees.insertOne({
     Name,
     Email,
     Salary,
@@ -256,12 +256,12 @@ app.post("/api/add-customer", auth, async (req, res) => {
     createdAt: new Date(),
   });
 
-  logAudit("ADD_CUSTOMER", req.user.email, { Email });
+  logAudit("ADD_Employee", req.user.email, { Email });
   res.json({ success: true });
 });
 
-/* ================= UPDATE CUSTOMER ================= */
-app.put("/api/update-customer", auth, async (req, res) => {
+/* ================= UPDATE Employee ================= */
+app.put("/api/update-Employee", auth, async (req, res) => {
   if (req.user.role === "Employee")
     return res.status(403).json({ message: "View only" });
 
@@ -278,7 +278,7 @@ app.put("/api/update-customer", auth, async (req, res) => {
 
   const { ObjectId } = require("mongodb");
 
-  const result = await customers.updateOne(
+  const result = await Employees.updateOne(
     {
       _id: new ObjectId(Id),
       Company: req.user.company,
@@ -295,24 +295,24 @@ app.put("/api/update-customer", auth, async (req, res) => {
   );
 
   if (result.matchedCount === 0)
-    return res.status(404).json({ message: "Customer not found" });
+    return res.status(404).json({ message: "Employee not found" });
 
-  logAudit("UPDATE_CUSTOMER", req.user.email, { Email });
+  logAudit("UPDATE_Employee", req.user.email, { Email });
   res.json({ success: true });
 });
-/* ================= DELETE CUSTOMER ================= */
-app.delete("/api/delete-customer/:id", auth, async (req, res) => {
+/* ================= DELETE Employee ================= */
+app.delete("/api/delete-Employee/:id", auth, async (req, res) => {
   if (req.user.role !== "SuperAdmin")
     return res.status(403).json({ message: "Only SuperAdmin can delete" });
 
   const { ObjectId } = require("mongodb");
 
-  await customers.deleteOne({
+  await Employees.deleteOne({
     _id: new ObjectId(req.params.id),
     Company: req.user.company,
   });
 
-  logAudit("DELETE_CUSTOMER", req.user.email, { id: req.params.id });
+  logAudit("DELETE_Employee", req.user.email, { id: req.params.id });
   res.json({ success: true });
 });
 
@@ -511,4 +511,5 @@ connectDB().then(() => {
     console.log(`Server running on ${PORT}`);
   });
 });
+
 
