@@ -105,10 +105,7 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
         d.hobbies || "No hobbies"
       ];
 
-      const cols = Math.max(
-        tableData[0]?.length || 10,
-        values.length
-      );
+      const cols = Math.max(tableData[0]?.length || 10, values.length);
 
       const row = Array(cols).fill("");
       for (let i = 0; i < Math.min(cols, values.length); i++) {
@@ -176,11 +173,12 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
                         : "transparent"
                   }}
                 >
-                  <div style={{ display: "flex", gap: "4px", justifyContent: "center" }}>
+                  <div style={{ display: "flex", gap: "4px", justifyContent: "center", alignItems: "center" }}>
                     <span>{c + 1}</span>
+
                     <button
                       type="button"
-                      className="insert-col-btn"
+                      className="square-btn"
                       onClick={(e) => {
                         e.stopPropagation();
                         insertColumnAt(c);
@@ -188,9 +186,10 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
                     >
                       +
                     </button>
+
                     <button
                       type="button"
-                      className="delete-col-btn"
+                      className="square-btn"
                       onClick={(e) => {
                         e.stopPropagation();
                         deleteColumn(c);
