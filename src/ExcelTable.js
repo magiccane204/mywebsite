@@ -132,8 +132,8 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
   return (
     <div className="excel-container">
       <div className="table-toolbar">
-        <button onClick={addRow} class=col-buttons>➕ Add Row</button>
-        <button onClick={saveExcel}  class=col-buttons>💾 Save Excel</button>
+        <button onClick={addRow} className=col-buttons>➕ Add Row</button>
+        <button onClick={saveExcel}  className=col-buttons>💾 Save Excel</button>
 
         <label className="upload-label">
           Upload Excel/CSV
@@ -179,7 +179,7 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
                       onClick={(e) => {
                         e.stopPropagation();
                         insertColumnAt(c);
-                        class=insert-col-btn;
+                        className=insert-col-btn;
                       }}
                     >
                       +
@@ -189,7 +189,7 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
                       onClick={(e) => {
                         e.stopPropagation();
                         deleteColumn(c);
-                        class=delete-col-btn;
+                        className=delete-col-btn;
                       }}
                     >
                       🗑
@@ -226,5 +226,6 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
     </div>
   );
 }
+
 
 
