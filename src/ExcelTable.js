@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
 import axios from "axios";
 import "./ExcelTable.css";
@@ -6,9 +6,17 @@ import "./ExcelTable.css";
 export default function ExcelTable({ tableData, setTableData, onColumnSelect }) {
   const [selectedColumn, setSelectedColumn] = useState(null);
 
+  /* ================= ENSURE TABLE EXISTS ================= */
+  useEffect(() => {
+    if (!tableData || tableData.length === 0) {
+      setTableData([Array(10).fill("")]);
+    }
+  }, [tableData, setTableData]);
+
   /* ================= NORMALIZE ================= */
   const normalize = (data) => {
-    if (!data.length) return [];
+    if (!data.length) return [Array(10).fill("")];
+
     const maxCols = Math.max(...data.map(r => r.length));
     return data.map(r => {
       const row = [...r];
@@ -46,11 +54,14 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
   };
 
   const deleteColumn = (colIndex) => {
+    if (!tableData[0] || tableData[0].length <= 1) return;
+
     const data = tableData.map(row => {
       const r = [...row];
-      if (r.length > 1) r.splice(colIndex, 1);
+      r.splice(colIndex, 1);
       return r;
     });
+
     setTableData(normalize(data));
   };
 
@@ -108,7 +119,7 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
       const cols = Math.max(tableData[0]?.length || 10, values.length);
 
       const row = Array(cols).fill("");
-      for (let i = 0; i < Math.min(cols, values.length); i++) {
+      for (let i = 0; i < values.length; i++) {
         row[i] = values[i];
       }
 
@@ -221,7 +232,7 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
                 <td>
                   <button
                     onClick={() => deleteRow(r)}
-                    style={{ fontSize: 12 }}
+                    className="square-btn"
                   >
                     🗑
                   </button>
