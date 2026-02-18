@@ -43,9 +43,9 @@ export default function Employee() {
     setPosition("");
     setSalary("");
     setEditingId(null);
-    setMessage("");
   };
 
+  // 🔹 ADD / UPDATE EMPLOYEE + SEND OFFER LETTER
   const submitEmployee = async () => {
     if (!name || !email || !position || salary === "") {
       setMessage("All fields required");
@@ -61,27 +61,36 @@ export default function Employee() {
           "Applied Position": position,
           Salary: Number(salary),
         });
+
         setMessage("Employee updated");
+
       } else {
+
+        // 1️⃣ Add to database
         await api.post("/api/add-Employee", {
           Name: name,
           Email: email,
           "Applied Position": position,
           Salary: Number(salary),
         });
-        setMessage("Employee added");
+
+        // 2️⃣ Send Offer Letter
+        await api.post("/send-letter", {
+          type: "officiation",
+          employeeName: name,
+          employeeEmail: email,
+          position: position,
+          companyName: "Your Company Pvt Ltd"
+        });
+
+        setMessage("Employee added & Offer Letter sent");
       }
 
       resetForm();
       loadEmployees();
+
     } catch (err) {
-      if (err.response?.status === 403) {
-        setMessage("Permission denied");
-      } else if (err.response?.status === 400) {
-        setMessage(err.response.data?.message || "Invalid data");
-      } else {
-        setMessage("Something went wrong");
-      }
+      setMessage("Operation failed");
     }
   };
 
@@ -94,13 +103,27 @@ export default function Employee() {
     setMessage("");
   };
 
-  const deleteEmployee = async (id) => {
+  // 🔹 DELETE EMPLOYEE + SEND TERMINATION LETTER
+  const deleteEmployee = async (id, employeeData) => {
     if (!window.confirm("Delete this Employee?")) return;
 
     try {
+
+      // 1️⃣ Send Termination Letter
+      await api.post("/send-letter", {
+        type: "termination",
+        employeeName: employeeData.Name,
+        employeeEmail: employeeData.Email,
+        position: employeeData["Applied Position"],
+        companyName: "Your Company Pvt Ltd"
+      });
+
+      // 2️⃣ Delete from database
       await api.delete(`/api/delete-Employee/${id}`);
-      setMessage("Employee deleted");
+
+      setMessage("Employee deleted & Termination Letter sent");
       loadEmployees();
+
     } catch {
       setMessage("Delete failed");
     }
@@ -162,7 +185,7 @@ export default function Employee() {
                     {role === "SuperAdmin" && (
                       <button
                         style={{ marginLeft: "8px", background: "red" }}
-                        onClick={() => deleteEmployee(c.Id || c._id)}
+                        onClick={() => deleteEmployee(c.Id || c._id, c)}
                       >
                         Delete
                       </button>
@@ -177,7 +200,3 @@ export default function Employee() {
     </div>
   );
 }
-
-
-
-
