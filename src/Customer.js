@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import api from "./api.js";
-import "./Customer.css";
+import "./Employee.css";
 
-export default function Customer() {
-  const [customers, setCustomers] = useState([]);
+export default function Employee() {
+  const [Employees, setEmployees] = useState([]);
   const [role, setRole] = useState(null);
   const [message, setMessage] = useState("");
 
@@ -16,7 +16,7 @@ export default function Customer() {
 
   useEffect(() => {
     loadMe();
-    loadCustomers();
+    loadEmployees();
   }, []);
 
   const loadMe = async () => {
@@ -28,12 +28,12 @@ export default function Customer() {
     }
   };
 
-  const loadCustomers = async () => {
+  const loadEmployees = async () => {
     try {
-      const res = await api.get("/api/customers");
-      setCustomers(res.data);
+      const res = await api.get("/api/Employees");
+      setEmployees(res.data);
     } catch {
-      setCustomers([]);
+      setEmployees([]);
     }
   };
 
@@ -46,7 +46,7 @@ export default function Customer() {
     setMessage("");
   };
 
-  const submitCustomer = async () => {
+  const submitEmployee = async () => {
     if (!name || !email || !position || salary === "") {
       setMessage("All fields required");
       return;
@@ -54,26 +54,26 @@ export default function Customer() {
 
     try {
       if (editingId) {
-        await api.put("/api/update-customer", {
+        await api.put("/api/update-Employee", {
           Id: editingId,
           Name: name,
           Email: email,
           "Applied Position": position,
           Salary: Number(salary),
         });
-        setMessage("Customer updated");
+        setMessage("Employee updated");
       } else {
-        await api.post("/api/add-customer", {
+        await api.post("/api/add-Employee", {
           Name: name,
           Email: email,
           "Applied Position": position,
           Salary: Number(salary),
         });
-        setMessage("Customer added");
+        setMessage("Employee added");
       }
 
       resetForm();
-      loadCustomers();
+      loadEmployees();
     } catch (err) {
       if (err.response?.status === 403) {
         setMessage("Permission denied");
@@ -85,7 +85,7 @@ export default function Customer() {
     }
   };
 
-  const editCustomer = (c) => {
+  const editEmployee = (c) => {
     setEditingId(c.Id || c._id);
     setName(c.Name);
     setEmail(c.Email);
@@ -94,50 +94,50 @@ export default function Customer() {
     setMessage("");
   };
 
-  const deleteCustomer = async (id) => {
-    if (!window.confirm("Delete this customer?")) return;
+  const deleteEmployee = async (id) => {
+    if (!window.confirm("Delete this Employee?")) return;
 
     try {
-      await api.delete(`/api/delete-customer/${id}`);
-      setMessage("Customer deleted");
-      loadCustomers();
+      await api.delete(`/api/delete-Employee/${id}`);
+      setMessage("Employee deleted");
+      loadEmployees();
     } catch {
       setMessage("Delete failed");
     }
   };
 
-  if (!role) return <div className="customer-wrapper">Loading...</div>;
+  if (!role) return <div className="Employee-wrapper">Loading...</div>;
 
   return (
-    <div className="customer-wrapper">
-      <h2 className="customer-title">
-        Customer Management — <span>{role}</span>
+    <div className="Employee-wrapper">
+      <h2 className="Employee-title">
+        Employee Management — <span>{role}</span>
       </h2>
 
-      <div className="customer-card">
-        <h3>{editingId ? "Update Customer" : "Add Customer"}</h3>
+      <div className="Employee-card">
+        <h3>{editingId ? "Update Employee" : "Add Employee"}</h3>
 
         {role === "Employee" && <p className="empty">View only mode</p>}
 
-        <div className="customer-form">
+        <div className="Employee-form">
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" />
           <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" />
           <input value={position} onChange={(e) => setPosition(e.target.value)} placeholder="Applied Position" />
           <input type="number" value={salary} onChange={(e) => setSalary(e.target.value)} placeholder="Salary" />
 
-          <button onClick={submitCustomer} disabled={role === "Employee"}>
-            {editingId ? "Update Customer" : "Add Customer"}
+          <button onClick={submitEmployee} disabled={role === "Employee"}>
+            {editingId ? "Update Employee" : "Add Employee"}
           </button>
         </div>
 
         {message && <p className="empty">{message}</p>}
       </div>
 
-      <div className="customer-card">
-        <h3>Customer List</h3>
+      <div className="Employee-card">
+        <h3>Employee List</h3>
 
-        {customers.length === 0 ? (
-          <p className="empty">No customers found</p>
+        {Employees.length === 0 ? (
+          <p className="empty">No Employees found</p>
         ) : (
           <table>
             <thead>
@@ -150,19 +150,19 @@ export default function Customer() {
               </tr>
             </thead>
             <tbody>
-              {customers.map((c) => (
+              {Employees.map((c) => (
                 <tr key={c.Id || c._id}>
                   <td>{c.Name}</td>
                   <td>{c.Email}</td>
                   <td>{c["Applied Position"]}</td>
                   <td>{c.Salary}</td>
                   <td>
-                    <button onClick={() => editCustomer(c)}>Edit</button> <br/>
+                    <button onClick={() => editEmployee(c)}>Edit</button> <br/>
 
                     {role === "SuperAdmin" && (
                       <button
                         style={{ marginLeft: "8px", background: "red" }}
-                        onClick={() => deleteCustomer(c.Id || c._id)}
+                        onClick={() => deleteEmployee(c.Id || c._id)}
                       >
                         Delete
                       </button>
@@ -177,6 +177,7 @@ export default function Customer() {
     </div>
   );
 }
+
 
 
 
