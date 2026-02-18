@@ -8,6 +8,7 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
 
   /* ================= NORMALIZE ================= */
   const normalize = (data) => {
+    if (!data.length) return [];
     const maxCols = Math.max(...data.map(r => r.length));
     return data.map(r => {
       const row = [...r];
@@ -67,12 +68,12 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
 
     const reader = new FileReader();
     reader.onload = (evt) => {
-      const wb = XLSX.read(evt.target.result, { type: "binary" });
+      const wb = XLSX.read(evt.target.result, { type: "array" });
       const sheet = wb.Sheets[wb.SheetNames[0]];
       const data = XLSX.utils.sheet_to_json(sheet, { header: 1 });
       setTableData(normalize(data));
     };
-    reader.readAsBinaryString(file);
+    reader.readAsArrayBuffer(file);
   };
 
   /* ================= RESUME UPLOAD ================= */
@@ -91,8 +92,6 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
       const d = res.data?.data;
       if (!d) return;
 
-      const cols = tableData[0]?.length || 10;
-
       const values = [
         d.name || "No name",
         d.email || "No email",
@@ -105,6 +104,11 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
         (d.languages || ["No languages"]).join(", "),
         d.hobbies || "No hobbies"
       ];
+
+      const cols = Math.max(
+        tableData[0]?.length || 10,
+        values.length
+      );
 
       const row = Array(cols).fill("");
       for (let i = 0; i < Math.min(cols, values.length); i++) {
@@ -132,8 +136,8 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
   return (
     <div className="excel-container">
       <div className="table-toolbar">
-        <button onClick={addRow} className=col-buttons>➕ Add Row</button>
-        <button onClick={saveExcel}  className=col-buttons>💾 Save Excel</button>
+        <button onClick={addRow} className="col-buttons">➕ Add Row</button>
+        <button onClick={saveExcel} className="col-buttons">💾 Save Excel</button>
 
         <label className="upload-label">
           Upload Excel/CSV
@@ -172,24 +176,24 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
                         : "transparent"
                   }}
                 >
-                  <div style={{ display: "flex", gap: "4px", justifyContent: "center"  }}>
+                  <div style={{ display: "flex", gap: "4px", justifyContent: "center" }}>
                     <span>{c + 1}</span>
                     <button
                       type="button"
+                      className="insert-col-btn"
                       onClick={(e) => {
                         e.stopPropagation();
                         insertColumnAt(c);
-                        className=insert-col-btn;
                       }}
                     >
                       +
                     </button>
                     <button
                       type="button"
+                      className="delete-col-btn"
                       onClick={(e) => {
                         e.stopPropagation();
                         deleteColumn(c);
-                        className=delete-col-btn;
                       }}
                     >
                       🗑
@@ -216,7 +220,12 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
                   </td>
                 ))}
                 <td>
-                  <button onClick={() => deleteRow(r)}style={{font:12}}>🗑</button>
+                  <button
+                    onClick={() => deleteRow(r)}
+                    style={{ fontSize: 12 }}
+                  >
+                    🗑
+                  </button>
                 </td>
               </tr>
             ))}
@@ -226,6 +235,3 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
     </div>
   );
 }
-
-
-
