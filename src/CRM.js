@@ -3,7 +3,7 @@ import MyBarChart from "./chart";
 import MyPieChart from "./pchart";
 import ExcelTable from "./ExcelTable";
 import TableEditor from "./TableEditor";
-import Customer from "./Customer";
+import Employee from "./Employee";
 import Reports from "./Reports";
 import Settings from "./Settings";
 import ScatterChart from "./ScatterChart";
@@ -15,7 +15,7 @@ function CRM({ setMode }) {
   const [backendData, setBackendData] = useState(null);
   const [showTableEditor, setShowTableEditor] = useState(false);
   const [activeSection, setActiveSection] = useState("dashboard");
-  const [customers, setCustomers] = useState([]);
+  const [Employees, setEmployees] = useState([]);
   const [headers, setHeaders] = useState(["Header 1", "Header 2", "Header 3"]);
   const [tableData, setTableData] = useState([
     ["10", "20", "30"],
@@ -54,8 +54,8 @@ function CRM({ setMode }) {
       setActiveSection(section);
       const res = await api.get(route);
 
-      if (section === "customers") {
-        setCustomers(res.data);
+      if (section === "Employees") {
+        setEmployees(res.data);
         setBackendData(null);
       } else {
         setBackendData(res.data);
@@ -97,8 +97,8 @@ function CRM({ setMode }) {
           <span>🏠</span> <span>Dashboard</span>
         </button>
 
-        <button onClick={() => fetchData("/data/1", "customers")}>
-          <span>👥</span> <span>Customers</span>
+        <button onClick={() => fetchData("/data/1", "Employees")}>
+          <span>👥</span> <span>Employees</span>
         </button>
 
         <button onClick={() => setActiveSection("reports")}>
@@ -241,9 +241,9 @@ function CRM({ setMode }) {
           </div>
         )}
 
-        {activeSection === "customers" && (
-          <div className="customers-section">
-            <Customer customers={customers} />
+        {activeSection === "Employees" && (
+          <div className="Employees-section">
+            <Employee Employees={Employees} />
           </div>
         )}
 
@@ -259,7 +259,7 @@ function CRM({ setMode }) {
           </div>
         )}
 
-        {activeSection !== "customers" &&
+        {activeSection !== "Employees" &&
           activeSection !== "reports" &&
           activeSection !== "settings" && (
             <div className="table-section">
@@ -304,3 +304,4 @@ function CRM({ setMode }) {
 }
 
 export default CRM;
+
