@@ -105,7 +105,7 @@ export default function Employee() {
 
     try {
 
-      await api.post("/api/send-letter", {
+      await api.post("/send-letter", {
         type: "termination",
         employeeName: employeeData.Name,
         employeeEmail: employeeData.Email,
@@ -113,7 +113,7 @@ export default function Employee() {
         companyName: "Your Company Pvt Ltd"
       });
 
-      await api.delete(`/api/delete-Employee/${id}`);
+      await api.delete(`/delete-Employee/${id}`);
 
       setMessage("Employee deleted & Termination Letter sent");
       loadEmployees();
@@ -194,3 +194,4 @@ export default function Employee() {
     </div>
   );
 }
+
