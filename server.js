@@ -230,182 +230,169 @@ app.put("/api/me/darkmode", auth, async (req, res) => {
   logAudit("DARKMODE_CHANGE", req.user.email);
   res.json({ success: true });
 });
-/* ================= SEND LETTER (TERMINATION / APPOINTMENT) ================= */
+/* ================= ADD Employee (SEND APPOINTMENT LETTER) ================= */
 
-app.post("/send-letter", async (req, res) => {
-  const { type, employeeName, employeeEmail, position, companyName } = req.body;
+app.post("/api/add-Employee", auth, async (req, res) => {
+  if (req.user.role === "Employee")
+    return res.status(403).json({ message: "View only" });
 
-  let subject = "";
-  let html = "";
+  const { Name, Email, Salary, ["Applied Position"]: Position } = req.body;
 
-  if (type === "termination") {
-    subject = "Official Termination of Employment";
-
-    html = `
-    <div style="font-family: Arial, sans-serif; line-height:1.6;">
-      <h2>${companyName}</h2>
-      <p>Date: ${new Date().toLocaleDateString()}</p>
-
-      <p>To,<br/>
-      ${employeeName}<br/>
-      ${position}</p>
-
-      <p><strong>Subject: Termination of Employment</strong></p>
-
-      <p>Dear ${employeeName},</p>
-
-      <p>
-      This letter is to formally inform you that your employment with ${companyName} 
-      in the position of ${position} is terminated effective immediately.
-      </p>
-
-      <p>
-      You are requested to complete all exit formalities and return company property.
-      </p>
-
-      <p>
-      We appreciate your contributions and wish you success in your future endeavors.
-      </p>
-
-      <p>Sincerely,<br/>
-      Human Resources Department<br/>
-      ${companyName}</p>
-    </div>
-    `;
-  }
-
-  if (type === "officiation") {
-    subject = "Official Offer of Employment";
-
-    html = `
-    <div style="font-family: Arial, sans-serif; line-height:1.6;">
-      <h2>${companyName}</h2>
-      <p>Date: ${new Date().toLocaleDateString()}</p>
-
-      <p>To,<br/>
-      ${employeeName}</p>
-
-      <p><strong>Subject: Appointment Letter</strong></p>
-
-      <p>Dear ${employeeName},</p>
-
-      <p>
-      We are pleased to offer you the position of <strong>${position}</strong> 
-      at ${companyName}.
-      </p>
-
-      <p>
-      Kindly confirm your acceptance of this offer.
-      </p>
-
-      <p>Sincerely,<br/>
-      Human Resources Department<br/>
-      ${companyName}</p>
-    </div>
-    `;
-  }
+  if (!Name || !Email || !Position || Salary == null)
+    return res.status(400).json({ message: "Missing fields" });
 
   try {
-    await resend.emails.send({
-      from: process.env.FROM_EMAIL,
-      to: employeeEmail,
-      subject: subject,
-      html: html,
+    const result = await Employees.insertOne({
+      Name,
+      Email,
+      Salary,
+      "Applied Position": Position,
+      Company: req.user.company,
+      createdAt: new Date(),
     });
 
-    res.status(200).json({ message: "Letter sent successfully" });
+    /* ================= SEND APPOINTMENT LETTER EMAIL ================= */
+
+    await resend.emails.send({
+      from: "CRM <onboarding@resend.dev>",   // 🔥 use this unless your domain is verified
+      to: Email,
+      subject: `Official Appointment Letter – ${req.user.company}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width:700px; margin:auto; padding:20px; line-height:1.8;">
+          
+          <h2 style="text-align:center;">${req.user.company}</h2>
+          <hr/>
+
+          <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
+
+          <p>
+            <strong>To:</strong><br/>
+            ${Name}<br/>
+            ${Position}
+          </p>
+
+          <p><strong>Subject: Appointment Letter</strong></p>
+
+          <p>Dear ${Name},</p>
+
+          <p>
+            We are pleased to formally appoint you as 
+            <strong>${Position}</strong> at <strong>${req.user.company}</strong>.
+          </p>
+
+          <p>
+            Your annual compensation will be <strong>₹${Salary}</strong>.
+          </p>
+
+          <p>
+            You are expected to perform your duties professionally and adhere 
+            to company policies and confidentiality agreements.
+          </p>
+
+          <p>
+            Kindly confirm your acceptance of this appointment by replying to this email.
+          </p>
+
+          <br/>
+
+          <p>
+            Sincerely,<br/>
+            Human Resources Department<br/>
+            ${req.user.company}
+          </p>
+        </div>
+      `
+    });
+
+    logAudit("ADD_Employee", req.user.email, { Email });
+
+    res.json({ success: true, id: result.insertedId });
+
   } catch (err) {
-    res.status(500).json({ error: "Email failed" });
+    console.error("ADD EMPLOYEE ERROR:", err);
+    res.status(500).json({ message: "Add failed" });
   }
 });
-/* ================= SEND LETTER (TERMINATION / APPOINTMENT) ================= */
 
-app.post("/send-letter", async (req, res) => {
-  const { type, employeeName, employeeEmail, position, companyName } = req.body;
+/* ================= DELETE Employee (SEND TERMINATION LETTER) ================= */
 
-  let subject = "";
-  let html = "";
+app.delete("/api/delete-Employee/:id", auth, async (req, res) => {
+  if (req.user.role !== "SuperAdmin")
+    return res.status(403).json({ message: "Only SuperAdmin can delete" });
 
-  if (type === "termination") {
-    subject = "Official Termination of Employment";
-
-    html = `
-    <div style="font-family: Arial, sans-serif; line-height:1.6;">
-      <h2>${companyName}</h2>
-      <p>Date: ${new Date().toLocaleDateString()}</p>
-
-      <p>To,<br/>
-      ${employeeName}<br/>
-      ${position}</p>
-
-      <p><strong>Subject: Termination of Employment</strong></p>
-
-      <p>Dear ${employeeName},</p>
-
-      <p>
-      This letter is to formally inform you that your employment with ${companyName} 
-      in the position of ${position} is terminated effective immediately.
-      </p>
-
-      <p>
-      You are requested to complete all exit formalities and return company property.
-      </p>
-
-      <p>
-      We appreciate your contributions and wish you success in your future endeavors.
-      </p>
-
-      <p>Sincerely,<br/>
-      Human Resources Department<br/>
-      ${companyName}</p>
-    </div>
-    `;
-  }
-
-  if (type === "officiation") {
-    subject = "Official Offer of Employment";
-
-    html = `
-    <div style="font-family: Arial, sans-serif; line-height:1.6;">
-      <h2>${companyName}</h2>
-      <p>Date: ${new Date().toLocaleDateString()}</p>
-
-      <p>To,<br/>
-      ${employeeName}</p>
-
-      <p><strong>Subject: Appointment Letter</strong></p>
-
-      <p>Dear ${employeeName},</p>
-
-      <p>
-      We are pleased to offer you the position of <strong>${position}</strong> 
-      at ${companyName}.
-      </p>
-
-      <p>
-      Kindly confirm your acceptance of this offer.
-      </p>
-
-      <p>Sincerely,<br/>
-      Human Resources Department<br/>
-      ${companyName}</p>
-    </div>
-    `;
-  }
+  const { ObjectId } = require("mongodb");
 
   try {
-    await resend.emails.send({
-      from: process.env.FROM_EMAIL,
-      to: employeeEmail,
-      subject: subject,
-      html: html,
+    const employee = await Employees.findOne({
+      _id: new ObjectId(req.params.id),
+      Company: req.user.company,
     });
 
-    res.status(200).json({ message: "Letter sent successfully" });
+    if (!employee)
+      return res.status(404).json({ message: "Employee not found" });
+
+    await resend.emails.send({
+      from: "CRM <onboarding@resend.dev>",
+      to: employee.Email,
+      subject: `Official Termination Notice – ${req.user.company}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width:700px; margin:auto; padding:20px; line-height:1.8;">
+          
+          <h2 style="text-align:center;">${req.user.company}</h2>
+          <hr/>
+
+          <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
+
+          <p>
+            <strong>To:</strong><br/>
+            ${employee.Name}<br/>
+            ${employee["Applied Position"]}
+          </p>
+
+          <p><strong>Subject: Termination of Employment</strong></p>
+
+          <p>Dear ${employee.Name},</p>
+
+          <p>
+            This letter serves as formal notice that your employment as 
+            <strong>${employee["Applied Position"]}</strong> with 
+            <strong>${req.user.company}</strong> is terminated effective immediately.
+          </p>
+
+          <p>
+            You are requested to complete all exit formalities and return company assets.
+          </p>
+
+          <p>
+            We acknowledge your contributions and wish you success in your future endeavors.
+          </p>
+
+          <br/>
+
+          <p>
+            Sincerely,<br/>
+            Human Resources Department<br/>
+            ${req.user.company}
+          </p>
+        </div>
+      `
+    });
+
+    await Employees.deleteOne({
+      _id: new ObjectId(req.params.id),
+      Company: req.user.company,
+    });
+
+    logAudit("DELETE_Employee", req.user.email, { id: req.params.id });
+
+    res.json({ success: true });
+
   } catch (err) {
-    res.status(500).json({ error: "Email failed" });
+    console.error("DELETE ERROR:", err);
+    res.status(500).json({ message: "Delete failed" });
   }
 });
+
 /* ================= DELETE Employee (SEND TERMINATION LETTER) ================= */
 
 app.delete("/api/delete-Employee/:id", auth, async (req, res) => {
@@ -759,6 +746,7 @@ connectDB().then(() => {
     console.log(`Server running on ${PORT}`);
   });
 });
+
 
 
 
