@@ -45,7 +45,6 @@ export default function Employee() {
     setEditingId(null);
   };
 
-  // 🔹 ADD / UPDATE EMPLOYEE + SEND OFFER LETTER
   const submitEmployee = async () => {
     if (!name || !email || !position || salary === "") {
       setMessage("All fields required");
@@ -66,7 +65,6 @@ export default function Employee() {
 
       } else {
 
-        // 1️⃣ Add to database
         await api.post("/api/add-Employee", {
           Name: name,
           Email: email,
@@ -74,8 +72,7 @@ export default function Employee() {
           Salary: Number(salary),
         });
 
-        // 2️⃣ Send Offer Letter
-        await api.post("/send-letter", {
+        await api.post("/api/send-letter", {
           type: "officiation",
           employeeName: name,
           employeeEmail: email,
@@ -103,14 +100,12 @@ export default function Employee() {
     setMessage("");
   };
 
-  // 🔹 DELETE EMPLOYEE + SEND TERMINATION LETTER
   const deleteEmployee = async (id, employeeData) => {
     if (!window.confirm("Delete this Employee?")) return;
 
     try {
 
-      // 1️⃣ Send Termination Letter
-      await api.post("/send-letter", {
+      await api.post("/api/send-letter", {
         type: "termination",
         employeeName: employeeData.Name,
         employeeEmail: employeeData.Email,
@@ -118,7 +113,6 @@ export default function Employee() {
         companyName: "Your Company Pvt Ltd"
       });
 
-      // 2️⃣ Delete from database
       await api.delete(`/api/delete-Employee/${id}`);
 
       setMessage("Employee deleted & Termination Letter sent");
