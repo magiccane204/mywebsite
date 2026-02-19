@@ -393,78 +393,6 @@ app.delete("/api/delete-Employee/:id", auth, async (req, res) => {
   }
 });
 
-/* ================= DELETE Employee (SEND TERMINATION LETTER) ================= */
-
-app.delete("/api/delete-Employee/:id", auth, async (req, res) => {
-  if (req.user.role !== "SuperAdmin")
-    return res.status(403).json({ message: "Only SuperAdmin can delete" });
-
-  const { ObjectId } = require("mongodb");
-
-  try {
-    // 1️⃣ Find employee first
-    const employee = await Employees.findOne({
-      _id: new ObjectId(req.params.id),
-      Company: req.user.company,
-    });
-
-    if (!employee)
-      return res.status(404).json({ message: "Employee not found" });
-
-    // 2️⃣ Send Termination Email
-    await resend.emails.send({
-      from: process.env.FROM_EMAIL,
-      to: employee.Email,
-      subject: `Official Termination Notice – ${req.user.company}`,
-      html: `
-      <div style="font-family: Arial, sans-serif; line-height:1.6;">
-        <h2>${req.user.company}</h2>
-        <p>Date: ${new Date().toLocaleDateString()}</p>
-
-        <p>To,<br/>
-        ${employee.Name}<br/>
-        ${employee["Applied Position"]}</p>
-
-        <p><strong>Subject: Termination of Employment</strong></p>
-
-        <p>Dear ${employee.Name},</p>
-
-        <p>
-        This is to formally inform you that your employment as 
-        ${employee["Applied Position"]} with ${req.user.company}
-        is terminated effective immediately.
-        </p>
-
-        <p>
-        You are requested to complete all exit formalities and return company property.
-        </p>
-
-        <p>
-        We appreciate your contributions and wish you success in your future endeavors.
-        </p>
-
-        <p>Sincerely,<br/>
-        Human Resources Department<br/>
-        ${req.user.company}</p>
-      </div>
-      `
-    });
-
-    // 3️⃣ Delete from DB
-    await Employees.deleteOne({
-      _id: new ObjectId(req.params.id),
-      Company: req.user.company,
-    });
-
-    logAudit("DELETE_Employee", req.user.email, { id: req.params.id });
-
-    res.json({ success: true });
-
-  } catch (err) {
-    res.status(500).json({ message: "Delete failed" });
-  }
-});
-
 
 /* ================= EmployeeS ================= */
 app.get("/api/Employees", auth, async (req, res) => {
@@ -746,6 +674,7 @@ connectDB().then(() => {
     console.log(`Server running on ${PORT}`);
   });
 });
+
 
 
 
