@@ -313,6 +313,20 @@ app.post("/api/add-Employee", auth, async (req, res) => {
     res.status(500).json({ message: "Add failed" });
   }
 });
+/* ================= GET Employees ================= */
+
+app.get("/api/Employees", auth, async (req, res) => {
+  try {
+    const list = await Employees
+      .find({ Company: req.user.company })
+      .toArray();
+
+    res.json(list);
+  } catch (err) {
+    console.error("GET EMPLOYEES ERROR:", err);
+    res.status(500).json({ message: "Failed to fetch employees" });
+  }
+});
 
 /* ================= DELETE Employee (SEND TERMINATION LETTER) ================= */
 
@@ -631,6 +645,7 @@ connectDB().then(() => {
     console.log(`Server running on ${PORT}`);
   });
 });
+
 
 
 
