@@ -394,34 +394,6 @@ app.delete("/api/delete-Employee/:id", auth, async (req, res) => {
 });
 
 
-/* ================= EmployeeS ================= */
-app.get("/api/Employees", auth, async (req, res) => {
-  const list = await Employees
-    .find({ Company: req.user.company })
-    .toArray();
-  res.json(list);
-});
-
-app.post("/api/add-Employee", auth, async (req, res) => {
-  if (req.user.role === "Employee")
-    return res.status(403).json({ message: "View only" });
-
-  const { Name, Email, Salary, ["Applied Position"]: Position } = req.body;
-  if (!Name || !Email || !Position || Salary == null)
-    return res.status(400).json({ message: "Missing fields" });
-
-  await Employees.insertOne({
-    Name,
-    Email,
-    Salary,
-    "Applied Position": Position,
-    Company: req.user.company,
-    createdAt: new Date(),
-  });
-
-  logAudit("ADD_Employee", req.user.email, { Email });
-  res.json({ success: true });
-});
 
 /* ================= UPDATE Employee ================= */
 app.put("/api/update-Employee", auth, async (req, res) => {
@@ -461,21 +433,6 @@ app.put("/api/update-Employee", auth, async (req, res) => {
     return res.status(404).json({ message: "Employee not found" });
 
   logAudit("UPDATE_Employee", req.user.email, { Email });
-  res.json({ success: true });
-});
-/* ================= DELETE Employee ================= */
-app.delete("/api/delete-Employee/:id", auth, async (req, res) => {
-  if (req.user.role !== "SuperAdmin")
-    return res.status(403).json({ message: "Only SuperAdmin can delete" });
-
-  const { ObjectId } = require("mongodb");
-
-  await Employees.deleteOne({
-    _id: new ObjectId(req.params.id),
-    Company: req.user.company,
-  });
-
-  logAudit("DELETE_Employee", req.user.email, { id: req.params.id });
   res.json({ success: true });
 });
 
@@ -674,6 +631,7 @@ connectDB().then(() => {
     console.log(`Server running on ${PORT}`);
   });
 });
+
 
 
 
