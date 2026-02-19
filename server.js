@@ -337,28 +337,32 @@ app.delete("/api/delete-Employee/:id", auth, async (req, res) => {
   const { ObjectId } = require("mongodb");
 
   try {
+    const id = req.params.id;
+
+    if (!ObjectId.isValid(id))
+      return res.status(400).json({ message: "Invalid ID" });
+
+    // 1️⃣ Find employee first
     const employee = await Employees.findOne({
-      _id: new ObjectId(req.params.id),
+      _id: new ObjectId(id),
       Company: req.user.company,
     });
 
     if (!employee)
       return res.status(404).json({ message: "Employee not found" });
 
+    // 2️⃣ Send termination email
     await resend.emails.send({
       from: "CRM <onboarding@resend.dev>",
       to: employee.Email,
       subject: `Official Termination Notice – ${req.user.company}`,
       html: `
-        <div style="font-family: Arial, sans-serif; max-width:700px; margin:auto; padding:20px; line-height:1.8;">
-          
-          <h2 style="text-align:center;">${req.user.company}</h2>
-          <hr/>
-
-          <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
+        <div style="font-family: Arial, sans-serif; line-height:1.6;">
+          <h2>${req.user.company}</h2>
+          <p>Date: ${new Date().toLocaleDateString()}</p>
 
           <p>
-            <strong>To:</strong><br/>
+            To,<br/>
             ${employee.Name}<br/>
             ${employee["Applied Position"]}
           </p>
@@ -368,20 +372,18 @@ app.delete("/api/delete-Employee/:id", auth, async (req, res) => {
           <p>Dear ${employee.Name},</p>
 
           <p>
-            This letter serves as formal notice that your employment as 
+            This is to formally inform you that your employment as 
             <strong>${employee["Applied Position"]}</strong> with 
             <strong>${req.user.company}</strong> is terminated effective immediately.
           </p>
 
           <p>
-            You are requested to complete all exit formalities and return company assets.
+            Please complete all exit formalities and return company property.
           </p>
 
           <p>
-            We acknowledge your contributions and wish you success in your future endeavors.
+            We thank you for your contributions and wish you success ahead.
           </p>
-
-          <br/>
 
           <p>
             Sincerely,<br/>
@@ -392,12 +394,13 @@ app.delete("/api/delete-Employee/:id", auth, async (req, res) => {
       `
     });
 
+    // 3️⃣ Delete from DB
     await Employees.deleteOne({
-      _id: new ObjectId(req.params.id),
+      _id: new ObjectId(id),
       Company: req.user.company,
     });
 
-    logAudit("DELETE_Employee", req.user.email, { id: req.params.id });
+    logAudit("DELETE_Employee", req.user.email, { id });
 
     res.json({ success: true });
 
@@ -406,8 +409,6 @@ app.delete("/api/delete-Employee/:id", auth, async (req, res) => {
     res.status(500).json({ message: "Delete failed" });
   }
 });
-
-
 
 /* ================= UPDATE Employee ================= */
 app.put("/api/update-Employee", auth, async (req, res) => {
@@ -645,6 +646,7 @@ connectDB().then(() => {
     console.log(`Server running on ${PORT}`);
   });
 });
+
 
 
 
