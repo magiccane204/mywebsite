@@ -1,31 +1,22 @@
 require("dotenv").config();
-
 console.log("🔥 SERVER FILE RUNNING");
-
-/* ================= CORE DEPENDENCIES ================= */
 
 const express = require("express");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const path = require("path");
-const { MongoClient } = require("mongodb");
+const { MongoClient, ObjectId } = require("mongodb");
+const mongoose = require("mongoose");
 const { Resend } = require("resend");
 const multer = require("multer");
 const fs = require("fs");
 const pdfParse = require("pdf-parse");
 const mammoth = require("mammoth");
-const nlp = require("compromise");
-const phoneUtil = require("libphonenumber-js");
 const Joi = require("joi");
-
-
-/* ================= APP INIT ================= */
 
 const app = express();
 const upload = multer({ dest: "uploads/" });
-
-/* ================= ENV ================= */
 
 const PORT = process.env.PORT || 10000;
 const MONGO_URI = process.env.MONGODB_URI;
@@ -33,22 +24,18 @@ const JWT_SECRET = process.env.JWT_SECRET;
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const NODE_ENV = process.env.NODE_ENV || "production";
 
-
-
-/* ================= MIDDLEWARE ================= */
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 /* ================= DATABASE ================= */
 const client = new MongoClient(MONGO_URI);
-let db, users, Employees, otps, sessions, auditLogs;
+let db, users, otps, sessions, auditLogs;
 
 async function connectDB() {
   await client.connect();
   db = client.db("Users");
   users = db.collection("user");
-  Employees = db.collection("Employee");
   otps = db.collection("OTPs");
   sessions = db.collection("Sessions");
   auditLogs = db.collection("AuditLogs");
@@ -70,20 +57,18 @@ function hashToken(token) {
   return crypto.createHash("sha256").update(token).digest("hex");
 }
 
+function hashPassword(password) {
+  return crypto.createHash("sha256").update(password).digest("hex");
+}
+
 function logAudit(action, email, meta = {}) {
-  auditLogs.insertOne({
-    action,
-    email,
-    meta,
-    timestamp: new Date(),
-  });
+  auditLogs.insertOne({ action, email, meta, timestamp: new Date() });
 }
 
 /* ================= AUTH ================= */
 function auth(req, res, next) {
   const raw = req.headers.authorization;
   if (!raw) return res.sendStatus(401);
-
   const token = raw.split(" ")[1];
   if (!token) return res.sendStatus(401);
 
@@ -95,7 +80,7 @@ function auth(req, res, next) {
   }
 }
 
-/* ================= RATE LIMIT (LOGIN ONLY) ================= */
+/* ================= RATE LIMIT ================= */
 const rateMap = new Map();
 function rateLimit(req, res, next) {
   const ip = req.ip;
@@ -105,134 +90,123 @@ function rateLimit(req, res, next) {
   rateMap.set(ip, now);
   next();
 }
-
-/* ================= LOGIN (SEND OTP) ================= */
-app.post("/api/login", rateLimit, async (req, res) => {
-  const email = String(req.body.email || "").trim();
-  const password = String(req.body.password || "");
-
-  const user = await users.findOne({ Email: email });
-  if (!user || user.Password !== password) {
-    logAudit("LOGIN_FAIL", email);
-    return res.status(401).json({ success: false });
-  }
-
-  const otp = generateOTP();
-
-  await otps.deleteMany({ Email: email });
-  await otps.insertOne({
-    Email: email,
-    OTP: otp,
-    createdAt: new Date(),
-  });
-
-  await resend.emails.send({
-    from: "CRM <onboarding@resend.dev>",
-    to: email,
-    subject: "Your OTP",
-    html: `<h2>Your OTP is <b>${otp}</b></h2>`,
-  });
-
-  logAudit("OTP_SENT", email);
-  res.json({ success: true });
-});
-
-/* ================= VERIFY OTP (FINAL FIX) ================= */
-app.post("/api/verify-otp", async (req, res) => {
-  const email = String(req.body.email || "").trim();
-  const otp = String(req.body.otp || "").trim();
-
-  if (!email || !otp)
-    return res.status(400).json({ success: false });
-
-  const record = await otps.findOne({
-    Email: email,
-    OTP: otp,
-  });
-
-  if (!record) {
-    logAudit("OTP_FAIL", email);
-    return res
-      .status(401)
-      .json({ success: false, message: "OTP invalid or expired" });
-  }
-
-  const user = await users.findOne({ Email: email });
-  if (!user)
-    return res.status(401).json({ success: false });
-
-  const token = jwt.sign(
-    {
-      email: user.Email,
-      role: user.Role,
-      company: user.Company,
-    },
-    JWT_SECRET,
-    { expiresIn: "1h" }
-  );
-
-  await sessions.insertOne({
-    email,
-    token: hashToken(token),
-    createdAt: new Date(),
-  });
-
-  await otps.deleteMany({ Email: email });
-
-  logAudit("LOGIN_SUCCESS", email);
-  res.json({ success: true, token });
-});
 /* ================= SIGNUP ================= */
 app.post("/api/signup", async (req, res) => {
-  const {
-    Email,
-    Password,
-    Company,
-    Role = "Employee"
-  } = req.body;
+  try {
+    const { Email, Password, Company, Role = "Employee" } = req.body;
 
-  if (!Email || !Password || !Company)
-    return res.status(400).json({ message: "Missing fields" });
+    if (!Email || !Password || !Company) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
 
-  const exists = await users.findOne({ Email });
-  if (exists)
-    return res.status(409).json({ message: "User already exists" });
+    const exists = await users.findOne({ Email });
+    if (exists) {
+      return res.status(409).json({ message: "User already exists" });
+    }
 
-  await users.insertOne({
-    Email,
-    Password: hashPassword(Password),
-    Company,
-    Role,
-    DarkMode: false,
-    createdAt: new Date()
-  });
+    await users.insertOne({
+      Email,
+      Password: hashPassword(Password),
+      Company,
+      Role,
+      DarkMode: false,
+      createdAt: new Date(),
+    });
 
-  logAudit("SIGNUP", Email, { Company, Role });
+    logAudit("SIGNUP", Email, { Company, Role });
 
-  res.json({ success: true });
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("SIGNUP_ERROR", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
 });
 
+/* ================= LOGIN – SEND OTP ================= */
+app.post("/api/login", rateLimit, async (req, res) => {
+  try {
+    const email = String(req.body.email || "").trim();
+    const password = String(req.body.password || "");
 
-/* ================= CURRENT USER ================= */
-app.get("/api/me", auth, (req, res) => {
-  res.json({
-    Email: req.user.email,
-    Role: req.user.role,
-    Company: req.user.company,
-  });
+    const user = await users.findOne({ Email: email });
+    if (!user || user.Password !== hashPassword(password)) {
+      logAudit("LOGIN_FAIL", email);
+      return res.status(401).json({ success: false, message: "Invalid credentials" });
+    }
+
+    const otp = generateOTP();
+
+    await otps.deleteMany({ Email: email });
+    await otps.insertOne({ Email: email, OTP: otp, createdAt: new Date() });
+
+    await resend.emails.send({
+      from: "CRM <onboarding@resend.dev>",
+      to: email,
+      subject: "Your OTP",
+      html: `<h2>Your OTP is <b>${otp}</b></h2>`,
+    });
+
+    logAudit("OTP_SENT", email);
+    return res.json({ success: true, message: "OTP sent to email" });
+  } catch (err) {
+    console.error("LOGIN_ERROR", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
 });
 
-/* ================= SETTINGS ================= */
-app.put("/api/me/darkmode", auth, async (req, res) => {
-  await users.updateOne(
-    { Email: req.user.email },
-    { $set: { DarkMode: !!req.body.DarkMode } }
-  );
-  logAudit("DARKMODE_CHANGE", req.user.email);
-  res.json({ success: true });
+/* ================= VERIFY OTP ================= */
+app.post("/api/verify-otp", async (req, res) => {
+  try {
+    const email = String(req.body.email || "").trim();
+    const otp = String(req.body.otp || "").trim();
+
+    if (!email || !otp) {
+      return res.status(400).json({ success: false, message: "Email and OTP required" });
+    }
+
+    const record = await otps.findOne({ Email: email, OTP: otp });
+    if (!record) {
+      logAudit("OTP_FAIL", email);
+      return res.status(401).json({ success: false, message: "OTP invalid or expired" });
+    }
+
+    const user = await users.findOne({ Email: email });
+    if (!user) return res.status(401).json({ success: false, message: "User not found" });
+
+    const token = jwt.sign(
+      { email: user.Email, role: user.Role, company: user.Company },
+      JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    await sessions.insertOne({ email, token: hashToken(token), createdAt: new Date() });
+    await otps.deleteMany({ Email: email });
+
+    logAudit("LOGIN_SUCCESS", email);
+    return res.json({ success: true, token });
+  } catch (err) {
+    console.error("VERIFY_OTP_ERROR", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
 });
+/* ================= EMPLOYEE SCHEMA ================= */
+const employeeSchema = new mongoose.Schema({
+  Name: { type: String, required: true },
+  Email: { type: String, required: true },
+  Salary: { type: Number, required: true },
+  "Applied Position": { type: String, required: true },
+  Company: { type: String, required: true },
+  Locked: { type: Boolean, default: false }, // New: Lock status
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
+});
+
+// Unique compound index (Prevents duplicates per company)
+employeeSchema.index({ Email: 1, Company: 1 }, { unique: true });
+
+const EmployeesModel = mongoose.model("Employee", employeeSchema);
+
 /* ================= VALIDATION SCHEMA ================= */
-
 const addEmployeeSchema = Joi.object({
   Name: Joi.string().trim().min(2).max(100).required(),
   Email: Joi.string().email().required(),
@@ -240,278 +214,130 @@ const addEmployeeSchema = Joi.object({
   "Applied Position": Joi.string().trim().min(2).max(100).required(),
 });
 
-app.post("/api/add-employee", auth, async (req, res) => {
-  if (req.user.role === "Employee") {
-    return res.status(403).json({ message: "Forbidden" });
-  }
-
-  /* ================= VALIDATE INPUT ================= */
+/* ================= ADD EMPLOYEE ================= */
+app.post("/api/employees", mockAuth, async (req, res) => {
+  if (req.user.role === "Employee") return res.status(403).json({ message: "Forbidden" });
 
   const { error, value } = addEmployeeSchema.validate(req.body);
-  if (error) {
-    return res.status(400).json({
-      message: "Invalid request payload",
-      error: error.details[0].message,
-    });
-  }
-
-  const { Name, Email, Salary } = value;
-  const Position = value["Applied Position"];
+  if (error) return res.status(400).json({ message: error.details[0].message });
 
   try {
-    /* ================= CHECK DUPLICATE ================= */
-
-    const exists = await Employees.findOne({
-      Email,
-      Company: req.user.company,
-    }).lean();
-
-    if (exists) {
-      return res.status(409).json({
-        message: "Employee already exists",
-      });
-    }
-
-    /* ================= INSERT EMPLOYEE ================= */
-
-    const employee = await Employees.create({
-      Name,
-      Email,
-      Salary,
-      "Applied Position": Position,
+    const employee = await EmployeesModel.create({
+      ...value,
       Company: req.user.company,
       createdAt: new Date(),
+      Locked: false,
     });
 
-    /* ================= SEND EMAIL (NON-BLOCKING SAFE) ================= */
-
+    // Non-blocking appointment email
     sendAppointmentEmail({
-      to: Email,
-      name: Name,
-      position: Position,
-      salary: Salary,
+      to: value.Email,
+      name: value.Name,
+      position: value["Applied Position"],
+      salary: value.Salary,
       company: req.user.company,
-    }).catch((err) => {
-      // Do NOT fail API if email fails
-      console.error("EMAIL_SEND_FAILED", {
-        employeeId: employee._id,
-        error: err.message,
-      });
-    });
+    }).catch((err) => console.error("EMAIL_SEND_FAILED", err.message));
 
-    logAudit("ADD_EMPLOYEE", req.user.email, {
-      employeeId: employee._id,
-      company: req.user.company,
-    });
-
-    return res.status(201).json({
-      success: true,
-      id: employee._id,
-    });
-
+    return res.status(201).json({ success: true, id: employee._id });
   } catch (err) {
-    console.error("ADD_EMPLOYEE_ERROR", {
-      error: err.message,
-      user: req.user.email,
-    });
-
-    return res.status(500).json({
-      message: "Something went wrong",
-    });
+    if (err.code === 11000) return res.status(409).json({ message: "Employee already exists" });
+    console.error("ADD_EMPLOYEE_ERROR", err);
+    return res.status(500).json({ message: "Something went wrong" });
   }
 });
-/* ================= GET Employees ================= */
 
-app.get("/api/Employees", auth, async (req, res) => {
+/* ================= GET EMPLOYEES ================= */
+app.get("/api/employees", mockAuth, async (req, res) => {
   try {
-    const list = await Employees
-      .find({ Company: req.user.company })
-      .toArray();
-
-    res.json(list);
+    const employees = await EmployeesModel.find({ Company: req.user.company }).sort({ createdAt: -1 }).lean();
+    return res.status(200).json(employees);
   } catch (err) {
-    console.error("GET EMPLOYEES ERROR:", err);
-    res.status(500).json({ message: "Failed to fetch employees" });
+    console.error("GET_EMPLOYEES_ERROR", err);
+    return res.status(500).json({ message: "Failed to fetch employees" });
   }
 });
 
-/* ================= DELETE Employee (SEND TERMINATION LETTER) ================= */
+/* ================= UPDATE EMPLOYEE ================= */
+app.put("/api/update-employee", mockAuth, async (req, res) => {
+  if (req.user.role === "Employee") return res.status(403).json({ message: "View only" });
 
-app.delete("/api/delete-Employee/:id", auth, async (req, res) => {
-  if (req.user.role !== "SuperAdmin")
-    return res.status(403).json({ message: "Only SuperAdmin can delete" });
+  const { Id, Name, Email, Salary, ["Applied Position"]: Position } = req.body;
+  if (!Id || !Name || !Email || !Salary || !Position) return res.status(400).json({ message: "Missing fields" });
 
-  const { ObjectId } = require("mongodb");
+  const employee = await EmployeesModel.findOne({ _id: Id, Company: req.user.company });
+  if (!employee) return res.status(404).json({ message: "Employee not found" });
 
-  try {
-    const id = req.params.id;
+  if (employee.Locked) return res.status(403).json({ message: "Employee is locked" });
 
-    if (!ObjectId.isValid(id))
-      return res.status(400).json({ message: "Invalid ID" });
-
-    // 1️⃣ Find employee first
-    const employee = await Employees.findOne({
-      _id: new ObjectId(id),
-      Company: req.user.company,
-    });
-
-    if (!employee)
-      return res.status(404).json({ message: "Employee not found" });
-
-    // 2️⃣ Send termination email
-    await resend.emails.send({
-      from: "CRM <onboarding@resend.dev>",
-      to: employee.Email,
-      subject: `Official Termination Notice – ${req.user.company}`,
-      html: `
-        <div style="font-family: Arial, sans-serif; line-height:1.6;">
-          <h2>${req.user.company}</h2>
-          <p>Date: ${new Date().toLocaleDateString()}</p>
-
-          <p>
-            To,<br/>
-            ${employee.Name}<br/>
-            ${employee["Applied Position"]}
-          </p>
-
-          <p><strong>Subject: Termination of Employment</strong></p>
-
-          <p>Dear ${employee.Name},</p>
-
-          <p>
-            This is to formally inform you that your employment as 
-            <strong>${employee["Applied Position"]}</strong> with 
-            <strong>${req.user.company}</strong> is terminated effective immediately.
-          </p>
-
-          <p>
-            Please complete all exit formalities and return company property.
-          </p>
-
-          <p>
-            We thank you for your contributions and wish you success ahead.
-          </p>
-
-          <p>
-            Sincerely,<br/>
-            Human Resources Department<br/>
-            ${req.user.company}
-          </p>
-        </div>
-      `
-    });
-
-    // 3️⃣ Delete from DB
-    await Employees.deleteOne({
-      _id: new ObjectId(id),
-      Company: req.user.company,
-    });
-
-    logAudit("DELETE_Employee", req.user.email, { id });
-
-    res.json({ success: true });
-
-  } catch (err) {
-    console.error("DELETE ERROR:", err);
-    res.status(500).json({ message: "Delete failed" });
-  }
-});
-
-/* ================= UPDATE Employee ================= */
-app.put("/api/update-Employee", auth, async (req, res) => {
-  if (req.user.role === "Employee")
-    return res.status(403).json({ message: "View only" });
-
-  const {
-    Id,
-    Name,
-    Email,
-    Salary,
-    ["Applied Position"]: Position,
-  } = req.body;
-
-  if (!Id || !Name || !Email || !Position || Salary == null)
-    return res.status(400).json({ message: "Missing fields" });
-
-  const { ObjectId } = require("mongodb");
-
-  const result = await Employees.updateOne(
-    {
-      _id: new ObjectId(Id),
-      Company: req.user.company,
-    },
-    {
-      $set: {
-        Name,
-        Email,
-        Salary,
-        "Applied Position": Position,
-        updatedAt: new Date(),
-      },
-    }
+  await EmployeesModel.updateOne(
+    { _id: Id },
+    { $set: { Name, Email, Salary, "Applied Position": Position, updatedAt: new Date() } }
   );
 
-  if (result.matchedCount === 0)
-    return res.status(404).json({ message: "Employee not found" });
-
-  logAudit("UPDATE_Employee", req.user.email, { Email });
-  res.json({ success: true });
+  logAudit("UPDATE_EMPLOYEE", req.user.email, { Email });
+  return res.json({ success: true });
 });
 
-/* ================= LOGOUT ================= */
-app.post("/api/logout", auth, async (req, res) => {
-  await sessions.deleteMany({ email: req.user.email });
-  logAudit("LOGOUT", req.user.email);
-  res.json({ success: true });
+/* ================= DELETE EMPLOYEE ================= */
+app.delete("/api/employees/:id", mockAuth, async (req, res) => {
+  if (req.user.role !== "SuperAdmin") return res.status(403).json({ message: "Only SuperAdmin can delete" });
+
+  const { id } = req.params;
+  const employee = await EmployeesModel.findOne({ _id: id, Company: req.user.company });
+  if (!employee) return res.status(404).json({ message: "Employee not found" });
+
+  await EmployeesModel.deleteOne({ _id: id });
+
+  sendTerminationEmail({
+    to: employee.Email,
+    name: employee.Name,
+    position: employee["Applied Position"],
+    company: req.user.company,
+  }).catch((err) => console.error("TERMINATION_EMAIL_FAILED", err.message));
+
+  return res.json({ success: true });
 });
 
-/* ================= HEALTH ================= */
-app.get("/api/health", (req, res) => {
-  res.json({
-    status: "ok",
-    uptime: process.uptime(),
-    env: NODE_ENV,
-    time: new Date(),
-  });
+/* ================= LOCK / UNLOCK EMPLOYEE ================= */
+app.put("/api/employees/lock", mockAuth, async (req, res) => {
+  if (req.user.role !== "SuperAdmin") return res.status(403).json({ message: "Only SuperAdmin can lock/unlock" });
+
+  const { Id, Lock } = req.body; // Lock: true/false
+  if (!Id || typeof Lock !== "boolean") return res.status(400).json({ message: "Missing fields" });
+
+  const employee = await EmployeesModel.findOne({ _id: Id, Company: req.user.company });
+  if (!employee) return res.status(404).json({ message: "Employee not found" });
+
+  await EmployeesModel.updateOne({ _id: Id }, { $set: { Locked: Lock, updatedAt: new Date() } });
+
+  logAudit(Lock ? "EMPLOYEE_LOCKED" : "EMPLOYEE_UNLOCKED", req.user.email, { Email: employee.Email });
+  return res.json({ success: true, locked: Lock });
 });
+/* ================= MULTER SETUP ================= */
+const upload = multer({ dest: "uploads/" });
 
-/* ================= STATIC FRONTEND ================= */
-app.use(express.static(path.join(__dirname, "build")));
-app.get(/^\/(?!api).*/, (req, res) => {
-  res.sendFile(path.join(__dirname, "build", "index.html"));
-});
+/* ================= RESUME PARSER UTILITIES ================= */
+const clean = (s) => (s || "").replace(/\s+/g, " ").trim();
 
-
-/* ================= UTIL ================= */
-
-const clean = s => (s || "").replace(/\s+/g, " ").trim();
-
-/* ================= EMAIL ================= */
-
+// Email extraction
 function extractEmail(text) {
   return text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] || "No email";
 }
 
-/* ================= PHONE (STRICT: IGNORE DATES) ================= */
-
+// Phone extraction
 function extractPhone(text) {
   const candidates = text.match(/(\+?\d[\d\s().-]{7,20}\d)/g);
   if (!candidates) return "No phone";
 
   for (const raw of candidates) {
-    if (/\b(18|19|20)\d{2}\s*[-–]\s*(18|19|20)\d{2}\b/.test(raw)) continue;
-    if (/\b(18|19|20)\d{2}\b/.test(raw)) continue;
-
+    if (/\b(18|19|20)\d{2}/.test(raw)) continue; // Skip years
     const digits = raw.replace(/\D/g, "");
-    if (digits.length >= 8 && digits.length <= 15) {
-      return raw.trim();
-    }
+    if (digits.length >= 8 && digits.length <= 15) return raw.trim();
   }
   return "No phone";
 }
 
-/* ================= NAME ================= */
-
+// Name extraction (top 8 lines, skip blacklisted keywords)
 function extractName(lines, email) {
   const blacklist = [
     "profile","info","resume","summary","curriculum","vitae","personal",
@@ -521,90 +347,37 @@ function extractName(lines, email) {
 
   for (const line of lines.slice(0, 8)) {
     const l = line.toLowerCase();
-    if (
-      line.length < 50 &&
-      !/\d/.test(line) &&
-      !blacklist.some(b => l.includes(b))
-    ) {
-      return line;
-    }
+    if (line.length < 50 && !/\d/.test(line) && !blacklist.some(b => l.includes(b))) return line;
   }
 
-  if (email !== "No email") {
-    return email.split("@")[0].replace(/[._-]/g, " ").toUpperCase();
-  }
-
+  if (email !== "No email") return email.split("@")[0].replace(/[._-]/g, " ").toUpperCase();
   return "No name";
 }
 
-/* ================= WORLD LANGUAGES (ISO-639 + COMMON NAMES) ================= */
-
-const LANGUAGE_SET = new Set([
-  // major
-  "english","spanish","french","german","italian","portuguese","russian",
-  "arabic","hindi","urdu","bengali","punjabi","marathi","gujarati","tamil",
-  "telugu","kannada","malayalam","oriya","assamese","nepali","sinhala",
-  "chinese","mandarin","cantonese","japanese","korean",
-  // europe
-  "dutch","swedish","norwegian","danish","finnish","icelandic",
-  "polish","czech","slovak","hungarian","romanian","bulgarian",
-  "serbian","croatian","bosnian","slovenian","albanian","greek",
-  "estonian","latvian","lithuanian","irish","welsh","scottish","gaelic",
-  // asia
-  "thai","vietnamese","indonesian","malay","filipino","tagalog",
-  "burmese","khmer","lao","mongolian","kazakh","uzbek","tajik","kyrgyz",
-  // middle east / africa
-  "hebrew","farsi","persian","pashto","kurdish","turkish",
-  "swahili","zulu","xhosa","afrikaans","yoruba","igbo","hausa",
-  "amharic","tigrinya","somali",
-  // americas
-  "quechua","guarani","nahuatl","aymara",
-  // others / catch-all
-  "latin","esperanto"
-]);
-
-/* ================= GEO / LOCATION FILTER ================= */
-
-const GEO_WORDS = new Set([
-  "state","city","province","district","country","national","international",
-  "india","philippines","pakistan","china","japan","korea","uae","dubai",
-  "abu","dhabi","malaysia","singapore","indonesia","thailand","vietnam",
-  "bukidnon","misamis","oriental","malaybalay","manila","mumbai","delhi",
-  "london","paris","berlin","rome","madrid","new","york","los","angeles"
-]);
-
-/* ================= UNIVERSAL SKILLS (EVERYTHING, NO LIST DEPENDENCY) ================= */
+// Skills extraction
+const LANGUAGE_SET = new Set(["english","spanish","french","german","italian","portuguese","russian","arabic","hindi","urdu","bengali","punjabi","marathi","gujarati","tamil","telugu","kannada","malayalam","oriya","assamese","nepali","sinhala","chinese","mandarin","cantonese","japanese","korean"]);
+const GEO_WORDS = new Set(["state","city","province","district","country","india","philippines","pakistan","china","japan","korea","uae"]);
 
 function extractSkills(text) {
   const tokens = text.match(/\b[A-Za-z][A-Za-z0-9.+#\/()-]{2,40}\b/g) || [];
-
   const skills = tokens.filter(w => {
     const lw = w.toLowerCase();
-
     if (LANGUAGE_SET.has(lw)) return false;
     if (GEO_WORDS.has(lw)) return false;
     if (/^\d+$/.test(w)) return false;
-    if (/(18|19|20)\d{2}/.test(w)) return false;
     if (lw.length < 3) return false;
-
-    return true; // EVERYTHING ELSE IS A SKILL
+    return true;
   });
-
-  const unique = [...new Set(skills)];
-  return unique.length ? unique.slice(0, 25) : ["No skills"];
+  return [...new Set(skills)].slice(0, 25) || ["No skills"];
 }
 
-/* ================= LANGUAGES (STRICT: ONLY FROM WORLD SET) ================= */
-
+// Languages extraction
 function extractLanguages(text) {
   const tokens = text.match(/\b[A-Za-z]{3,25}\b/g) || [];
-  const langs = tokens.filter(w => LANGUAGE_SET.has(w.toLowerCase()));
-  const unique = [...new Set(langs)];
-  return unique.length ? unique : ["No languages"];
+  return [...new Set(tokens.filter(w => LANGUAGE_SET.has(w.toLowerCase())))] || ["No languages"];
 }
 
-/* ================= MAIN PARSER ================= */
-
+// Parse resume text
 function parseResumeText(text) {
   const lines = text.split(/\r?\n/).map(l => clean(l)).filter(Boolean);
   const email = extractEmail(text);
@@ -613,54 +386,103 @@ function parseResumeText(text) {
     name: extractName(lines, email),
     email,
     phone: extractPhone(text),
-    linkedIn:
-      text.match(/https?:\/\/(www\.)?linkedin\.com\/[^\s)]+/i)?.[0] ||
-      "No LinkedIn",
+    linkedIn: text.match(/https?:\/\/(www\.)?linkedin\.com\/[^\s)]+/i)?.[0] || "No LinkedIn",
     skills: extractSkills(text),
     languages: extractLanguages(text),
     experience: "Present",
-    education: "Present"
+    education: "Present",
   };
 }
 
-/* ================= API ================= */
-
-app.post("/api/resume/extract", upload.single("resume"), async (req, res) => {
+/* ================= RESUME UPLOAD API ================= */
+app.post("/api/resume/extract", mockAuth, upload.single("resume"), async (req, res) => {
   try {
+    if (!req.file) return res.status(400).json({ success: false, message: "No file uploaded" });
+
     const buffer = fs.readFileSync(req.file.path);
     let text = "";
 
     if (req.file.mimetype === "application/pdf") {
       const parsed = await pdfParse(buffer);
       text = parsed.text || "";
-    } else {
+    } else if (req.file.mimetype === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
       const out = await mammoth.extractRawText({ buffer });
       text = out.value || "";
+    } else {
+      fs.unlinkSync(req.file.path);
+      return res.status(400).json({ success: false, message: "Unsupported file type" });
     }
 
     fs.unlinkSync(req.file.path);
-
     const data = parseResumeText(text);
-    res.json({ success: true, data });
+    return res.json({ success: true, data });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false });
+    console.error("RESUME_PARSE_ERROR", err);
+    return res.status(500).json({ success: false, message: "Failed to parse resume" });
   }
 });
-/* ================= START ================= */
-connectDB().then(() => {
-  app.listen(PORT, () => {
-    console.log(`Server running on ${PORT}`);
-  });
+/* ================= EMPLOYEE LOCK/UNLOCK ================= */
+app.put("/api/employees/lock/:id", mockAuth, async (req, res) => {
+  if (req.user.role !== "SuperAdmin") {
+    return res.status(403).json({ message: "Only SuperAdmin can lock/unlock employees" });
+  }
+
+  const { id } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ message: "Invalid employee ID" });
+
+  const employee = await EmployeesModel.findOne({ _id: id, Company: req.user.company });
+  if (!employee) return res.status(404).json({ message: "Employee not found" });
+
+  const newStatus = !employee.locked;
+  employee.locked = newStatus;
+  await employee.save();
+
+  logAudit(newStatus ? "EMPLOYEE_LOCKED" : "EMPLOYEE_UNLOCKED", req.user.email, { EmployeeId: id });
+
+  return res.json({ success: true, locked: newStatus });
 });
 
+/* ================= DASHBOARD PROTECTED ROUTE ================= */
+app.get("/api/dashboard", mockAuth, async (req, res) => {
+  try {
+    const employees = await EmployeesModel.find({ Company: req.user.company })
+      .sort({ createdAt: -1 })
+      .lean();
 
+    // Filter out locked employees
+    const visibleEmployees = employees.filter(emp => !emp.locked);
 
+    return res.json({ success: true, employees: visibleEmployees });
+  } catch (err) {
+    console.error("DASHBOARD_ERROR", err);
+    return res.status(500).json({ message: "Failed to load dashboard" });
+  }
+});
 
+/* ================= SESSION VALIDATION ================= */
+app.get("/api/validate-session", mockAuth, async (req, res) => {
+  try {
+    const tokenHash = hashToken(req.headers.authorization?.split(" ")[1] || "");
+    const session = await sessions.findOne({ token: tokenHash });
+    return res.json({ valid: !!session });
+  } catch (err) {
+    console.error("SESSION_VALIDATE_ERROR", err);
+    return res.status(500).json({ valid: false });
+  }
+});
 
+/* ================= CATCH-ALL ERROR HANDLER ================= */
+app.use((err, req, res, next) => {
+  console.error("UNHANDLED_ERROR", err);
+  res.status(500).json({ success: false, message: "Unexpected error occurred" });
+});
 
-
-
-
-
-
+/* ================= SERVER START ================= */
+connectDB().then(() => {
+  app.listen(PORT, () => {
+    console.log(`🔥 Server running on PORT ${PORT} | ENV: ${NODE_ENV}`);
+  });
+}).catch(err => {
+  console.error("DB_CONNECTION_FAILED", err);
+  process.exit(1);
+});
