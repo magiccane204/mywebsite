@@ -17,6 +17,7 @@ const pdfParse = require("pdf-parse");
 const mammoth = require("mammoth");
 const nlp = require("compromise");
 const phoneUtil = require("libphonenumber-js");
+const Joi = require("joi");
 
 
 /* ================= APP INIT ================= */
@@ -230,19 +231,50 @@ app.put("/api/me/darkmode", auth, async (req, res) => {
   logAudit("DARKMODE_CHANGE", req.user.email);
   res.json({ success: true });
 });
-/* ================= ADD Employee (SEND APPOINTMENT LETTER) ================= */
+/* ================= VALIDATION SCHEMA ================= */
 
-app.post("/api/add-Employee", auth, async (req, res) => {
-  if (req.user.role === "Employee")
-    return res.status(403).json({ message: "View only" });
+const addEmployeeSchema = Joi.object({
+  Name: Joi.string().trim().min(2).max(100).required(),
+  Email: Joi.string().email().required(),
+  Salary: Joi.number().min(0).required(),
+  "Applied Position": Joi.string().trim().min(2).max(100).required(),
+});
 
-  const { Name, Email, Salary, ["Applied Position"]: Position } = req.body;
+app.post("/api/add-employee", auth, async (req, res) => {
+  if (req.user.role === "Employee") {
+    return res.status(403).json({ message: "Forbidden" });
+  }
 
-  if (!Name || !Email || !Position || Salary == null)
-    return res.status(400).json({ message: "Missing fields" });
+  /* ================= VALIDATE INPUT ================= */
+
+  const { error, value } = addEmployeeSchema.validate(req.body);
+  if (error) {
+    return res.status(400).json({
+      message: "Invalid request payload",
+      error: error.details[0].message,
+    });
+  }
+
+  const { Name, Email, Salary } = value;
+  const Position = value["Applied Position"];
 
   try {
-    const result = await Employees.insertOne({
+    /* ================= CHECK DUPLICATE ================= */
+
+    const exists = await Employees.findOne({
+      Email,
+      Company: req.user.company,
+    }).lean();
+
+    if (exists) {
+      return res.status(409).json({
+        message: "Employee already exists",
+      });
+    }
+
+    /* ================= INSERT EMPLOYEE ================= */
+
+    const employee = await Employees.create({
       Name,
       Email,
       Salary,
@@ -251,66 +283,41 @@ app.post("/api/add-Employee", auth, async (req, res) => {
       createdAt: new Date(),
     });
 
-    /* ================= SEND APPOINTMENT LETTER EMAIL ================= */
+    /* ================= SEND EMAIL (NON-BLOCKING SAFE) ================= */
 
-    await resend.emails.send({
-      from: "CRM <onboarding@resend.dev>",   // 🔥 use this unless your domain is verified
+    sendAppointmentEmail({
       to: Email,
-      subject: `Official Appointment Letter – ${req.user.company}`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width:700px; margin:auto; padding:20px; line-height:1.8;">
-          
-          <h2 style="text-align:center;">${req.user.company}</h2>
-          <hr/>
-
-          <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
-
-          <p>
-            <strong>To:</strong><br/>
-            ${Name}<br/>
-            ${Position}
-          </p>
-
-          <p><strong>Subject: Appointment Letter</strong></p>
-
-          <p>Dear ${Name},</p>
-
-          <p>
-            We are pleased to formally appoint you as 
-            <strong>${Position}</strong> at <strong>${req.user.company}</strong>.
-          </p>
-
-          <p>
-            Your annual compensation will be <strong>₹${Salary}</strong>.
-          </p>
-
-          <p>
-            You are expected to perform your duties professionally and adhere 
-            to company policies and confidentiality agreements.
-          </p>
-
-          <p>
-            Kindly confirm your acceptance of this appointment by replying to this email.
-          </p>
-
-          <br/>
-
-          <p>
-            Sincerely,<br/>
-            Human Resources Department<br/>
-            ${req.user.company}
-          </p>
-        </div>
-      `
+      name: Name,
+      position: Position,
+      salary: Salary,
+      company: req.user.company,
+    }).catch((err) => {
+      // Do NOT fail API if email fails
+      console.error("EMAIL_SEND_FAILED", {
+        employeeId: employee._id,
+        error: err.message,
+      });
     });
 
-    logAudit("ADD_Employee", req.user.email, { Email });
+    logAudit("ADD_EMPLOYEE", req.user.email, {
+      employeeId: employee._id,
+      company: req.user.company,
+    });
 
-    res.json({ success: true, id: result.insertedId });
+    return res.status(201).json({
+      success: true,
+      id: employee._id,
+    });
 
   } catch (err) {
-    console.error("ADD EMPLOYEE ERROR:", err);
-    res.status(500).json({ message: "Add failed" });
+    console.error("ADD_EMPLOYEE_ERROR", {
+      error: err.message,
+      user: req.user.email,
+    });
+
+    return res.status(500).json({
+      message: "Something went wrong",
+    });
   }
 });
 /* ================= GET Employees ================= */
@@ -646,6 +653,7 @@ connectDB().then(() => {
     console.log(`Server running on ${PORT}`);
   });
 });
+
 
 
 
