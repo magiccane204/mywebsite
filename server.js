@@ -486,6 +486,20 @@ app.use((err, req, res, next) => {
   res.status(500).json({ success: false, message: "Unexpected error occurred" });
 });
 
+/* ================= ROOT / HEALTH CHECK ================= */
+app.get("/", (req, res) => {
+  res.send("🔥 Server is running! Welcome to the CRM API.");
+});
+
+app.get("/api/health", (req, res) => {
+  res.json({
+    status: "ok",
+    uptime: process.uptime(),
+    env: NODE_ENV,
+    time: new Date(),
+  });
+});
+
 /* ================= SERVER START ================= */
 connectDB().then(() => {
   app.listen(PORT, () => {
@@ -495,3 +509,4 @@ connectDB().then(() => {
   console.error("DB_CONNECTION_FAILED", err);
   process.exit(1);
 });
+
