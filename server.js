@@ -79,6 +79,16 @@ function auth(req, res, next) {
     return res.sendStatus(403);
   }
 }
+/* ================= MOCK AUTH ================= */
+const mockAuth = (req, res, next) => {
+  // You can customize this for testing
+  req.user = {
+    email: "admin@company.com",
+    role: "SuperAdmin", // or "Employee"
+    company: "YourCompany Pvt Ltd",
+  };
+  next();
+};
 
 /* ================= RATE LIMIT ================= */
 const rateMap = new Map();
@@ -485,4 +495,3 @@ connectDB().then(() => {
   console.error("DB_CONNECTION_FAILED", err);
   process.exit(1);
 });
-
