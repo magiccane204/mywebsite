@@ -313,8 +313,7 @@ app.put("/api/employees/lock", mockAuth, async (req, res) => {
   logAudit(Lock ? "EMPLOYEE_LOCKED" : "EMPLOYEE_UNLOCKED", req.user.email, { Email: employee.Email });
   return res.json({ success: true, locked: Lock });
 });
-/* ================= MULTER SETUP ================= */
-const upload = multer({ dest: "uploads/" });
+
 
 /* ================= RESUME PARSER UTILITIES ================= */
 const clean = (s) => (s || "").replace(/\s+/g, " ").trim();
@@ -486,3 +485,4 @@ connectDB().then(() => {
   console.error("DB_CONNECTION_FAILED", err);
   process.exit(1);
 });
+
