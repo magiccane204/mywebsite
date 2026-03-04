@@ -24,7 +24,8 @@ const JWT_SECRET = process.env.JWT_SECRET;
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const NODE_ENV = process.env.NODE_ENV || "production";
 
-app.use(cors({ origin: true, credentials: true }));
+app.use(cors({   origin: [     "https://mywebsite-im3c.onrender.com"   ],   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],   allowedHeaders: ["Content-Type", "Authorization"],   credentials: true }));
+app.options("*", cors());
 app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true }));
 const client = new MongoClient(MONGO_URI);
@@ -914,6 +915,7 @@ connectDB()
     process.exit(1);
 
   });
+
 
 
 
