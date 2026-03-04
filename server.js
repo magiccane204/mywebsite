@@ -843,14 +843,7 @@ app.use((err, req, res, next) => {
 });
 /* ================= ROOT / HEALTH ================= */
 
-app.get("/", (req, res) => {
 
-  res.json({
-    status: "running",
-    api: "CRM API",
-  });
-
-});
 
 app.get("/api/health", (req, res) => {
 
@@ -901,5 +894,6 @@ connectDB()
     process.exit(1);
 
   });
+
 
 
