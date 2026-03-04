@@ -161,7 +161,7 @@ app.post("/api/login", rateLimit, async (req, res) => {
 
   try {
 
-    const email = String(req.body.email || "").trim();
+    const email = String(req.body.email || "").trim().toLowerCase();
     const password = String(req.body.password || "");
 
     const user = await users.findOne({ Email: email });
@@ -184,6 +184,7 @@ app.post("/api/login", rateLimit, async (req, res) => {
     await otps.insertOne({
       Email: email,
       OTP: otp,
+      attempts: 0,
       createdAt: new Date(),
     });
 
@@ -212,13 +213,15 @@ app.post("/api/login", rateLimit, async (req, res) => {
   }
 
 });
+
+
 /* ================= VERIFY OTP ================= */
 
 app.post("/api/verify-otp", async (req, res) => {
 
   try {
 
-    const email = String(req.body.email || "").trim();
+    const email = String(req.body.email || "").trim().toLowerCase();
     const otp = String(req.body.otp || "").trim();
 
     if (!email || !otp) {
@@ -230,10 +233,7 @@ app.post("/api/verify-otp", async (req, res) => {
 
     }
 
-    const record = await otps.findOne({
-      Email: email,
-      OTP: otp,
-    });
+    const record = await otps.findOne({ Email: email });
 
     if (!record) {
 
@@ -241,7 +241,32 @@ app.post("/api/verify-otp", async (req, res) => {
 
       return res.status(401).json({
         success: false,
-        message: "OTP invalid or expired",
+        message: "OTP expired or not found",
+      });
+
+    }
+
+    if (record.attempts >= 5) {
+
+      return res.status(403).json({
+        success: false,
+        message: "Too many OTP attempts",
+      });
+
+    }
+
+    if (record.OTP !== otp) {
+
+      await otps.updateOne(
+        { Email: email },
+        { $inc: { attempts: 1 } }
+      );
+
+      logAudit("OTP_FAIL", email);
+
+      return res.status(401).json({
+        success: false,
+        message: "Invalid OTP",
       });
 
     }
@@ -882,6 +907,7 @@ connectDB()
     process.exit(1);
 
   });
+
 
 
 
