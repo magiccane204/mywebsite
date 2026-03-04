@@ -857,21 +857,13 @@ app.get("/api/health", (req, res) => {
 });
 /* ================= SERVE FRONTEND ================= */
 
-const frontendPath = path.join(__dirname, "frontend", "dist");
-
-app.use(express.static(frontendPath));
-
-app.get("*", (req, res) => {
-  res.sendFile(path.join(frontendPath, "index.html"));
-});
-const path = require("path");
-
 const frontendPath = path.join(__dirname, "build");
 
 app.use(express.static(frontendPath));
 
 app.get("*", (req, res) => {
   res.sendFile(path.join(frontendPath, "index.html"));
+});
 });
 /* ================= SERVER START ================= */
 
@@ -894,6 +886,7 @@ connectDB()
     process.exit(1);
 
   });
+
 
 
 
