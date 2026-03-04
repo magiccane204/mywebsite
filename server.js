@@ -162,19 +162,26 @@ app.post("/api/login", rateLimit, async (req, res) => {
   try {
 
     const email = String(req.body.email || "").trim().toLowerCase();
-    const password = String(req.body.password || "");
+    const password = String(req.body.password || "").trim();
 
     const user = await users.findOne({ Email: email });
 
-    if (!user || user.Password !== hashPassword(password)) {
-
+    if (!user) {
       logAudit("LOGIN_FAIL", email);
-
       return res.status(401).json({
         success: false,
-        message: "Invalid credentials",
+        message: "User not found",
       });
+    }
 
+    const hashed = hashPassword(password);
+
+    if (user.Password !== hashed) {
+      logAudit("LOGIN_FAIL", email);
+      return res.status(401).json({
+        success: false,
+        message: "Wrong password",
+      });
     }
 
     const otp = generateOTP();
@@ -907,6 +914,7 @@ connectDB()
     process.exit(1);
 
   });
+
 
 
 
