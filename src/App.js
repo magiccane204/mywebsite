@@ -28,7 +28,10 @@ function App() {
     if (!email || !password) return;
 
     try {
-      const res = await api.post("/api/login", { email, password });
+     const res = await api.post("/api/login", {
+  email: email.trim().toLowerCase(),
+  password: password.trim()
+});
       if (res.data.success) {
         // 🔥 CRITICAL FIX
         localStorage.setItem("otp_email", email);
