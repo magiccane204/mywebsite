@@ -842,9 +842,6 @@ app.use((err, req, res, next) => {
 
 });
 /* ================= ROOT / HEALTH ================= */
-
-
-
 app.get("/api/health", (req, res) => {
 
   res.json({
@@ -863,7 +860,6 @@ app.use(express.static(frontendPath));
 
 app.get("*", (req, res) => {
   res.sendFile(path.join(frontendPath, "index.html"));
-});
 });
 /* ================= SERVER START ================= */
 
@@ -886,6 +882,7 @@ connectDB()
     process.exit(1);
 
   });
+
 
 
 
