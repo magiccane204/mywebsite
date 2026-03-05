@@ -64,8 +64,7 @@ export default function Employee() {
         setMessage("Employee updated");
 
       } else {
-
-        await api.post("/api/add-Employee", {
+      await api.post("/api/Employees", {
           Name: name,
           Email: email,
           "Applied Position": position,
@@ -194,4 +193,5 @@ export default function Employee() {
     </div>
   );
 }
+
 
