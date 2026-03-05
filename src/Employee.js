@@ -53,7 +53,7 @@ export default function Employee() {
 
     try {
       if (editingId) {
-        await api.put("/api/update-Employee", {
+    await api.put("/api/update-employee", {
           Id: editingId,
           Name: name,
           Email: email,
@@ -71,13 +71,6 @@ export default function Employee() {
           Salary: Number(salary),
         });
 
-        await api.post("/api/send-letter", {
-          type: "officiation",
-          employeeName: name,
-          employeeEmail: email,
-          position: position,
-          companyName: "Your Company Pvt Ltd"
-        });
 
         setMessage("Employee added & Offer Letter sent");
       }
@@ -104,15 +97,9 @@ export default function Employee() {
 
     try {
 
-      await api.post("/send-letter", {
-        type: "termination",
-        employeeName: employeeData.Name,
-        employeeEmail: employeeData.Email,
-        position: employeeData["Applied Position"],
-        companyName: "Your Company Pvt Ltd"
-      });
 
-      await api.delete(`/delete-Employee/${id}`);
+
+await api.delete(`/api/Employees/${id}`);
 
       setMessage("Employee deleted & Termination Letter sent");
       loadEmployees();
@@ -193,5 +180,6 @@ export default function Employee() {
     </div>
   );
 }
+
 
 
