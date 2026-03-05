@@ -641,6 +641,38 @@ app.put("/api/Employees/lock/:id", mockAuth, async (req, res) => {
   });
 
 });
+/* ================= CURRENT USER ================= */
+
+app.get("/api/me", auth, async (req, res) => {
+  try {
+
+    const user = await users.findOne(
+      { Email: req.user.email },
+      { projection: { Password: 0 } }
+    );
+
+    if (!user)
+      return res.status(404).json({
+        message: "User not found"
+      });
+
+    return res.json({
+      Email: user.Email,
+      Role: user.Role,
+      Company: user.Company,
+      DarkMode: user.DarkMode
+    });
+
+  } catch (err) {
+
+    console.error("ME_ERROR", err);
+
+    return res.status(500).json({
+      message: "Failed to load user"
+    });
+
+  }
+});
 /* ================= RESUME PARSER UTILITIES ================= */
 
 const clean = (s) => (s || "").replace(/\s+/g, " ").trim();
@@ -915,12 +947,4 @@ connectDB()
     process.exit(1);
 
   });
-
-
-
-
-
-
-
-
 
