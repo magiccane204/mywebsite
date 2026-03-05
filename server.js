@@ -433,7 +433,7 @@ async function sendTerminationEmail({
 }
 /* ================= ADD EMPLOYEE ================= */
 
-app.post("/api/employees", mockAuth, async (req, res) => {
+app.post("/api/Employees", mockAuth, async (req, res) => {
 
   if (req.user.role === "Employee")
     return res.status(403).json({ message: "Forbidden" });
@@ -492,7 +492,7 @@ app.post("/api/employees", mockAuth, async (req, res) => {
 });
 /* ================= GET EMPLOYEES ================= */
 
-app.get("/api/employees", mockAuth, async (req, res) => {
+app.get("/api/Employees", mockAuth, async (req, res) => {
 
   try {
 
@@ -564,7 +564,7 @@ app.put("/api/update-employee", mockAuth, async (req, res) => {
 });
 /* ================= DELETE EMPLOYEE ================= */
 
-app.delete("/api/employees/:id", mockAuth, async (req, res) => {
+app.delete("/api/Employees/:id", mockAuth, async (req, res) => {
 
   if (req.user.role !== "SuperAdmin")
     return res.status(403).json({
@@ -599,7 +599,7 @@ app.delete("/api/employees/:id", mockAuth, async (req, res) => {
 });
 /* ================= LOCK / UNLOCK EMPLOYEE ================= */
 
-app.put("/api/employees/lock/:id", mockAuth, async (req, res) => {
+app.put("/api/Employees/lock/:id", mockAuth, async (req, res) => {
 
   if (req.user.role !== "SuperAdmin")
     return res.status(403).json({
@@ -915,6 +915,7 @@ connectDB()
     process.exit(1);
 
   });
+
 
 
 
