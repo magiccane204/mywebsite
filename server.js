@@ -93,7 +93,7 @@ function auth(req, res, next) {
 
   }
 }
-const auth = (req, res, next) => {
+const mockAuth = (req, res, next) => {
 
   req.user = {
     email: "admin@company.com",
@@ -947,6 +947,7 @@ connectDB()
     process.exit(1);
 
   });
+
 
 
 
