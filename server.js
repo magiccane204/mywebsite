@@ -353,6 +353,7 @@ employeeSchema.index(
 const EmployeesModel = mongoose.model(
   "Employee",
   employeeSchema
+  "Employee"
 );
 /* ================= VALIDATION SCHEMA ================= */
 
@@ -947,6 +948,7 @@ connectDB()
     process.exit(1);
 
   });
+
 
 
 
