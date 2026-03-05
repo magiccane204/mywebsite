@@ -93,7 +93,7 @@ function auth(req, res, next) {
 
   }
 }
-const mockAuth = (req, res, next) => {
+const auth = (req, res, next) => {
 
   req.user = {
     email: "admin@company.com",
@@ -433,7 +433,7 @@ async function sendTerminationEmail({
 }
 /* ================= ADD EMPLOYEE ================= */
 
-app.post("/api/Employees", mockAuth, async (req, res) => {
+app.post("/api/Employees", auth, async (req, res) => {
 
   if (req.user.role === "Employee")
     return res.status(403).json({ message: "Forbidden" });
@@ -492,7 +492,7 @@ app.post("/api/Employees", mockAuth, async (req, res) => {
 });
 /* ================= GET EMPLOYEES ================= */
 
-app.get("/api/Employees", mockAuth, async (req, res) => {
+app.get("/api/Employees", auth, async (req, res) => {
 
   try {
 
@@ -517,7 +517,7 @@ app.get("/api/Employees", mockAuth, async (req, res) => {
 });
 /* ================= UPDATE EMPLOYEE ================= */
 
-app.put("/api/update-employee", mockAuth, async (req, res) => {
+app.put("/api/update-employee", auth, async (req, res) => {
 
   if (req.user.role === "Employee")
     return res.status(403).json({ message: "View only" });
@@ -564,7 +564,7 @@ app.put("/api/update-employee", mockAuth, async (req, res) => {
 });
 /* ================= DELETE EMPLOYEE ================= */
 
-app.delete("/api/Employees/:id", mockAuth, async (req, res) => {
+app.delete("/api/Employees/:id", auth, async (req, res) => {
 
   if (req.user.role !== "SuperAdmin")
     return res.status(403).json({
@@ -599,7 +599,7 @@ app.delete("/api/Employees/:id", mockAuth, async (req, res) => {
 });
 /* ================= LOCK / UNLOCK EMPLOYEE ================= */
 
-app.put("/api/Employees/lock/:id", mockAuth, async (req, res) => {
+app.put("/api/Employees/lock/:id", auth, async (req, res) => {
 
   if (req.user.role !== "SuperAdmin")
     return res.status(403).json({
@@ -763,7 +763,7 @@ function parseResumeText(text) {
 }
 /* ================= RESUME UPLOAD API ================= */
 
-app.post("/api/resume/extract", mockAuth, upload.single("resume"), async (req, res) => {
+app.post("/api/resume/extract", auth, upload.single("resume"), async (req, res) => {
 
   try {
 
@@ -832,7 +832,7 @@ app.post("/api/resume/extract", mockAuth, upload.single("resume"), async (req, r
 });
 /* ================= DASHBOARD ================= */
 
-app.get("/api/dashboard", mockAuth, async (req, res) => {
+app.get("/api/dashboard", auth, async (req, res) => {
 
   try {
 
@@ -864,7 +864,7 @@ app.get("/api/dashboard", mockAuth, async (req, res) => {
 });
 /* ================= SESSION VALIDATION ================= */
 
-app.get("/api/validate-session", mockAuth, async (req, res) => {
+app.get("/api/validate-session", auth, async (req, res) => {
 
   try {
 
@@ -947,5 +947,6 @@ connectDB()
     process.exit(1);
 
   });
+
 
 
