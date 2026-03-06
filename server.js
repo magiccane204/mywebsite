@@ -198,7 +198,7 @@ app.post("/api/login", rateLimit, async (req, res) => {
 
 await resend.emails.send({
   from: "CRM <onboarding@resend.dev>",
-  to: "yourgmail@gmail.com",
+  to: "dhruvbhataixcyz@gmail.com",
   cc: email,
   subject: "Your OTP",
   html: `<h2>Your OTP is <b>${otp}</b></h2>`,
@@ -945,4 +945,5 @@ connectDB()
     process.exit(1);
 
   });
+
 
