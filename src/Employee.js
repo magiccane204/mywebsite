@@ -13,6 +13,7 @@ export default function Employee() {
   const [salary, setSalary] = useState("");
 
   const [editingId, setEditingId] = useState(null);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     loadMe();
@@ -53,7 +54,7 @@ export default function Employee() {
 
     try {
       if (editingId) {
-    await api.put("/api/update-employee", {
+        await api.put("/api/update-employee", {
           Id: editingId,
           Name: name,
           Email: email,
@@ -64,13 +65,12 @@ export default function Employee() {
         setMessage("Employee updated");
 
       } else {
-      await api.post("/api/Employees", {
+        await api.post("/api/Employees", {
           Name: name,
           Email: email,
           "Applied Position": position,
           Salary: Number(salary),
         });
-
 
         setMessage("Employee added & Offer Letter sent");
       }
@@ -84,22 +84,24 @@ export default function Employee() {
   };
 
   const editEmployee = (c) => {
+    if (c.locked) {
+      setMessage("Employee is locked");
+      return;
+    }
+
     setEditingId(c.Id || c._id);
     setName(c.Name);
     setEmail(c.Email);
-    setPosition(c["Applied Position"]);
+    setPosition(c["Applied Position"] || "");
     setSalary(c.Salary);
     setMessage("");
   };
 
-  const deleteEmployee = async (id, employeeData) => {
+  const deleteEmployee = async (id) => {
     if (!window.confirm("Delete this Employee?")) return;
 
     try {
-
-
-
-await api.delete(`/api/Employees/${id}`);
+      await api.delete(`/api/Employees/${id}`);
 
       setMessage("Employee deleted & Termination Letter sent");
       loadEmployees();
@@ -108,6 +110,21 @@ await api.delete(`/api/Employees/${id}`);
       setMessage("Delete failed");
     }
   };
+
+  const toggleLock = async (id) => {
+    try {
+      await api.put(`/api/Employees/lock/${id}`);
+      setMessage("Employee lock status updated");
+      loadEmployees();
+    } catch {
+      setMessage("Lock update failed");
+    }
+  };
+
+  const filteredEmployees = Employees.filter((c) =>
+    (c.Name || "").toLowerCase().includes(search.toLowerCase()) ||
+    (c.Email || "").toLowerCase().includes(search.toLowerCase())
+  );
 
   if (!role) return <div className="Employee-wrapper">Loading...</div>;
 
@@ -139,7 +156,14 @@ await api.delete(`/api/Employees/${id}`);
       <div className="Employee-card">
         <h3>Employee List</h3>
 
-        {Employees.length === 0 ? (
+        <input
+          placeholder="Search employee..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{ marginBottom: "10px", padding: "6px", width: "250px" }}
+        />
+
+        {filteredEmployees.length === 0 ? (
           <p className="empty">No Employees found</p>
         ) : (
           <table>
@@ -153,23 +177,39 @@ await api.delete(`/api/Employees/${id}`);
               </tr>
             </thead>
             <tbody>
-              {Employees.map((c) => (
-                <tr key={c.Id || c._id}>
-                  <td>{c.Name}</td>
+              {filteredEmployees.map((c) => (
+                <tr
+                  key={c.Id || c._id}
+                  style={{ opacity: c.locked ? 0.5 : 1 }}
+                >
+                  <td>
+                    {c.locked ? "🔒 " : ""}
+                    {c.Name}
+                  </td>
                   <td>{c.Email}</td>
                   <td>{c["Applied Position"]}</td>
                   <td>{c.Salary}</td>
-                  <td>
-                    <button onClick={() => editEmployee(c)}>Edit</button> <br/>
+
+                  <td style={{ display: "flex", gap: "8px", justifyContent: "center" }}>
+
+                    <button title="Edit" onClick={() => editEmployee(c)}>
+                      ✏️
+                    </button>
+
+                    <button title="Lock / Unlock" onClick={() => toggleLock(c.Id || c._id)}>
+                      🔒
+                    </button>
 
                     {role === "SuperAdmin" && (
                       <button
-                        style={{ marginLeft: "8px", background: "red" }}
-                        onClick={() => deleteEmployee(c.Id || c._id, c)}
+                        title="Delete"
+                        style={{ background: "red", color: "white" }}
+                        onClick={() => deleteEmployee(c.Id || c._id)}
                       >
-                        Delete
+                        🗑
                       </button>
                     )}
+
                   </td>
                 </tr>
               ))}
@@ -180,6 +220,3 @@ await api.delete(`/api/Employees/${id}`);
     </div>
   );
 }
-
-
-
