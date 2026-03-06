@@ -393,23 +393,29 @@ async function sendAppointmentEmail({
   company,
 }) {
 
-await resend.emails.send({
+try {
+
+const result = await resend.emails.send({
   from: "HR <onboarding@resend.dev>",
   to: to,
-  //cc: to,
   subject: "Appointment Letter",
+  html: `
+    <h2>Congratulations ${name}</h2>
+    <p>You have been appointed as <b>${position}</b> at <b>${company}</b>.</p>
+    <p>Your salary will be <b>${salary}</b>.</p>
+    <p>Welcome to the team!</p>
+  `,
+});
 
-    html: `
-      <h2>Congratulations ${name}</h2>
-      <p>You have been appointed as <b>${position}</b> at <b>${company}</b>.</p>
-      <p>Your salary will be <b>${salary}</b>.</p>
-      <p>Welcome to the team!</p>
-    `,
+console.log("EMAIL SENT:", result);
 
-  });
+} catch (err) {
+
+console.error("EMAIL FAILED:", err);
 
 }
 
+}
 async function sendTerminationEmail({
   to,
   name,
@@ -417,18 +423,26 @@ async function sendTerminationEmail({
   company,
 }) {
 
-await resend.emails.send({
+try {
+
+const result = await resend.emails.send({
   from: "HR <onboarding@resend.dev>",
   to: to,
-  //cc: to,
   subject: "Termination Notice",
+  html: `
+    <h2>Dear ${name}</h2>
+    <p>Your role as <b>${position}</b> at <b>${company}</b> has been terminated.</p>
+    <p>We appreciate your time with the organization.</p>
+  `,
+});
 
-    html: `
-      <h2>Dear ${name}</h2>
-      <p>Your role as <b>${position}</b> at <b>${company}</b> has been terminated.</p>
-    `,
+console.log("TERMINATION EMAIL SENT:", result);
 
-  });
+} catch (err) {
+
+console.error("TERMINATION EMAIL FAILED:", err);
+
+}
 
 }
 /* ================= ADD EMPLOYEE ================= */
@@ -947,6 +961,7 @@ connectDB()
     process.exit(1);
 
   });
+
 
 
 
