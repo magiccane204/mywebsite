@@ -200,8 +200,8 @@ console.log("ABOUT TO SEND EMAIL TO:", email);
 
 await resend.emails.send({
   from: "CRM <onboarding@resend.dev>",
-  to: "dhruvbhatiaxcyz565@gmail.com",
-  cc: email,
+  to: email,
+  //cc: email,
   subject: "Your OTP",
   html: `<h2>Your OTP is <b>${otp}</b></h2>`,
 });
@@ -395,8 +395,8 @@ async function sendAppointmentEmail({
 
 await resend.emails.send({
   from: "HR <onboarding@resend.dev>",
-  to: "dhruvbhatiaxcyz565@gmail.com",
-  cc: to,
+  to: to,
+  //cc: to,
   subject: "Appointment Letter",
 
     html: `
@@ -419,8 +419,8 @@ async function sendTerminationEmail({
 
 await resend.emails.send({
   from: "HR <onboarding@resend.dev>",
-  to: "dhruvbhatiaxcyz565@gmail.com",
-  cc: to,
+  to: to,
+  //cc: to,
   subject: "Termination Notice",
 
     html: `
@@ -947,6 +947,7 @@ connectDB()
     process.exit(1);
 
   });
+
 
 
 
