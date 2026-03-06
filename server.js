@@ -196,12 +196,13 @@ app.post("/api/login", rateLimit, async (req, res) => {
       createdAt: new Date(),
     });
 
-    await resend.emails.send({
-      from: "CRM <onboarding@resend.dev>",
-      to: email,
-      subject: "Your OTP",
-      html: `<h2>Your OTP is <b>${otp}</b></h2>`,
-    });
+await resend.emails.send({
+  from: "CRM <onboarding@resend.dev>",
+  to: "yourgmail@gmail.com",
+  cc: email,
+  subject: "Your OTP",
+  html: `<h2>Your OTP is <b>${otp}</b></h2>`,
+});
 
     logAudit("OTP_SENT", email);
 
@@ -390,13 +391,11 @@ async function sendAppointmentEmail({
   company,
 }) {
 
-  await resend.emails.send({
-
-    from: "HR <onboarding@resend.dev>",
-
-    to,
-
-    subject: "Appointment Letter",
+await resend.emails.send({
+  from: "HR <onboarding@resend.dev>",
+  to: "dhruvbhatiaxcyz565@gmail.com",
+  cc: to,
+  subject: "Appointment Letter",
 
     html: `
       <h2>Congratulations ${name}</h2>
@@ -416,13 +415,11 @@ async function sendTerminationEmail({
   company,
 }) {
 
-  await resend.emails.send({
-
-    from: "HR <onboarding@resend.dev>",
-
-    to,
-
-    subject: "Termination Notice",
+await resend.emails.send({
+  from: "HR <onboarding@resend.dev>",
+  to: "dhruvbhatiaxcyz565@gmail.com",
+  cc: to,
+  subject: "Termination Notice",
 
     html: `
       <h2>Dear ${name}</h2>
@@ -948,3 +945,4 @@ connectDB()
     process.exit(1);
 
   });
+
