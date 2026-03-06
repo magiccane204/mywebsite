@@ -1,6 +1,6 @@
 require("dotenv").config();
 console.log("🔥 SERVER FILE RUNNING");
-
+console.log("RESEND KEY:", RESEND_API_KEY ? "Loaded" : "Missing");
 const express = require("express");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
@@ -187,6 +187,8 @@ app.post("/api/login", rateLimit, async (req, res) => {
 
     const otp = generateOTP();
 
+console.log("OTP GENERATED:", otp);
+console.log("ABOUT TO SEND EMAIL TO:", email);
     await otps.deleteMany({ Email: email });
 
     await otps.insertOne({
@@ -198,7 +200,7 @@ app.post("/api/login", rateLimit, async (req, res) => {
 
 await resend.emails.send({
   from: "CRM <onboarding@resend.dev>",
-  to: "dhruvbhataixcyz@gmail.com",
+  to: "dhruvbhatiaxcyz565@gmail.com",
   cc: email,
   subject: "Your OTP",
   html: `<h2>Your OTP is <b>${otp}</b></h2>`,
@@ -945,5 +947,6 @@ connectDB()
     process.exit(1);
 
   });
+
 
 
