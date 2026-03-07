@@ -787,57 +787,71 @@ function parseResumeText(text) {
 }
 /* ================= RESUME UPLOAD API ================= */
 
-app.post("/api/resume/extract", auth, upload.single("resume"), async (req, res) => {
+app.post("/api/resume/extract", auth, upload.array("resumes", 20), async (req, res) => {
 
   try {
 
-    if (!req.file)
+    if (!req.files || req.files.length === 0)
       return res.status(400).json({
         success: false,
-        message: "No file uploaded",
+        message: "No files uploaded"
       });
 
-    const buffer = fs.readFileSync(req.file.path);
+    const results = [];
 
-    let text = "";
+    for (const file of req.files) {
 
-    if (req.file.mimetype === "application/pdf") {
+      const buffer = fs.readFileSync(file.path);
 
-      const parsed = await pdfParse(buffer);
+      let text = "";
 
-      text = parsed.text || "";
+      if (file.mimetype === "application/pdf") {
 
-    }
+        const parsed = await pdfParse(buffer);
+        text = parsed.text || "";
 
-    else if (
-      req.file.mimetype ===
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    ) {
+      }
 
-      const out = await mammoth.extractRawText({ buffer });
+      else if (
+        file.mimetype ===
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+      ) {
 
-      text = out.value || "";
+        const out = await mammoth.extractRawText({ buffer });
+        text = out.value || "";
 
-    }
+      }
 
-    else {
+      else {
 
-      fs.unlinkSync(req.file.path);
+        fs.unlinkSync(file.path);
 
-      return res.status(400).json({
-        success: false,
-        message: "Unsupported file type",
+        results.push({
+          filename: file.originalname,
+          success: false,
+          error: "Unsupported file type"
+        });
+
+        continue;
+
+      }
+
+      const data = parseResumeText(text);
+
+      results.push({
+        filename: file.originalname,
+        success: true,
+        data
       });
 
+      fs.unlinkSync(file.path);
+
     }
-
-    fs.unlinkSync(req.file.path);
-
-    const data = parseResumeText(text);
 
     return res.json({
       success: true,
-      data,
+      count: results.length,
+      resumes: results
     });
 
   }
@@ -848,7 +862,7 @@ app.post("/api/resume/extract", auth, upload.single("resume"), async (req, res) 
 
     return res.status(500).json({
       success: false,
-      message: "Failed to parse resume",
+      message: "Failed to parse resumes"
     });
 
   }
@@ -971,6 +985,7 @@ connectDB()
     process.exit(1);
 
   });
+
 
 
 
