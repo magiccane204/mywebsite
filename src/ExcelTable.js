@@ -4,30 +4,22 @@ import axios from "axios";
 import "./ExcelTable.css";
 
 export default function ExcelTable({ tableData, setTableData, onColumnSelect }) {
-  const [selectedColumn, setSelectedColumn] = useState(null);
 
-  const HEADER = [
-    "Name",
-    "Email",
-    "Phone",
-    "LinkedIn",
-    "Experience",
-    "Education",
-    "Skills"
-  ];
+  const [selectedColumn, setSelectedColumn] = useState(null);
 
   /* ================= ENSURE TABLE EXISTS ================= */
   useEffect(() => {
     if (!tableData || tableData.length === 0) {
-      setTableData([HEADER]);
+      setTableData([Array(10).fill("")]);
     }
   }, [tableData, setTableData]);
 
   /* ================= NORMALIZE ================= */
   const normalize = (data) => {
-    if (!data.length) return [HEADER];
+    if (!data.length) return [Array(10).fill("")];
 
     const maxCols = Math.max(...data.map(r => r.length));
+
     return data.map(r => {
       const row = [...r];
       while (row.length < maxCols) row.push("");
@@ -44,27 +36,29 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
 
   /* ================= ROW OPS ================= */
   const addRow = () => {
-    const cols = tableData[0]?.length || HEADER.length;
+    const cols = tableData[0]?.length || 10;
     setTableData(normalize([...tableData, Array(cols).fill("")]));
   };
 
   const deleteRow = (rowIndex) => {
-    if (rowIndex === 0) return; // prevent deleting header
     const data = tableData.filter((_, i) => i !== rowIndex);
-    setTableData(data.length ? normalize(data) : [HEADER]);
+    setTableData(data.length ? normalize(data) : [Array(10).fill("")]);
   };
 
   /* ================= COLUMN OPS ================= */
   const insertColumnAt = (colIndex) => {
+
     const data = tableData.map(row => {
       const r = [...row];
       r.splice(colIndex + 1, 0, "");
       return r;
     });
+
     setTableData(normalize(data));
   };
 
   const deleteColumn = (colIndex) => {
+
     if (!tableData[0] || tableData[0].length <= 1) return;
 
     const data = tableData.map(row => {
@@ -78,29 +72,42 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
 
   /* ================= EXCEL OPS ================= */
   const saveExcel = () => {
+
     const ws = XLSX.utils.aoa_to_sheet(tableData);
     const wb = XLSX.utils.book_new();
+
     XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+
     XLSX.writeFile(wb, "Data.xlsx");
   };
 
   const handleUploadExcel = (e) => {
+
     const file = e.target.files[0];
     if (!file) return;
 
     const reader = new FileReader();
+
     reader.onload = (evt) => {
+
       const wb = XLSX.read(evt.target.result, { type: "array" });
+
       const sheet = wb.Sheets[wb.SheetNames[0]];
+
       const data = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
       setTableData(normalize(data));
+
     };
+
     reader.readAsArrayBuffer(file);
   };
 
   /* ================= RESUME UPLOAD ================= */
   const handleUploadResume = async (e) => {
+
     const files = e.target.files;
+
     if (!files || files.length === 0) return;
 
     const formData = new FormData();
@@ -110,28 +117,40 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
     }
 
     try {
-      const res = await axios.post("/api/resume/extract", formData, {
-        headers: { "Content-Type": "multipart/form-data" }
-      });
+
+      const token = localStorage.getItem("token");
+
+      const res = await axios.post(
+        "/api/resume/extract",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
 
       const parsedResumes = res.data?.resumes || [];
 
       const rowsToAdd = parsedResumes
         .filter(r => r.success)
         .map(r => {
+
           const d = r.data || {};
 
           const values = [
-            d.name || "",
-            d.email || "",
-            d.phone || "",
-            d.linkedIn || "",
-            d.experience || "",
-            d.education || "",
-            (d.skills || []).join(", ")
+            d.name || "No name",
+            d.email || "No email",
+            d.phone || "No phone",
+            d.linkedIn || "No LinkedIn",
+            d.experience || "No experience",
+            d.education || "No education",
+            (d.skills || ["No skills"]).join(", ")
           ];
 
-          const cols = Math.max(tableData[0]?.length || HEADER.length, values.length);
+          const cols = Math.max(tableData[0]?.length || 10, values.length);
+
           const row = Array(cols).fill("");
 
           for (let i = 0; i < values.length; i++) {
@@ -139,31 +158,33 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
           }
 
           return row;
+
         });
 
-      const updated = [...tableData];
+      setTableData(normalize([...tableData, ...rowsToAdd]));
 
-      if (updated.length === 0) {
-        updated.push(HEADER);
-      }
-
-      updated.push(...rowsToAdd);
-
-      setTableData(normalize(updated));
-
-    } catch (err) {
-      console.error("Resume upload failed:", err);
-    } finally {
-      e.target.value = "";
     }
+
+    catch (err) {
+
+      console.error("Resume upload failed:", err);
+
+    }
+
+    finally {
+
+      e.target.value = "";
+
+    }
+
   };
 
   /* ================= COLUMN SELECT ================= */
   const handleColumnClick = (colIndex) => {
+
     setSelectedColumn(colIndex);
 
     const values = tableData
-      .slice(1)
       .map(row => parseFloat(row[colIndex]))
       .filter(v => !isNaN(v));
 
@@ -172,11 +193,13 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
 
   /* ================= UI ================= */
   return (
+
     <div className="excel-container">
 
       <div className="table-toolbar">
 
         <button onClick={addRow} className="col-buttons">➕ Add Row</button>
+
         <button onClick={saveExcel} className="col-buttons">💾 Save Excel</button>
 
         <label className="upload-label">
@@ -207,8 +230,11 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
         <table>
 
           <thead>
+
             <tr>
-              {tableData[0]?.map((h, c) => (
+
+              {tableData[0]?.map((_, c) => (
+
                 <th
                   key={c}
                   onClick={() => handleColumnClick(c)}
@@ -220,6 +246,7 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
                         : "transparent"
                   }}
                 >
+
                   <div style={{
                     display: "flex",
                     gap: "4px",
@@ -227,7 +254,7 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
                     alignItems: "center"
                   }}>
 
-                    <span>{h || c + 1}</span>
+                    <span>{c + 1}</span>
 
                     <button
                       type="button"
@@ -252,18 +279,27 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
                     </button>
 
                   </div>
+
                 </th>
+
               ))}
+
               <th>Actions</th>
+
             </tr>
+
           </thead>
 
           <tbody>
 
             {tableData.map((row, r) => (
+
               <tr key={r}>
+
                 {row.map((cell, c) => (
+
                   <td key={c}>
+
                     <input
                       type="text"
                       value={cell}
@@ -271,21 +307,24 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
                         handleChange(r, c, e.target.value)
                       }
                     />
+
                   </td>
+
                 ))}
 
                 <td>
-                  {r !== 0 && (
-                    <button
-                      onClick={() => deleteRow(r)}
-                      className="square-btn"
-                    >
-                      🗑
-                    </button>
-                  )}
+
+                  <button
+                    onClick={() => deleteRow(r)}
+                    className="square-btn"
+                  >
+                    🗑
+                  </button>
+
                 </td>
 
               </tr>
+
             ))}
 
           </tbody>
@@ -295,5 +334,6 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
       </div>
 
     </div>
+
   );
 }
