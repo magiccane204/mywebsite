@@ -908,6 +908,76 @@ app.get("/api/dashboard", auth, async (req, res) => {
   }
 
 });
+/* ================= REPORTS SUMMARY ================= */
+
+app.get("/api/reports", auth, async (req, res) => {
+
+  try {
+
+    const employees = await EmployeesModel.find({
+      Company: req.user.company
+    }).lean();
+
+    if (!employees || employees.length === 0)
+      return res.json({
+        success: true,
+        total: 0,
+        avgSalary: 0,
+        maxSalary: 0,
+        minSalary: 0,
+        roles: []
+      });
+
+    const salaries = employees.map(e => e.Salary || 0);
+
+    const roles = {};
+
+    employees.forEach(emp => {
+
+      const role = emp["Applied Position"] || "Unknown";
+
+      roles[role] = (roles[role] || 0) + 1;
+
+    });
+
+    const total = employees.length;
+
+    const avgSalary =
+      Math.round(
+        salaries.reduce((a, b) => a + b, 0) / total
+      );
+
+    const maxSalary = Math.max(...salaries);
+
+    const minSalary = Math.min(...salaries);
+
+    const roleData = Object.keys(roles).map(r => ({
+      name: r,
+      value: roles[r]
+    }));
+
+    return res.json({
+      success: true,
+      total,
+      avgSalary,
+      maxSalary,
+      minSalary,
+      roles: roleData
+    });
+
+  }
+
+  catch (err) {
+
+    console.error("REPORTS_ERROR", err);
+
+    return res.status(500).json({
+      message: "Failed to generate reports"
+    });
+
+  }
+
+});
 /* ================= SESSION VALIDATION ================= */
 
 app.get("/api/validate-session", auth, async (req, res) => {
@@ -993,6 +1063,7 @@ connectDB()
     process.exit(1);
 
   });
+
 
 
 
