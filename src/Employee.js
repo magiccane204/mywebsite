@@ -47,13 +47,27 @@ export default function Employee() {
   };
 
   const submitEmployee = async () => {
+
+    if (editingId) {
+      const employee = Employees.find(
+        (c) => (c.Id || c._id) === editingId
+      );
+
+      if (employee?.locked) {
+        setMessage("Locked employees cannot be modified");
+        return;
+      }
+    }
+
     if (!name || !email || !position || salary === "") {
       setMessage("All fields required");
       return;
     }
 
     try {
+
       if (editingId) {
+
         await api.put("/api/update-employee", {
           Id: editingId,
           Name: name,
@@ -65,6 +79,7 @@ export default function Employee() {
         setMessage("Employee updated");
 
       } else {
+
         await api.post("/api/Employees", {
           Name: name,
           Email: email,
@@ -78,14 +93,15 @@ export default function Employee() {
       resetForm();
       loadEmployees();
 
-    } catch (err) {
+    } catch {
       setMessage("Operation failed");
     }
   };
 
   const editEmployee = (c) => {
+
     if (c.locked) {
-      setMessage("Employee is locked");
+      setMessage("This employee is locked and cannot be edited");
       return;
     }
 
@@ -98,9 +114,20 @@ export default function Employee() {
   };
 
   const deleteEmployee = async (id) => {
+
+    const employee = Employees.find(
+      (c) => (c.Id || c._id) === id
+    );
+
+    if (employee?.locked) {
+      setMessage("Locked employees cannot be deleted");
+      return;
+    }
+
     if (!window.confirm("Delete this Employee?")) return;
 
     try {
+
       await api.delete(`/api/Employees/${id}`);
 
       setMessage("Employee deleted & Termination Letter sent");
@@ -130,30 +157,59 @@ export default function Employee() {
 
   return (
     <div className="Employee-wrapper">
+
       <h2 className="Employee-title">
         Employee Management — <span>{role}</span>
       </h2>
 
       <div className="Employee-card">
+
         <h3>{editingId ? "Update Employee" : "Add Employee"}</h3>
 
         {role === "Employee" && <p className="empty">View only mode</p>}
 
         <div className="Employee-form">
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" />
-          <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" />
-          <input value={position} onChange={(e) => setPosition(e.target.value)} placeholder="Applied Position" />
-          <input type="number" value={salary} onChange={(e) => setSalary(e.target.value)} placeholder="Salary" />
 
-          <button onClick={submitEmployee} disabled={role === "Employee"}>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Name"
+          />
+
+          <input
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Email"
+          />
+
+          <input
+            value={position}
+            onChange={(e) => setPosition(e.target.value)}
+            placeholder="Applied Position"
+          />
+
+          <input
+            type="number"
+            value={salary}
+            onChange={(e) => setSalary(e.target.value)}
+            placeholder="Salary"
+          />
+
+          <button
+            onClick={submitEmployee}
+            disabled={role === "Employee"}
+          >
             {editingId ? "Update Employee" : "Add Employee"}
           </button>
+
         </div>
 
         {message && <p className="empty">{message}</p>}
+
       </div>
 
       <div className="Employee-card">
+
         <h3>Employee List</h3>
 
         <input
@@ -166,7 +222,9 @@ export default function Employee() {
         {filteredEmployees.length === 0 ? (
           <p className="empty">No Employees found</p>
         ) : (
+
           <table>
+
             <thead>
               <tr>
                 <th>Name</th>
@@ -176,33 +234,49 @@ export default function Employee() {
                 <th>Action</th>
               </tr>
             </thead>
+
             <tbody>
+
               {filteredEmployees.map((c) => (
+
                 <tr
                   key={c.Id || c._id}
-                  style={{ opacity: c.locked ? 0.5 : 1 }}
+                  style={{
+                    opacity: c.locked ? 0.5 : 1,
+                    background: c.locked ? "#f5f5f5" : ""
+                  }}
                 >
+
                   <td>
                     {c.locked ? "🔒 " : ""}
                     {c.Name}
                   </td>
+
                   <td>{c.Email}</td>
                   <td>{c["Applied Position"]}</td>
                   <td>{c.Salary}</td>
 
                   <td style={{ display: "flex", gap: "8px", justifyContent: "center" }}>
 
-                    <button title="Edit" onClick={() => editEmployee(c)}>
+                    <button
+                      title="Edit"
+                      disabled={c.locked}
+                      onClick={() => editEmployee(c)}
+                    >
                       ✏️
                     </button>
 
-                    <button title="Lock / Unlock" onClick={() => toggleLock(c.Id || c._id)}>
+                    <button
+                      title="Lock / Unlock"
+                      onClick={() => toggleLock(c.Id || c._id)}
+                    >
                       🔒
                     </button>
 
                     {role === "SuperAdmin" && (
                       <button
                         title="Delete"
+                        disabled={c.locked}
                         style={{ background: "red", color: "white" }}
                         onClick={() => deleteEmployee(c.Id || c._id)}
                       >
@@ -211,12 +285,19 @@ export default function Employee() {
                     )}
 
                   </td>
+
                 </tr>
+
               ))}
+
             </tbody>
+
           </table>
+
         )}
+
       </div>
+
     </div>
   );
 }
