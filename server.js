@@ -75,9 +75,13 @@ function auth(req, res, next) {
 
   const raw = req.headers.authorization;
 
+  console.log("AUTH HEADER:", raw);
+
   if (!raw) return res.sendStatus(401);
 
   const token = raw.split(" ")[1];
+
+  console.log("TOKEN:", token);
 
   if (!token) return res.sendStatus(401);
 
@@ -85,9 +89,13 @@ function auth(req, res, next) {
 
     req.user = jwt.verify(token, JWT_SECRET);
 
+    console.log("USER VERIFIED:", req.user);
+
     next();
 
-  } catch {
+  } catch (err) {
+
+    console.log("JWT ERROR:", err.message);
 
     return res.sendStatus(403);
 
@@ -985,6 +993,7 @@ connectDB()
     process.exit(1);
 
   });
+
 
 
 
