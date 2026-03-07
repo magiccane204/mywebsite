@@ -597,6 +597,11 @@ app.delete("/api/Employees/:id", auth, async (req, res) => {
       message: "Employee not found",
     });
 
+  if (employee.locked)
+    return res.status(403).json({
+      message: "Locked employees cannot be deleted",
+    });
+
   await EmployeesModel.deleteOne({ _id: id });
 
   sendTerminationEmail({
@@ -608,9 +613,14 @@ app.delete("/api/Employees/:id", auth, async (req, res) => {
     console.error("TERMINATION_EMAIL_FAILED", err.message)
   );
 
+  logAudit("DELETE_EMPLOYEE", req.user.email, {
+    EmployeeId: id,
+  });
+
   return res.json({ success: true });
 
 });
+
 /* ================= LOCK / UNLOCK EMPLOYEE ================= */
 
 app.put("/api/Employees/lock/:id", auth, async (req, res) => {
@@ -961,6 +971,7 @@ connectDB()
     process.exit(1);
 
   });
+
 
 
 
