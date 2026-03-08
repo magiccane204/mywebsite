@@ -397,69 +397,66 @@ background: linear-gradient(90deg,#0284c7,#0369a1);
 .login-page .content {
 display: none;
 }
-/* ================= DARK PANELS (EMPLOYEE PAGE) ================= */
 
-body.dark .add-customer-form,
-body.dark .table-section,
-body.dark .customers-section,
-body.dark .settings-card,
-body.dark .excel-table,
-body.dark .employee-container,
-body.dark .employee-section {
+/* ================================================= */
+/* ===== FINAL DARK PANEL OVERRIDES (EMPLOYEE UI) === */
+/* ================================================= */
 
-background: #020617;        /* deep black */
-color: #e5e7eb;             /* white text */
+body.dark .content > div {
+background: #020617 !important;
+color: #e5e7eb !important;
 
 border-radius: 12px;
 border: 1px solid #4c1d95;
 
 box-shadow:
-0 8px 30px rgba(0,0,0,0.7),
+0 10px 30px rgba(0,0,0,0.7),
 0 0 25px rgba(168,85,247,0.35);
 
-padding: 18px;
+padding: 20px;
 }
 
-/* headings inside panels */
+/* table container */
 
-body.dark h2,
-body.dark h3,
-body.dark h4 {
+body.dark table {
+background: #020617 !important;
+border-color: #312e81;
+}
+
+/* table header */
+
+body.dark table th {
+background: #1e1b4b !important;
 color: #e5e7eb;
+border-color: #4c1d95;
 }
 
-/* table headers */
+/* table cells */
 
-body.dark .excel-table th {
-background: #1e1b4b;
+body.dark table td {
+background: #020617 !important;
 color: #e5e7eb;
+border-color: #312e81;
 }
 
-/* table rows */
+/* input fields */
 
-body.dark .excel-table td {
-background: #020617;
-color: #e5e7eb;
-}
-
-/* search input */
-
-body.dark input {
+body.dark input,
+body.dark select {
 background: #020617;
 border: 1px solid #4c1d95;
-color: white;
+color: #e5e7eb;
 }
 
-/* action buttons */
+/* hover glow for panels */
 
-body.dark .action-btn {
-background: linear-gradient(90deg,#7c3aed,#6d28d9);
-color: white;
+body.dark .content > div:hover {
+box-shadow:
+0 15px 40px rgba(0,0,0,0.8),
+0 0 35px rgba(168,85,247,0.55);
 }
 
-body.dark .action-btn:hover {
-background: linear-gradient(90deg,#8b5cf6,#7c3aed);
-}
+
 
 
 
