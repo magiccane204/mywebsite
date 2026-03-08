@@ -397,6 +397,70 @@ background: linear-gradient(90deg,#0284c7,#0369a1);
 .login-page .content {
 display: none;
 }
+/* ================= DARK PANELS (EMPLOYEE PAGE) ================= */
+
+body.dark .add-customer-form,
+body.dark .table-section,
+body.dark .customers-section,
+body.dark .settings-card,
+body.dark .excel-table,
+body.dark .employee-container,
+body.dark .employee-section {
+
+background: #020617;        /* deep black */
+color: #e5e7eb;             /* white text */
+
+border-radius: 12px;
+border: 1px solid #4c1d95;
+
+box-shadow:
+0 8px 30px rgba(0,0,0,0.7),
+0 0 25px rgba(168,85,247,0.35);
+
+padding: 18px;
+}
+
+/* headings inside panels */
+
+body.dark h2,
+body.dark h3,
+body.dark h4 {
+color: #e5e7eb;
+}
+
+/* table headers */
+
+body.dark .excel-table th {
+background: #1e1b4b;
+color: #e5e7eb;
+}
+
+/* table rows */
+
+body.dark .excel-table td {
+background: #020617;
+color: #e5e7eb;
+}
+
+/* search input */
+
+body.dark input {
+background: #020617;
+border: 1px solid #4c1d95;
+color: white;
+}
+
+/* action buttons */
+
+body.dark .action-btn {
+background: linear-gradient(90deg,#7c3aed,#6d28d9);
+color: white;
+}
+
+body.dark .action-btn:hover {
+background: linear-gradient(90deg,#8b5cf6,#7c3aed);
+}
+
 
 
 
