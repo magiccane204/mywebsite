@@ -326,3 +326,61 @@
   margin-top: 10px;
   font-weight: bold;
 }
+/* DARK MODE */
+
+body.dark {
+  background-color: #121212;
+  color: #e4e4e4;
+}
+
+/* header */
+body.dark header {
+  background: #1f1f1f;
+  border-bottom: 1px solid #333;
+}
+
+/* sidebar */
+body.dark .sidebar {
+  background: #1a1a1a;
+}
+
+/* cards / panels */
+body.dark .card,
+body.dark .settings,
+body.dark .dashboard {
+  background: #1e1e1e;
+  color: #e4e4e4;
+  border: 1px solid #333;
+}
+
+/* inputs */
+body.dark input,
+body.dark select,
+body.dark textarea {
+  background: #2a2a2a;
+  color: #e4e4e4;
+  border: 1px solid #444;
+}
+
+/* tables */
+body.dark table {
+  background: #1e1e1e;
+}
+
+body.dark th {
+  background: #2a2a2a;
+}
+
+body.dark td {
+  border-color: #333;
+}
+
+/* buttons */
+body.dark button {
+  background: #333;
+  color: white;
+}
+
+body.dark button:hover {
+  background: #444;
+}
