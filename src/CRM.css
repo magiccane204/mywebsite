@@ -437,8 +437,8 @@ z-index: 9999;
 
 .chart-modal-content {
 position: relative;
-
-width: 75vw;
+color: white;
+width: 80vw;
 height: 70vh;
 max-width: 1100px;
 
@@ -479,8 +479,8 @@ position: absolute;
 top: 10px;
 right: 12px;
 
-width: 35px;
-height: 40px;
+width: 45px;
+height: 50px;
 
 border-radius: 6px;
 border: none;
@@ -519,6 +519,7 @@ height: 100% !important;
 .chart-modal-content label {
 color: inherit;
 }
+
 
 
 
