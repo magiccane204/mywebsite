@@ -455,6 +455,27 @@ box-shadow:
 0 15px 40px rgba(0,0,0,0.8),
 0 0 35px rgba(168,85,247,0.55);
 }
+/* ===== FIX WHITE PANEL BACKGROUND ===== */
+
+body.dark .content > div {
+background: #111827 !important;   /* soft dark grey instead of white */
+color: #e5e7eb !important;
+
+border-radius: 12px;
+border: 1px solid #4c1d95;
+
+box-shadow:
+0 10px 30px rgba(0,0,0,0.7),
+0 0 20px rgba(168,85,247,0.25);
+}
+
+/* section titles */
+
+body.dark .content h2,
+body.dark .content h3 {
+color: #d1d5db;
+}
+
 
 
 
