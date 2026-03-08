@@ -47,6 +47,7 @@ function App() {
   if (mode === "crm") return <CRM setMode={setMode} />;
 
   return (
+    <div className="auth-page">
     <div className="floating-card">
       <img
         src="/user.png"
