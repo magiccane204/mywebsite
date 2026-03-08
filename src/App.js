@@ -85,6 +85,7 @@ function App() {
         </span>
       </p>
     </div>
+</div>
   );
 }
 
