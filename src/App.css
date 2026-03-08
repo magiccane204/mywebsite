@@ -1,3 +1,24 @@
+
+/* ===== LOGIN PAGE FULL BACKGROUND FIX ===== */
+
+body {
+background: #f3f4f6;
+margin: 0;
+}
+
+/* make login page fill the whole screen */
+
+.auth-page {
+min-height: 100vh;
+width: 100vw;
+
+display: flex;
+justify-content: center;
+align-items: center;
+
+background: #f3f4f6;
+}
+
 /* LOGIN / AUTH PAGE WRAPPER */
 
 .auth-page {
