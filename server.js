@@ -978,6 +978,49 @@ app.get("/api/reports", auth, async (req, res) => {
   }
 
 });
+/* ================= UPDATE DARK MODE ================= */
+
+app.put("/api/me/darkmode", auth, async (req, res) => {
+
+  try {
+
+    const { DarkMode } = req.body;
+
+    if (typeof DarkMode !== "boolean")
+      return res.status(400).json({
+        message: "Invalid value"
+      });
+
+    const result = await users.updateOne(
+      { Email: req.user.email },
+      { $set: { DarkMode } }
+    );
+
+    if (!result.matchedCount)
+      return res.status(404).json({
+        message: "User not found"
+      });
+
+    logAudit("DARKMODE_UPDATED", req.user.email, { DarkMode });
+
+    return res.json({
+      success: true,
+      DarkMode
+    });
+
+  }
+
+  catch (err) {
+
+    console.error("DARKMODE_UPDATE_ERROR", err);
+
+    return res.status(500).json({
+      message: "Failed to update dark mode"
+    });
+
+  }
+
+});
 /* ================= SESSION VALIDATION ================= */
 
 app.get("/api/validate-session", auth, async (req, res) => {
@@ -1063,6 +1106,7 @@ connectDB()
     process.exit(1);
 
   });
+
 
 
 
