@@ -73,9 +73,9 @@ function Otp({ setMode }) {
 
   const format = (s) =>
     `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
-
-  return (
-    <div className="OB">
+return (
+  <div className="otp-container">
+    <div className="otp-box">
 
       <h2>OTP Verification</h2>
 
@@ -84,6 +84,7 @@ function Otp({ setMode }) {
       </p>
 
       <input
+        className="input"
         type="text"
         placeholder="Enter 6 digit OTP"
         value={otp}
@@ -91,7 +92,9 @@ function Otp({ setMode }) {
         onChange={(e) => setOtp(e.target.value)}
       />
 
-      <p>Expires in {format(expiresIn)}</p>
+      <p className="otp-subtext">
+        Expires in {format(expiresIn)}
+      </p>
 
       <button
         onClick={verifyOtp}
@@ -101,7 +104,9 @@ function Otp({ setMode }) {
       </button>
 
     </div>
-  );
+  </div>
+);
 }
 
 export default Otp;
+
