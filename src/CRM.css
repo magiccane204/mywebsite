@@ -475,17 +475,14 @@ body.dark .content h2,
 body.dark .content h3 {
 color: #d1d5db;
 }
-/* ================= CENTERED GRAPH POPUP FIX ================= */
+/* ================= GRAPH POPUP (CARD STYLE) ================= */
 
 .chart-modal {
 position: fixed;
-top: 0;
-left: 0;
-width: 100vw;
-height: 100vh;
+inset: 0;
 
-background: rgba(0,0,0,0.85);
-backdrop-filter: blur(12px);
+background: rgba(0,0,0,0.75);
+backdrop-filter: blur(10px);
 
 display: flex;
 justify-content: center;
@@ -494,51 +491,93 @@ align-items: center;
 z-index: 9999;
 }
 
-/* popup container */
+/* CARD CONTAINER */
 
 .chart-modal-content {
-background: #020617;
+position: relative;
 
-border: 1px solid #4c1d95;
+width: 75vw;
+height: 70vh;
+max-width: 1100px;
+
+padding: 30px;
+
 border-radius: 14px;
 
-box-shadow:
-0 15px 50px rgba(0,0,0,0.8),
-0 0 40px rgba(168,85,247,0.5);
-
-width: 80vw;
-height: 70vh;
-
-max-width: 1200px;
+background: white;
+color: black;
 
 display: flex;
-flex-direction: column;
 justify-content: center;
 align-items: center;
+
+box-shadow:
+0 20px 60px rgba(0,0,0,0.5);
+
+overflow: hidden;
 }
 
-/* chart size */
+/* DARK MODE CARD */
+
+body.dark .chart-modal-content {
+background: #020617;
+color: #ffffff;
+
+border: 1px solid #4c1d95;
+
+box-shadow:
+0 20px 60px rgba(0,0,0,0.8),
+0 0 35px rgba(168,85,247,0.45);
+}
+
+/* CLOSE BUTTON */
+
+.chart-modal-content .close-btn {
+position: absolute;
+top: 10px;
+right: 12px;
+
+width: 32px;
+height: 32px;
+
+border-radius: 6px;
+border: none;
+
+font-size: 18px;
+font-weight: bold;
+
+cursor: pointer;
+
+display: flex;
+justify-content: center;
+align-items: center;
+
+background: #ef4444;
+color: white;
+}
+
+.chart-modal-content .close-btn:hover {
+background: #dc2626;
+}
+
+/* GRAPH SIZE */
 
 .chart-modal-content canvas {
 width: 100% !important;
 height: 100% !important;
 }
 
-/* close button */
+/* TEXT VISIBILITY */
 
-.chart-modal-content .close-btn {
-position: absolute;
-top: 15px;
-right: 20px;
-
-background: crimson;
-border: none;
-border-radius: 8px;
-
-padding: 6px 12px;
-color: white;
-cursor: pointer;
+.chart-modal-content h1,
+.chart-modal-content h2,
+.chart-modal-content h3,
+.chart-modal-content p,
+.chart-modal-content span,
+.chart-modal-content label {
+color: inherit;
 }
+
 
 
 
