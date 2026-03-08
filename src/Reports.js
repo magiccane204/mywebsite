@@ -116,7 +116,7 @@ function Reports() {
     <div className="content">
 
       <div className="horizontalbar">
-        📊 Customer Reports
+        📊 Employee Salary Reports
       </div>
 
       <div style={{ textAlign: "center", marginBottom: "20px" }}>
@@ -186,3 +186,4 @@ function Reports() {
 }
 
 export default Reports;
+
