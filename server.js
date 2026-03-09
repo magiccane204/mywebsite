@@ -14,6 +14,7 @@ const fs = require("fs");
 const pdfParse = require("pdf-parse");
 const mammoth = require("mammoth");
 const Joi = require("joi");
+const bcrypt = require("bcrypt");
 
 const app = express();
 const upload = multer({ dest: "uploads/" });
@@ -1057,8 +1058,7 @@ app.get("/api/validate-session", auth, async (req, res) => {
 // USER MODEL
 // ===============================
 
-const mongoose = require("mongoose");
-const bcrypt = require("bcrypt");
+
 
 const UserSchema = new mongoose.Schema({
 
@@ -1250,6 +1250,7 @@ connectDB()
     process.exit(1);
 
   });
+
 
 
 
