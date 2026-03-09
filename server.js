@@ -133,37 +133,59 @@ app.post("/api/signup", async (req, res) => {
 
   try {
 
-    const { Email, Password, Company, Role = "Employee" } = req.body;
+    const { email, password, company } = req.body;
 
-    if (!Email || !Password || !Company) {
-      return res.status(400).json({ message: "Missing required fields" });
-    }
+    if (!email || !password || !company)
+      return res.status(400).json({ message: "Missing fields" });
 
-    const exists = await users.findOne({ Email });
-
-    if (exists)
-      return res.status(409).json({ message: "User already exists" });
-
-    await users.insertOne({
-      Email,
-      Password: hashPassword(Password),
-      Company,
-      Role,
-      DarkMode: false,
-      createdAt: new Date(),
+    const employee = await EmployeesModel.findOne({
+      Email: email,
+      Company: company
     });
 
-    logAudit("SIGNUP", Email, { Company, Role });
+    if (!employee)
+      return res.status(403).json({
+        message: "Employee record not found or company mismatch"
+      });
 
-    return res.json({ success: true });
+    const existingUser = await users.findOne({ Email: email });
+
+    if (existingUser)
+      return res.status(409).json({
+        message: "Account already activated"
+      });
+
+    const hashed = await bcrypt.hash(password, 10);
+
+    await users.insertOne({
+      Name: employee.Name,
+      Email: email.toLowerCase(),
+      Password: hashed,
+      Company: employee.Company,
+      Role: "Employee",
+      DarkMode: false,
+      createdAt: new Date()
+    });
+
+    logAudit("ACCOUNT_ACTIVATED", email, {
+      company: employee.Company
+    });
+
+    res.json({
+      success: true,
+      message: "Account activated successfully"
+    });
 
   } catch (err) {
 
     console.error("SIGNUP_ERROR", err);
 
-    return res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({
+      message: "Internal server error"
+    });
 
   }
+
 });
 /* ================= LOGIN – SEND OTP ================= */
 
@@ -1250,18 +1272,3 @@ connectDB()
     process.exit(1);
 
   });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
