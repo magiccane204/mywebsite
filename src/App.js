@@ -6,10 +6,10 @@ import axios from "axios";
 import "./App.css";
 
 const api = axios.create({
-baseURL: "https://mywebsite-im3c.onrender.com",
-headers: {
-"Content-Type": "application/json",
-},
+  baseURL: "https://mywebsite-im3c.onrender.com",
+  headers: {
+    "Content-Type": "application/json"
+  }
 });
 
 function App() {
@@ -20,20 +20,20 @@ const [password, setPassword] = useState("");
 
 useEffect(() => {
 
-```
+
 const token = localStorage.getItem("token");
 
 if (token) {
-  api.defaults.headers.common["Authorization"] = "Bearer" +token;
+  api.defaults.headers.common["Authorization"] = "Bearer " + token;
   setMode("crm");
 }
-```
+
 
 }, []);
 
 const handleLogin = async () => {
 
-```
+
 if (!email || !password) {
   alert("Enter email and password");
   return;
@@ -69,7 +69,7 @@ try {
   }
 
 }
-```
+
 
 };
 
@@ -85,9 +85,10 @@ email={localStorage.getItem("otp_email")}
 
 if (mode === "crm") return <CRM setMode={setMode} api={api} />;
 
-return ( <div className="auth-page">
+return ( 
+  <div className="auth-page">
 
-```
+
   <div className="floating-card">
 
     <img
@@ -133,7 +134,7 @@ return ( <div className="auth-page">
   </div>
 
 </div>
-```
+
 
 );
 
