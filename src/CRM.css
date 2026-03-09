@@ -520,6 +520,67 @@ color: inherit;
 }
 
 
+.settings-wrapper{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-height:90vh;
+}
+
+.settings{
+  width:500px;
+  background:white;
+  padding:40px;
+  border-radius:12px;
+  box-shadow:0 5px 20px rgba(0,0,0,0.1);
+}
+
+.settings h2{
+  margin-bottom:20px;
+}
+
+.settings h3{
+  margin-top:25px;
+}
+
+.settings input,
+.settings select{
+  width:100%;
+  padding:10px;
+  margin-top:8px;
+  margin-bottom:12px;
+  border-radius:6px;
+  border:1px solid #ccc;
+}
+
+.settings label{
+  display:block;
+  margin-top:10px;
+}
+
+.settings button{
+  padding:10px 16px;
+  margin-top:10px;
+  margin-right:10px;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+}
+
+.save-btn{
+  background:#2ecc71;
+  color:white;
+}
+
+.delete-btn{
+  background:#e74c3c;
+  color:white;
+}
+
+body.dark .settings{
+  background:#1e1e1e;
+  color:white;
+}
 
 
 
