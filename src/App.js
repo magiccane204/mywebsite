@@ -6,121 +6,136 @@ import axios from "axios";
 import "./App.css";
 
 const api = axios.create({
-  baseURL: "https://mywebsite-im3c.onrender.com",
-  headers: {
-    "Content-Type": "application/json",
-  },
+baseURL: "https://mywebsite-im3c.onrender.com",
+headers: {
+"Content-Type": "application/json",
+},
 });
 
 function App() {
 
-  const [mode, setMode] = useState("login");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+const [mode, setMode] = useState("login");
+const [email, setEmail] = useState("");
+const [password, setPassword] = useState("");
 
-  useEffect(() => {
+useEffect(() => {
 
-    const token = localStorage.getItem("token");
+```
+const token = localStorage.getItem("token");
 
-    if (token) {
-      api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-      setMode("crm");
-    }
+if (token) {
+  api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+  setMode("crm");
+}
+```
 
-  }, []);
+}, []);
 
-  const handleLogin = async () => {
+const handleLogin = async () => {
 
-    if (!email || !password) {
-      alert("Enter email and password");
-      return;
-    }
+```
+if (!email || !password) {
+  alert("Enter email and password");
+  return;
+}
 
-    try {
+try {
 
-      const res = await api.post("/api/login", {
-        email: email.trim().toLowerCase(),
-        password: password.trim()
-      });
+  const res = await api.post("/api/login", {
+    email: email.trim().toLowerCase(),
+    password: password.trim()
+  });
 
-      if (res.data.success) {
+  if (res.data.success) {
 
-        // store email for OTP verification
-        localStorage.setItem("otp_email", email.trim().toLowerCase());
+    localStorage.setItem("otp_email", email.trim().toLowerCase());
+    setMode("otp");
 
-        setMode("otp");
+  }
 
-      }
+} catch (err) {
 
-    } catch (err) {
+  const data = err.response?.data;
 
-      alert(err.response?.data?.message || "Login failed");
+  if (data?.notVerified) {
 
-    }
+    alert("Account not activated. Please create your password.");
+    setMode("signup");
 
-  };
+  } else {
 
-  if (mode === "signup") return <Signup setMode={setMode} />;
+    alert(data?.message || "Login failed");
 
-  if (mode === "otp")
-    return (
-      <Otp
-        setMode={setMode}
-        email={localStorage.getItem("otp_email")}
-      />
-    );
+  }
 
-  if (mode === "crm") return <CRM setMode={setMode} api={api} />;
+}
+```
 
-  return (
-    <div className="auth-page">
+};
 
-      <div className="floating-card">
+if (mode === "signup") return <Signup setMode={setMode} />;
 
-        <img
-          src="/user.png"
-          alt="profile pic"
-          style={{ width: 150, height: 150, borderRadius: "50%" }}
-        />
+if (mode === "otp")
+return (
+<Otp
+setMode={setMode}
+email={localStorage.getItem("otp_email")}
+/>
+);
 
-        <h1>Login</h1>
+if (mode === "crm") return <CRM setMode={setMode} api={api} />;
 
-        <input
-          type="email"
-          value={email}
-          placeholder="Email"
-          onChange={(e) => setEmail(e.target.value)}
-        />
+return ( <div className="auth-page">
 
-        <input
-          type="password"
-          value={password}
-          placeholder="Password"
-          onChange={(e) => setPassword(e.target.value)}
-        />
+```
+  <div className="floating-card">
 
-        <button
-          type="button"
-          className="button"
-          onClick={handleLogin}
-        >
-          Login
-        </button>
+    <img
+      src="/user.png"
+      alt="profile pic"
+      style={{ width: 150, height: 150, borderRadius: "50%" }}
+    />
 
-        <p style={{ marginTop: "15px" }}>
-          Not registered?{" "}
-          <span
-            style={{ color: "blue", cursor: "pointer" }}
-            onClick={() => setMode("signup")}
-          >
-            Register Now
-          </span>
-        </p>
+    <h1>Login</h1>
 
-      </div>
+    <input
+      type="email"
+      value={email}
+      placeholder="Email"
+      onChange={(e) => setEmail(e.target.value)}
+    />
 
-    </div>
-  );
+    <input
+      type="password"
+      value={password}
+      placeholder="Password"
+      onChange={(e) => setPassword(e.target.value)}
+    />
+
+    <button
+      type="button"
+      className="button"
+      onClick={handleLogin}
+    >
+      Login
+    </button>
+
+    <p style={{ marginTop: "15px" }}>
+      Not registered?{" "}
+      <span
+        style={{ color: "blue", cursor: "pointer" }}
+        onClick={() => setMode("signup")}
+      >
+        Register Now
+      </span>
+    </p>
+
+  </div>
+
+</div>
+```
+
+);
 
 }
 
