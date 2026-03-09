@@ -1053,6 +1053,150 @@ app.get("/api/validate-session", auth, async (req, res) => {
   }
 
 });
+// ===============================
+// USER MODEL
+// ===============================
+
+const mongoose = require("mongoose");
+const bcrypt = require("bcrypt");
+
+const UserSchema = new mongoose.Schema({
+
+  Name: String,
+  Email: String,
+  Password: String,
+  Role: String,
+  Company: String,
+
+  DarkMode: { type: Boolean, default: false },
+  EmailNotifications: { type: Boolean, default: true },
+  PublicProfile: { type: Boolean, default: false },
+  AutoLogout: { type: Boolean, default: false },
+
+  Language: { type: String, default: "English" },
+  Timezone: { type: String, default: "UTC" }
+
+});
+
+const User = mongoose.model("User", UserSchema);
+
+
+// ===============================
+// GET CURRENT USER
+// ===============================
+
+app.get("/api/me", auth, async (req, res) => {
+
+  try {
+
+    const user = await User.findById(req.user.id).select("-Password");
+
+    if (!user)
+      return res.status(404).json({ error: "User not found" });
+
+    res.json(user);
+
+  } catch {
+
+    res.status(500).json({ error: "Failed to load user" });
+
+  }
+
+});
+
+
+// ===============================
+// UPDATE SETTINGS
+// ===============================
+
+app.put("/api/me/settings", auth, async (req, res) => {
+
+  const {
+    DarkMode,
+    EmailNotifications,
+    PublicProfile,
+    AutoLogout,
+    Name,
+    Language,
+    Timezone
+  } = req.body;
+
+  try {
+
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      {
+        DarkMode,
+        EmailNotifications,
+        PublicProfile,
+        AutoLogout,
+        Name,
+        Language,
+        Timezone
+      },
+      { new: true }
+    ).select("-Password");
+
+    res.json(user);
+
+  } catch {
+
+    res.status(500).json({ error: "Failed to update settings" });
+
+  }
+
+});
+
+
+// ===============================
+// CHANGE PASSWORD
+// ===============================
+
+app.put("/api/me/password", auth, async (req, res) => {
+
+  const { password } = req.body;
+
+  if (!password)
+    return res.status(400).json({ error: "Password required" });
+
+  try {
+
+    const hashed = await bcrypt.hash(password, 10);
+
+    await User.findByIdAndUpdate(req.user.id, {
+      Password: hashed
+    });
+
+    res.json({ message: "Password updated" });
+
+  } catch {
+
+    res.status(500).json({ error: "Failed to update password" });
+
+  }
+
+});
+
+
+// ===============================
+// DELETE ACCOUNT
+// ===============================
+
+app.delete("/api/me", auth, async (req, res) => {
+
+  try {
+
+    await User.findByIdAndDelete(req.user.id);
+
+    res.json({ message: "Account deleted" });
+
+  } catch {
+
+    res.status(500).json({ error: "Failed to delete account" });
+
+  }
+
+});
 /* ================= GLOBAL ERROR HANDLER ================= */
 
 app.use((err, req, res, next) => {
@@ -1106,6 +1250,7 @@ connectDB()
     process.exit(1);
 
   });
+
 
 
 
