@@ -196,30 +196,51 @@ app.post("/api/login", rateLimit, async (req, res) => {
     const email = String(req.body.email || "").trim().toLowerCase();
     const password = String(req.body.password || "").trim();
 
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and password required"
+      });
+    }
+
+    // STEP 1 — Check Users collection
     const user = await users.findOne({ Email: email });
 
     if (!user) {
-      logAudit("LOGIN_FAIL", email);
+
+      // STEP 2 — Check Employees collection
+      const employee = await EmployeesModel.findOne({ Email: email });
+
+      if (employee) {
+
+        return res.status(403).json({
+          success: false,
+          notVerified: true,
+          message: "Account not activated. Please create your password."
+        });
+
+      }
+
       return res.status(401).json({
         success: false,
-        message: "User not found",
+        message: "User not found"
+      });
+
+    }
+
+    // STEP 3 — Verify password
+    const match = await bcrypt.compare(password, user.Password);
+
+    if (!match) {
+      return res.status(401).json({
+        success: false,
+        message: "Wrong password"
       });
     }
 
-    const hashed = hashPassword(password);
-
-    if (user.Password !== hashed) {
-      logAudit("LOGIN_FAIL", email);
-      return res.status(401).json({
-        success: false,
-        message: "Wrong password",
-      });
-    }
-
+    // STEP 4 — Send OTP
     const otp = generateOTP();
 
-console.log("OTP GENERATED:", otp);
-console.log("ABOUT TO SEND EMAIL TO:", email);
     await otps.deleteMany({ Email: email });
 
     await otps.insertOne({
@@ -229,19 +250,16 @@ console.log("ABOUT TO SEND EMAIL TO:", email);
       createdAt: new Date(),
     });
 
-await resend.emails.send({
-  from: "CRM <noreply@dntcrm.work.gd>",
-  to: email,
-  //cc: email,
-  subject: "Your OTP",
-  html: `<h2>Your OTP is <b>${otp}</b></h2>`,
-});
-
-    logAudit("OTP_SENT", email);
+    await resend.emails.send({
+      from: "CRM <noreply@dntcrm.work.gd>",
+      to: email,
+      subject: "Your OTP",
+      html: `<h2>Your OTP is <b>${otp}</b></h2>`
+    });
 
     return res.json({
       success: true,
-      message: "OTP sent to email",
+      message: "OTP sent"
     });
 
   } catch (err) {
@@ -249,7 +267,7 @@ await resend.emails.send({
     console.error("LOGIN_ERROR", err);
 
     return res.status(500).json({
-      message: "Internal server error",
+      message: "Internal server error"
     });
 
   }
@@ -1272,3 +1290,4 @@ connectDB()
     process.exit(1);
 
   });
+
