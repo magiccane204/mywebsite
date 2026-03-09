@@ -13,80 +13,115 @@ const api = axios.create({
 });
 
 function App() {
+
   const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   useEffect(() => {
+
     const token = localStorage.getItem("token");
+
     if (token) {
+      api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
       setMode("crm");
     }
+
   }, []);
 
   const handleLogin = async () => {
-    if (!email || !password) return;
+
+    if (!email || !password) {
+      alert("Enter email and password");
+      return;
+    }
 
     try {
-     const res = await api.post("/api/login", {
-  email: email.trim().toLowerCase(),
-  password: password.trim()
-});
+
+      const res = await api.post("/api/login", {
+        email: email.trim().toLowerCase(),
+        password: password.trim()
+      });
+
       if (res.data.success) {
-        // 🔥 CRITICAL FIX
-        localStorage.setItem("otp_email", email);
+
+        // store email for OTP verification
+        localStorage.setItem("otp_email", email.trim().toLowerCase());
+
         setMode("otp");
+
       }
+
     } catch (err) {
-      console.error(err);
+
+      alert(err.response?.data?.message || "Login failed");
+
     }
+
   };
 
   if (mode === "signup") return <Signup setMode={setMode} />;
-  if (mode === "otp") return <Otp setMode={setMode} />;
-  if (mode === "crm") return <CRM setMode={setMode} />;
+
+  if (mode === "otp")
+    return (
+      <Otp
+        setMode={setMode}
+        email={localStorage.getItem("otp_email")}
+      />
+    );
+
+  if (mode === "crm") return <CRM setMode={setMode} api={api} />;
 
   return (
     <div className="auth-page">
-    <div className="floating-card">
-      <img
-        src="/user.png"
-        alt="profile pic"
-        style={{ width: 150, height: 150, borderRadius: "50%" }}
-      />
 
-      <h1>Login</h1>
+      <div className="floating-card">
 
-      <input
-        type="email"
-        value={email}
-        placeholder="Email"
-        onChange={(e) => setEmail(e.target.value)}
-      />
+        <img
+          src="/user.png"
+          alt="profile pic"
+          style={{ width: 150, height: 150, borderRadius: "50%" }}
+        />
 
-      <input
-        type="password"
-        value={password}
-        placeholder="Password"
-        onChange={(e) => setPassword(e.target.value)}
-      />
+        <h1>Login</h1>
 
-      <button type="button" className="button" onClick={handleLogin}>
-        Login
-      </button>
+        <input
+          type="email"
+          value={email}
+          placeholder="Email"
+          onChange={(e) => setEmail(e.target.value)}
+        />
 
-      <p style={{ marginTop: "15px" }}>
-        Not registered?{" "}
-        <span
-          style={{ color: "blue", cursor: "pointer" }}
-          onClick={() => setMode("signup")}
+        <input
+          type="password"
+          value={password}
+          placeholder="Password"
+          onChange={(e) => setPassword(e.target.value)}
+        />
+
+        <button
+          type="button"
+          className="button"
+          onClick={handleLogin}
         >
-          Register Now
-        </span>
-      </p>
+          Login
+        </button>
+
+        <p style={{ marginTop: "15px" }}>
+          Not registered?{" "}
+          <span
+            style={{ color: "blue", cursor: "pointer" }}
+            onClick={() => setMode("signup")}
+          >
+            Register Now
+          </span>
+        </p>
+
+      </div>
+
     </div>
-</div>
   );
+
 }
 
 export default App;
