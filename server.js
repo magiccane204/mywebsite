@@ -228,15 +228,37 @@ app.post("/api/login", rateLimit, async (req, res) => {
 
     }
 
-    // STEP 3 — Verify password
-    const match = await bcrypt.compare(password, user.Password);
+ // STEP 3 — Verify password
 
-    if (!match) {
-      return res.status(401).json({
-        success: false,
-        message: "Wrong password"
-      });
-    }
+let match = false;
+
+// SUPER ADMIN → SHA256
+if (user.Role === "SuperAdmin") {
+
+  const hashedInput = crypto
+    .createHash("sha256")
+    .update(password)
+    .digest("hex");
+
+  if (hashedInput === user.Password) {
+    match = true;
+  }
+
+}
+
+// EMPLOYEES → BCRYPT
+else {
+
+  match = await bcrypt.compare(password, user.Password);
+
+}
+
+if (!match) {
+  return res.status(401).json({
+    success: false,
+    message: "Wrong password"
+  });
+}
 
     // STEP 4 — Send OTP
     const otp = generateOTP();
@@ -1290,4 +1312,5 @@ connectDB()
     process.exit(1);
 
   });
+
 
