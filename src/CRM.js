@@ -117,17 +117,10 @@ function CRM({ setMode }) {
       <div className="content">
         <div className="horizontalbar">
           <span>Data and Technology CRM Systems</span>
-          <span
-            style={{
-              float: "right",
-              marginRight: "15px",
-              fontWeight: "bold",
-              color: "#333",
-              fontSize: "16px",
-            }}
-          >
-            Welcome, {displayName}
-          </span>
+ <div className="user-info">
+  <img src="/user.png" alt="user" />
+  <span>Welcome, {displayName}</span>
+</div>
         </div>
 
         {activeSection === "dashboard" && (
@@ -304,4 +297,5 @@ function CRM({ setMode }) {
 }
 
 export default CRM;
+
 
