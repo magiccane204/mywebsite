@@ -20,14 +20,36 @@ const [password, setPassword] = useState("");
 
 useEffect(() => {
 
-
 const token = localStorage.getItem("token");
 
-if (token) {
-  api.defaults.headers.common["Authorization"] = "Bearer " + token;
-  setMode("crm");
+if (!token) return;
+
+api.defaults.headers.common["Authorization"] = "Bearer " + token;
+
+async function loadUser() {
+
+  try {
+
+    const res = await api.get("/api/me");
+
+    if (res.data.DarkMode) {
+      document.body.classList.add("dark");
+    } else {
+      document.body.classList.remove("dark");
+    }
+
+    setMode("crm");
+
+  } catch (err) {
+
+    console.log("Session invalid");
+    localStorage.removeItem("token");
+
+  }
+
 }
 
+loadUser();
 
 }, []);
 
