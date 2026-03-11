@@ -14,7 +14,21 @@ font-size: 26px;
 .Employee-title span {
 color: #2563eb;
 }
+.user-info {
+  float: right;
+  margin-right: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: bold;
+  font-size: 16px;
+}
 
+.user-info img {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+}
 /* ================= CARDS ================= */
 
 .Employee-card {
