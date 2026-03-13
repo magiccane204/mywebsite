@@ -7,6 +7,7 @@ import Employee from "./Employee";
 import Reports from "./Reports";
 import Settings from "./Settings";
 import ScatterChart from "./ScatterChart";
+import TasksWorkspace from"./TasksWorkspace";
 import LineChart from "./LineChart";
 import api from "./api";
 import "./CRM.css";
@@ -301,6 +302,7 @@ function CRM({ setMode }) {
 }
 
 export default CRM;
+
 
 
 
