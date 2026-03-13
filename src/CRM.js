@@ -106,7 +106,7 @@ function CRM({ setMode }) {
           <span>📊</span> <span>Reports</span>
         </button>
 
-         <button onClick={() => setActiveSection("settings")}>
+         <button onClick={() => setActiveSection("workspace")}>
           <span>💼</span> <span>Workspace</span>
         </button>
   
@@ -250,7 +250,11 @@ function CRM({ setMode }) {
             <Reports />
           </div>
         )}
-
+          {activeSection === "workspace" && (
+          <div className="workspace-section">
+            <TasksWorkspace />
+            </div>
+)}
         {activeSection === "settings" && (
           <div className="settings-section">
             <Settings />
@@ -302,6 +306,7 @@ function CRM({ setMode }) {
 }
 
 export default CRM;
+
 
 
 
