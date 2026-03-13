@@ -105,6 +105,10 @@ function CRM({ setMode }) {
           <span>📊</span> <span>Reports</span>
         </button>
 
+         <button onClick={() => setActiveSection("settings")}>
+          <span>💼</span> <span>Workspace</span>
+        </button>
+  
         <button onClick={() => setActiveSection("settings")}>
           <span>⚙️</span> <span>Settings</span>
         </button>
@@ -297,5 +301,6 @@ function CRM({ setMode }) {
 }
 
 export default CRM;
+
 
 
