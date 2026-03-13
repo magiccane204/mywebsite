@@ -1259,6 +1259,206 @@ app.delete("/api/me", auth, async (req, res) => {
   }
 
 });
+/* ================================================= */
+/* ================= TASK SYSTEM =================== */
+/* ================================================= */
+
+/* ===== TASK SCHEMA ===== */
+
+const taskSchema = new mongoose.Schema({
+
+  Title: { type: String, required: true },
+
+  Description: { type: String, default: "" },
+
+  EmployeeEmail: { type: String, required: true },
+
+  Company: { type: String, required: true },
+
+  FilePath: { type: String, default: null },
+
+  Status: {
+    type: String,
+    default: "Pending"
+  },
+
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
+
+});
+
+const Task = mongoose.model("Task", taskSchema);
+
+
+
+/* ===== MULTER FOR TASK FILES ===== */
+
+const taskUpload = multer({ dest: "taskUploads/" });
+
+
+
+/* ================================================= */
+/* ================= CREATE TASK =================== */
+/* ================================================= */
+
+app.post("/api/tasks", auth, async (req, res) => {
+
+  try {
+
+    if (req.user.role === "Employee")
+      return res.status(403).json({ message: "Forbidden" });
+
+    const { Title, Description, EmployeeEmail } = req.body;
+
+    if (!Title || !EmployeeEmail)
+      return res.status(400).json({ message: "Missing fields" });
+
+    const task = await Task.create({
+
+      Title,
+
+      Description,
+
+      EmployeeEmail,
+
+      Company: req.user.company,
+
+      Status: "Pending"
+
+    });
+
+    return res.json({
+      success: true,
+      task
+    });
+
+  }
+
+  catch (err) {
+
+    console.error("CREATE_TASK_ERROR", err);
+
+    return res.status(500).json({
+      message: "Failed to create task"
+    });
+
+  }
+
+});
+
+
+
+/* ================================================= */
+/* ================= GET TASKS ===================== */
+/* ================================================= */
+
+app.get("/api/tasks", auth, async (req, res) => {
+
+  try {
+
+    let filter = { Company: req.user.company };
+
+    if (req.user.role === "Employee")
+      filter.EmployeeEmail = req.user.email;
+
+    const tasks = await Task.find(filter)
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return res.json(tasks);
+
+  }
+
+  catch (err) {
+
+    console.error("GET_TASKS_ERROR", err);
+
+    return res.status(500).json({
+      message: "Failed to fetch tasks"
+    });
+
+  }
+
+});
+
+
+
+/* ================================================= */
+/* ================= UPLOAD TASK FILE ============== */
+/* ================================================= */
+
+app.post(
+  "/api/tasks/upload/:id",
+  auth,
+  taskUpload.single("file"),
+  async (req, res) => {
+
+    try {
+
+      const task = await Task.findById(req.params.id);
+
+      if (!task)
+        return res.status(404).json({
+          message: "Task not found"
+        });
+
+      task.FilePath = req.file.path;
+
+      task.Status = "Completed";
+
+      await task.save();
+
+      return res.json({
+        success: true
+      });
+
+    }
+
+    catch (err) {
+
+      console.error("UPLOAD_TASK_FILE_ERROR", err);
+
+      return res.status(500).json({
+        message: "Failed to upload file"
+      });
+
+    }
+
+  }
+);
+
+
+
+/* ================================================= */
+/* ================= VIEW FILE ===================== */
+/* ================================================= */
+
+app.get("/api/tasks/file/:id", auth, async (req, res) => {
+
+  try {
+
+    const task = await Task.findById(req.params.id);
+
+    if (!task || !task.FilePath)
+      return res.status(404).send("File not found");
+
+    return res.sendFile(path.resolve(task.FilePath));
+
+  }
+
+  catch (err) {
+
+    console.error("VIEW_TASK_FILE_ERROR", err);
+
+    return res.status(500).json({
+      message: "Failed to load file"
+    });
+
+  }
+
+});
 /* ================= GLOBAL ERROR HANDLER ================= */
 
 app.use((err, req, res, next) => {
@@ -1312,5 +1512,6 @@ connectDB()
     process.exit(1);
 
   });
+
 
 
