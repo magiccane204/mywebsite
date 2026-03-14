@@ -94,11 +94,11 @@ function CRM({ setMode }) {
           <img src="D&T.png" alt="logo" />
         </div>
 
-        <button onClick={() => fetchData("/api/hello", "dashboard")}>
+      <button onClick={() => fetchData("/hello", "dashboard")}>
           <span>🏠</span> <span>Dashboard</span>
         </button>
 
-        <button onClick={() => fetchData("/data/1", "Employees")}>
+        <button onClick={() => fetchData("/Employees", "Employees")}>
           <span>👥</span> <span>Employees</span>
         </button>
 
@@ -261,9 +261,10 @@ function CRM({ setMode }) {
           </div>
         )}
 
-        {activeSection !== "Employees" &&
-          activeSection !== "reports" &&
-          activeSection !== "settings" && (
+{activeSection !== "Employees" &&
+ activeSection !== "reports" &&
+ activeSection !== "settings" &&
+ activeSection !== "workspace" && (
             <div className="table-section">
               <div className="table-toolbar">
                 <button onClick={() => setShowTableEditor(false)}>
