@@ -4,8 +4,7 @@ import axios from "axios";
 const api = axios.create({
   baseURL: "https://mywebsite-im3c.onrender.com/api"
 });
-
-export default function TasksWorkspace(){
+ function TasksWorkspace(){
 
 const [tasks,setTasks] = useState([]);
 
