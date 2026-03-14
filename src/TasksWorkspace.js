@@ -132,3 +132,4 @@ View
 );
 
 }
+export default TasksWorkspace;
