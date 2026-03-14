@@ -130,7 +130,7 @@ onClick={()=>setShowTaskModal(true)}
 </button>
 {showTaskModal && (
 
-<div className="chart-modal" <div
+<div
 className="chart-modal"
 onClick={()=>{
 setShowTaskModal(false);
@@ -139,7 +139,8 @@ setDescription("");
 setEmployeeEmail("");
 }}
 >
->
+
+
 
 <div
 className="chart-modal-content"
@@ -179,9 +180,10 @@ value={employeeEmail}
 onChange={e=>setEmployeeEmail(e.target.value)}
 disabled={!employees.length}
 >
+<option value="">
+{employees.length ? "Select Employee" : "Loading employees..."}
+</option>
 
-
-<option value="">Select Employee</option>
 
 {Array.isArray(employees) && employees.map(emp=>(
 <option key={emp._id} value={emp.Email}>
