@@ -1435,30 +1435,44 @@ app.post(
 /* ================= VIEW FILE ===================== */
 /* ================================================= */
 
-app.get("/api/tasks/file/:id", auth, async (req, res) => {
+app.get("/api/tasks/file/:id", async (req, res) => {
 
   try {
+
+    let token = req.headers.authorization?.split(" ")[1];
+
+    if (!token && req.query.token) {
+      token = req.query.token;
+    }
+
+    if (!token) return res.status(401).send("Unauthorized");
+
+    const user = jwt.verify(token, JWT_SECRET);
 
     const task = await Task.findById(req.params.id);
 
     if (!task || !task.FilePath)
       return res.status(404).send("File not found");
 
+    if (
+      task.EmployeeEmail !== user.email &&
+      user.role !== "SuperAdmin"
+    ) {
+      return res.status(403).send("Forbidden");
+    }
+
     return res.sendFile(path.resolve(task.FilePath));
 
-  }
-
-  catch (err) {
+  } catch (err) {
 
     console.error("VIEW_TASK_FILE_ERROR", err);
 
-    return res.status(500).json({
-      message: "Failed to load file"
-    });
+    return res.status(500).send("Error loading file");
 
   }
 
 });
+
 /* ================= GLOBAL ERROR HANDLER ================= */
 
 app.use((err, req, res, next) => {
