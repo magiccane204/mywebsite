@@ -31,8 +31,10 @@ EmployeeEmail:employeeEmail
 setTitle("");
 setDescription("");
 setEmployeeEmail("");
+setShowTaskModal(false);
 
 loadTasks();
+
 
 }catch(err){
 
@@ -108,10 +110,11 @@ loadTasks();
 function viewFile(taskId){
 
 window.open(
-`https://mywebsite-im3c.onrender.com/api/tasks/file/${taskId}`
+`https://mywebsite-im3c.onrender.com/api/tasks/file/${taskId}?token=${token}`
 );
 
 }
+
 
 
 return(
@@ -127,7 +130,16 @@ onClick={()=>setShowTaskModal(true)}
 </button>
 {showTaskModal && (
 
-<div className="chart-modal" onClick={()=>setShowTaskModal(false)}>
+<div className="chart-modal" <div
+className="chart-modal"
+onClick={()=>{
+setShowTaskModal(false);
+setTitle("");
+setDescription("");
+setEmployeeEmail("");
+}}
+>
+>
 
 <div
 className="chart-modal-content"
@@ -136,7 +148,13 @@ onClick={(e)=>e.stopPropagation()}
 
 <button
 className="close-btn"
-onClick={()=>setShowTaskModal(false)}
+onClick={()=>{
+setShowTaskModal(false);
+setTitle("");
+setDescription("");
+setEmployeeEmail("");
+}}
+
 >
 ✖ Close
 </button>
@@ -159,11 +177,13 @@ onChange={e=>setDescription(e.target.value)}
 <select
 value={employeeEmail}
 onChange={e=>setEmployeeEmail(e.target.value)}
+disabled={!employees.length}
 >
+
 
 <option value="">Select Employee</option>
 
-{employees.map(emp=>(
+{Array.isArray(employees) && employees.map(emp=>(
 <option key={emp._id} value={emp.Email}>
 {emp.Name} ({emp.Email})
 </option>
@@ -171,9 +191,13 @@ onChange={e=>setEmployeeEmail(e.target.value)}
 
 </select>
 
-<button onClick={createTask}>
+<button
+onClick={createTask}
+disabled={!title || !employeeEmail}
+>
 Send Task
 </button>
+
 
 </div>
 
@@ -197,7 +221,8 @@ Send Task
 
 <tbody>
 
-{tasks.map(task=>(
+{Array.isArray(tasks) && tasks.map(task=>(
+
 
 <tr key={task._id}>
 
@@ -209,7 +234,11 @@ Send Task
 
 <input
 type="file"
-onChange={e=>uploadFile(task._id,e.target.files[0])}
+onChange={(e)=>{
+const file = e.target.files[0];
+if(file) uploadFile(task._id,file);
+}}
+
 />
 
 </td>
