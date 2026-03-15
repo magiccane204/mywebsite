@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 
 const api = axios.create({
   baseURL: "https://mywebsite-im3c.onrender.com/api"
@@ -20,23 +21,15 @@ const headers = {
 headers:{ Authorization:`Bearer ${token}` }
 };
 
-/* CREATE TASK */
+const statuses = ["Pending","In Progress","Review","Completed"];
 
-async function createTask(){
+/* LOAD TASKS */
+
+async function loadTasks(){
 try{
 
-await api.post("/tasks",{
-Title:title,
-Description:description,
-EmployeeEmail:employeeEmail
-},headers);
-
-setTitle("");
-setDescription("");
-setEmployeeEmail("");
-setShowTaskModal(false);
-
-loadTasks();
+const res = await api.get("/tasks",headers);
+setTasks(res.data);
 
 }catch(err){
 console.log(err);
@@ -56,23 +49,58 @@ console.log(err);
 }
 }
 
-/* LOAD TASKS */
-
-async function loadTasks(){
-try{
-
-const res = await api.get("/tasks",headers);
-setTasks(res.data);
-
-}catch(err){
-console.log(err);
-}
-}
-
 useEffect(()=>{
 loadTasks();
 loadEmployees();
 },[]);
+
+/* CREATE TASK */
+
+async function createTask(){
+
+try{
+
+await api.post("/tasks",{
+Title:title,
+Description:description,
+EmployeeEmail:employeeEmail
+},headers);
+
+setTitle("");
+setDescription("");
+setEmployeeEmail("");
+setShowTaskModal(false);
+
+loadTasks();
+
+}catch(err){
+console.log(err);
+}
+
+}
+
+/* DRAG TASK */
+
+const onDragEnd = async (result)=>{
+
+if(!result.destination) return;
+
+const taskId = result.draggableId;
+const newStatus = result.destination.droppableId;
+
+try{
+
+await api.put(`/tasks/status/${taskId}`,{
+Status:newStatus
+},headers);
+
+loadTasks();
+
+}catch(err){
+console.log(err);
+}
+
+};
 
 /* UPLOAD FILE */
 
@@ -135,27 +163,11 @@ console.log(err);
 
 }
 
-/* MARK COMPLETED */
-
-async function markComplete(taskId){
-
-try{
-
-await api.put(`/tasks/complete/${taskId}`,{},headers);
-
-loadTasks();
-
-}catch(err){
-console.log(err);
-}
-
-}
-
 return(
 
 <div>
 
-<h2>My Tasks</h2>
+<h2>Task Board</h2>
 
 <button
 className="create-task-btn"
@@ -164,16 +176,13 @@ onClick={()=>setShowTaskModal(true)}
 ➕ Create Task
 </button>
 
+{/* CREATE TASK MODAL */}
+
 {showTaskModal && (
 
 <div
 className="chart-modal"
-onClick={()=>{
-setShowTaskModal(false);
-setTitle("");
-setDescription("");
-setEmployeeEmail("");
-}}
+onClick={()=>setShowTaskModal(false)}
 >
 
 <div
@@ -181,16 +190,7 @@ className="chart-modal-content"
 onClick={(e)=>e.stopPropagation()}
 >
 
-<button
-className="close-btn"
-onClick={()=>setShowTaskModal(false)}
->
-✖ Close
-</button>
-
 <h3>Create Task</h3>
-
-<div className="task-form">
 
 <input
 type="text"
@@ -208,26 +208,19 @@ onChange={e=>setDescription(e.target.value)}
 <select
 value={employeeEmail}
 onChange={e=>setEmployeeEmail(e.target.value)}
-disabled={!employees.length}
 >
 
-<option value="">
-{employees.length ? "Select Employee" : "Loading employees..."}
-</option>
+<option value="">Select Employee</option>
 
-{Array.isArray(employees) && employees.map(emp=>(
+{employees.map(emp=>(
 <option key={emp._id} value={emp.Email}>
-{emp.Name} ({emp.Email})
+{emp.Name}
 </option>
 ))}
 
 </select>
 
-<button
-className="send-btn"
-onClick={createTask}
-disabled={!title || !employeeEmail}
->
+<button onClick={createTask}>
 Send Task
 </button>
 
@@ -235,33 +228,63 @@ Send Task
 
 </div>
 
-</div>
-
 )}
 
-<table className="excel-table">
+{/* TASK BOARD */}
 
-<thead>
-<tr>
-<th>Title</th>
-<th>Description</th>
-<th>Status</th>
-<th>Upload</th>
-<th>Actions</th>
-</tr>
-</thead>
+<DragDropContext onDragEnd={onDragEnd}>
 
-<tbody>
+<div style={{display:"flex",gap:"20px",marginTop:"20px"}}>
 
-{Array.isArray(tasks) && tasks.map(task=>(
+{statuses.map(status=>(
 
-<tr key={task._id}>
+<Droppable droppableId={status} key={status}>
 
-<td>{task.Title}</td>
-<td>{task.Description}</td>
-<td>{task.Status}</td>
+{(provided)=>(
 
-<td>
+<div
+ref={provided.innerRef}
+{...provided.droppableProps}
+style={{
+background:"#f4f4f4",
+padding:"10px",
+width:"250px",
+minHeight:"400px"
+}}
+>
+
+<h3>{status}</h3>
+
+{tasks
+.filter(t=>t.Status===status)
+.map((task,index)=>(
+
+<Draggable
+key={task._id}
+draggableId={task._id}
+index={index}
+>
+
+{(provided)=>(
+
+<div
+ref={provided.innerRef}
+{...provided.draggableProps}
+{...provided.dragHandleProps}
+style={{
+background:"#fff",
+padding:"10px",
+marginBottom:"10px",
+border:"1px solid #ccc",
+...provided.draggableProps.style
+}}
+>
+
+<b>{task.Title}</b>
+
+<p>{task.Description}</p>
+
+{/* FILE UPLOAD */}
 
 <input
 type="file"
@@ -271,12 +294,12 @@ if(file) uploadFile(task._id,file);
 }}
 />
 
-</td>
-
-<td>
+{/* FILE ACTIONS */}
 
 {task.FileId && (
-<>
+
+<div>
+
 <button onClick={()=>viewFile(task._id)}>
 View
 </button>
@@ -284,24 +307,32 @@ View
 <button onClick={()=>downloadFile(task._id)}>
 Download
 </button>
-</>
+
+</div>
+
 )}
 
-{task.Status !== "Completed" && (
-<button onClick={()=>markComplete(task._id)}>
-Mark Completed
-</button>
+</div>
+
 )}
 
-</td>
-
-</tr>
+</Draggable>
 
 ))}
 
-</tbody>
+{provided.placeholder}
 
-</table>
+</div>
+
+)}
+
+</Droppable>
+
+))}
+
+</div>
+
+</DragDropContext>
 
 </div>
 
