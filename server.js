@@ -1450,42 +1450,35 @@ app.get("/api/tasks/file/:id", async (req, res) => {
       token = req.query.token;
     }
 
-    if (!token) return res.status(401).send("Unauthorized");
+    if (!token)
+      return res.status(401).send("Unauthorized");
 
     const user = jwt.verify(token, JWT_SECRET);
 
- const task = await Task.findById(req.params.id);
+    const task = await Task.findById(req.params.id);
 
-if (!task)
-  return res.status(404).json({ message: "Task not found" });
+    if (!task)
+      return res.status(404).send("Task not found");
 
-if (task.Company !== req.user.company)
-  return res.status(403).json({ message: "Forbidden" });
-
-if (
-  req.user.role === "Employee" &&
-  task.EmployeeEmail !== req.user.email
-) {
-  return res.status(403).json({ message: "Not your task" });
-}
-
-    if (!task || !task.FilePath)
+    if (!task.FilePath)
       return res.status(404).send("File not found");
 
-    if (
-      task.EmployeeEmail !== user.email &&
-      user.role !== "SuperAdmin"
-    ) {
+    if (task.Company !== user.company)
       return res.status(403).send("Forbidden");
+
+    if (
+      user.role === "Employee" &&
+      task.EmployeeEmail !== user.email
+    ) {
+      return res.status(403).send("Not your task");
     }
 
-   const filePath = path.join(__dirname, task.FilePath);
-   const filePath = path.join(__dirname, task.FilePath);
+    const filePath = path.join(__dirname, task.FilePath);
 
     if (!fs.existsSync(filePath))
-     return res.status(404).send("File missing");
+      return res.status(404).send("File missing");
 
-return res.sendFile(filePath);
+    return res.sendFile(filePath);
 
   } catch (err) {
 
