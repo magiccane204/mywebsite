@@ -4,6 +4,7 @@ import axios from "axios";
 const api = axios.create({
   baseURL: "https://mywebsite-im3c.onrender.com/api"
 });
+
 function TasksWorkspace(){
 
 const [tasks,setTasks] = useState([]);
@@ -18,8 +19,8 @@ const token = localStorage.getItem("token");
 const headers = {
 headers:{ Authorization:`Bearer ${token}` }
 };
-async function createTask(){
 
+async function createTask(){
 try{
 
 await api.post("/tasks",{
@@ -35,29 +36,20 @@ setShowTaskModal(false);
 
 loadTasks();
 
-
 }catch(err){
-
 console.log(err);
-
 }
-
 }
 
 async function loadEmployees(){
-
 try{
 
 const res = await api.get("/Employees",headers);
-
 setEmployees(res.data);
 
 }catch(err){
-
 console.log(err);
-
 }
-
 }
 
 /* LOAD TASKS */
@@ -67,30 +59,22 @@ loadTasks();
 loadEmployees();
 },[]);
 
-
 async function loadTasks(){
-
 try{
 
 const res = await api.get("/tasks",headers);
-
 setTasks(res.data);
 
 }catch(err){
-
 console.log(err);
-
 }
-
 }
-
 
 /* UPLOAD FILE */
 
 async function uploadFile(taskId,file){
 
 const form = new FormData();
-
 form.append("file",file);
 
 await api.post(`/tasks/upload/${taskId}`,form,{
@@ -101,9 +85,7 @@ Authorization:`Bearer ${token}`,
 });
 
 loadTasks();
-
 }
-
 
 /* VIEW FILE */
 
@@ -115,19 +97,19 @@ window.open(
 
 }
 
-
-
 return(
 
 <div>
 
 <h2>My Tasks</h2>
+
 <button
 className="create-task-btn"
 onClick={()=>setShowTaskModal(true)}
 >
 ➕ Create Task
 </button>
+
 {showTaskModal && (
 
 <div
@@ -140,9 +122,10 @@ setEmployeeEmail("");
 }}
 >
 
-
-
-<div className="chart-modal-content" onClick={(e)=>e.stopPropagation()}>
+<div
+className="chart-modal-content"
+onClick={(e)=>e.stopPropagation()}
+>
 
 <button
 className="close-btn"
@@ -178,6 +161,7 @@ value={employeeEmail}
 onChange={e=>setEmployeeEmail(e.target.value)}
 disabled={!employees.length}
 >
+
 <option value="">
 {employees.length ? "Select Employee" : "Loading employees..."}
 </option>
@@ -202,12 +186,13 @@ Send Task
 
 </div>
 
+</div>
+
 )}
 
 <table className="excel-table">
 
 <thead>
-
 <tr>
 <th>Title</th>
 <th>Description</th>
@@ -215,13 +200,11 @@ Send Task
 <th>Upload</th>
 <th>View</th>
 </tr>
-
 </thead>
 
 <tbody>
 
 {Array.isArray(tasks) && tasks.map(task=>(
-
 
 <tr key={task._id}>
 
@@ -237,7 +220,6 @@ onChange={(e)=>{
 const file = e.target.files[0];
 if(file) uploadFile(task._id,file);
 }}
-
 />
 
 </td>
@@ -265,4 +247,5 @@ View
 );
 
 }
+
 export default TasksWorkspace;
