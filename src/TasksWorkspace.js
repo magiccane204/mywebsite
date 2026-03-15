@@ -89,12 +89,22 @@ loadTasks();
 
 /* VIEW FILE */
 
-function viewFile(taskId){
+async function viewFile(taskId){
+try{
 
-window.open(
-`https://mywebsite-im3c.onrender.com/api/tasks/file/${taskId}?token=${token}`
-);
+const res = await api.get(`/tasks/file/${taskId}`,{
+headers:{ Authorization:`Bearer ${token}` },
+responseType:"blob"
+});
 
+const file = new Blob([res.data]);
+const fileURL = window.URL.createObjectURL(file);
+
+window.open(fileURL);
+
+}catch(err){
+console.log(err);
+}
 }
 
 return(
