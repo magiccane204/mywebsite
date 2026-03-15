@@ -1316,8 +1316,9 @@ app.post("/api/tasks", auth, async (req, res) => {
 
   try {
 
-    if (req.user.role === "Employee")
-      return res.status(403).json({ message: "Forbidden" });
+  if (req.user.role !== "Admin" && req.user.role !== "SuperAdmin") {
+  return res.status(403).json({ message: "Only admins can create tasks" });
+}
 
     const { Title, Description, EmployeeEmail } = req.body;
 
@@ -1401,7 +1402,7 @@ app.get("/api/tasks", auth, async (req, res) => {
 app.post(
   "/api/tasks/upload/:id",
   auth,
-  upload.single("file"),
+  taskUpload.single("file"),
   async (req, res) => {
 
     try {
@@ -1475,53 +1476,52 @@ app.put("/api/tasks/complete/:id", auth, async (req, res) => {
 /* ================= VIEW FILE ===================== */
 /* ================================================= */
 
-app.get("/api/tasks/file/:id", async (req, res) => {
+app.get("/api/tasks/file/:id", async (req,res)=>{
+try{
 
-  try {
+let token = req.headers.authorization?.split(" ")[1];
 
-    let token = req.headers.authorization?.split(" ")[1];
+if(!token && req.query.token)
+token = req.query.token;
 
-    if (!token && req.query.token)
-      token = req.query.token;
+if(!token)
+return res.status(401).send("Unauthorized");
 
-    if (!token)
-      return res.status(401).send("Unauthorized");
+const user = jwt.verify(token,JWT_SECRET);
 
-    const user = jwt.verify(token, JWT_SECRET);
+const task = await Task.findById(req.params.id);
 
-    const task = await Task.findById(req.params.id);
+if(!task)
+return res.status(404).send("Task not found");
 
-    if (!task || !task.FileId)
-      return res.status(404).send("File not found");
+if(!task.FileId)
+return res.status(404).send("No file uploaded");
 
-    if (task.Company !== user.company)
-      return res.status(403).send("Forbidden");
+if(task.Company !== user.company)
+return res.status(403).send("Forbidden");
 
-    if (
-      user.role === "Employee" &&
-      task.EmployeeEmail !== user.email
-    ) {
-      return res.status(403).send("Not your task");
-    }
+if(user.role==="Employee" && task.EmployeeEmail!==user.email)
+return res.status(403).send("Not your task");
 
-    const download = req.query.download;
+const fileDoc = await mongoose.connection.db
+.collection("taskFiles.files")
+.findOne({_id:task.FileId});
 
-    if (download === "true") {
-      res.setHeader(
-        "Content-Disposition",
-        "attachment; filename=file"
-      );
-    }
+const filename = fileDoc?.filename || "taskfile";
 
-    bucket.openDownloadStream(task.FileId).pipe(res);
+if(req.query.download==="true"){
+res.setHeader(
+"Content-Disposition",
+`attachment; filename="${filename}"`
+);
+}
 
-  } catch (err) {
+bucket.openDownloadStream(task.FileId).pipe(res);
 
-    console.error(err);
-    res.status(500).send("File error");
-
-  }
-
+}catch(err){
+console.error("FILE_STREAM_ERROR",err);
+res.status(500).send("File error");
+}
 });
 
 /* ================= GLOBAL ERROR HANDLER ================= */
