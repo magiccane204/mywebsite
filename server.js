@@ -1295,8 +1295,13 @@ const Task = mongoose.model("Task", taskSchema);
 
 /* ===== MULTER FOR TASK FILES ===== */
 
-const taskUpload = multer({ dest: "taskUploads/" });
+const taskDir = path.join(__dirname, "taskUploads");
 
+if (!fs.existsSync(taskDir)) {
+  fs.mkdirSync(taskDir, { recursive: true });
+}
+
+const taskUpload = multer({ dest: taskDir });
 
 
 /* ================================================= */
@@ -1449,7 +1454,20 @@ app.get("/api/tasks/file/:id", async (req, res) => {
 
     const user = jwt.verify(token, JWT_SECRET);
 
-    const task = await Task.findById(req.params.id);
+ const task = await Task.findById(req.params.id);
+
+if (!task)
+  return res.status(404).json({ message: "Task not found" });
+
+if (task.Company !== req.user.company)
+  return res.status(403).json({ message: "Forbidden" });
+
+if (
+  req.user.role === "Employee" &&
+  task.EmployeeEmail !== req.user.email
+) {
+  return res.status(403).json({ message: "Not your task" });
+}
 
     if (!task || !task.FilePath)
       return res.status(404).send("File not found");
@@ -1461,7 +1479,13 @@ app.get("/api/tasks/file/:id", async (req, res) => {
       return res.status(403).send("Forbidden");
     }
 
-    return res.sendFile(path.resolve(task.FilePath));
+   const filePath = path.join(__dirname, task.FilePath);
+   const filePath = path.join(__dirname, task.FilePath);
+
+    if (!fs.existsSync(filePath))
+     return res.status(404).send("File missing");
+
+return res.sendFile(filePath);
 
   } catch (err) {
 
