@@ -1269,17 +1269,12 @@ app.delete("/api/me", auth, async (req, res) => {
 /* ===== TASK SCHEMA ===== */
 
 const taskSchema = new mongoose.Schema({
-
   Title: { type: String, required: true },
-
   Description: { type: String, default: "" },
-
   EmployeeEmail: { type: String, required: true },
-
   Company: { type: String, required: true },
 
   FileId: { type: mongoose.Schema.Types.ObjectId, default: null },
-
   UploadedBy: { type: String, default: null },
 
   Status: {
@@ -1287,11 +1282,15 @@ const taskSchema = new mongoose.Schema({
     default: "Pending"
   },
 
+  Deadline: {
+    type: Date,
+    default: null
+  },
+
   createdAt: {
     type: Date,
     default: Date.now
   }
-
 });
 const Task = mongoose.model("Task", taskSchema);
 
@@ -1360,9 +1359,7 @@ app.post("/api/tasks", auth, async (req, res) => {
 
 
 
-/* ================================================= */
 /* ================= GET TASKS ===================== */
-/* ================================================= */
 
 app.get("/api/tasks", auth, async (req, res) => {
 
@@ -1392,9 +1389,37 @@ app.get("/api/tasks", auth, async (req, res) => {
   }
 
 });
+/* ================= UPDATE TASK STATUS ================= */
 
+app.put("/api/tasks/status/:id", auth, async (req,res)=>{
 
+try{
 
+const { Status } = req.body;
+
+const task = await Task.findById(req.params.id);
+
+if(!task)
+return res.status(404).json({message:"Task not found"});
+
+if(task.Company !== req.user.company)
+return res.status(403).json({message:"Forbidden"});
+
+task.Status = Status;
+
+await task.save();
+
+res.json({success:true});
+
+}catch(err){
+
+console.error("TASK_STATUS_UPDATE_ERROR",err);
+
+res.status(500).json({message:"Failed to update task"});
+
+}
+
+});
 /* ================================================= */
 /* ================= UPLOAD TASK FILE ============== */
 /* ================================================= */
