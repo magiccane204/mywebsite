@@ -1277,6 +1277,8 @@ const taskSchema = new mongoose.Schema({
 
   FilePath: { type: String, default: null },
 
+  UploadedBy: { type: String, default: null },
+
   Status: {
     type: String,
     default: "Pending"
@@ -1288,7 +1290,6 @@ const taskSchema = new mongoose.Schema({
   }
 
 });
-
 const Task = mongoose.model("Task", taskSchema);
 
 
@@ -1409,7 +1410,12 @@ app.post(
           message: "Task not found"
         });
 
+      if (task.Company !== req.user.company)
+        return res.status(403).json({ message: "Forbidden" });
+
       task.FilePath = req.file.path;
+
+      task.UploadedBy = req.user.email;
 
       task.Status = "Completed";
 
@@ -1434,7 +1440,33 @@ app.post(
   }
 );
 
+app.put("/api/tasks/complete/:id", auth, async (req, res) => {
 
+  try {
+
+    const task = await Task.findById(req.params.id);
+
+    if (!task)
+      return res.status(404).json({ message: "Task not found" });
+
+    if (task.Company !== req.user.company)
+      return res.status(403).json({ message: "Forbidden" });
+
+    task.Status = "Completed";
+
+    await task.save();
+
+    return res.json({ success: true });
+
+  } catch (err) {
+
+    console.error("COMPLETE_TASK_ERROR", err);
+
+    return res.status(500).json({ message: "Failed to update task" });
+
+  }
+
+});
 
 /* ================================================= */
 /* ================= VIEW FILE ===================== */
@@ -1473,10 +1505,16 @@ app.get("/api/tasks/file/:id", async (req, res) => {
       return res.status(403).send("Not your task");
     }
 
-    const filePath = path.join(__dirname, task.FilePath);
+    const filePath = path.resolve(task.FilePath);
 
     if (!fs.existsSync(filePath))
       return res.status(404).send("File missing");
+
+    const download = req.query.download;
+
+    if (download === "true") {
+      return res.download(filePath);
+    }
 
     return res.sendFile(filePath);
 
