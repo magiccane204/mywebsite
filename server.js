@@ -91,7 +91,14 @@ function auth(req, res, next) {
 
   try {
 
-    req.user = jwt.verify(token, JWT_SECRET);
+   const decoded = jwt.verify(token, JWT_SECRET);
+
+req.user = {
+  id: decoded.id,
+  email: decoded.email,
+  role: decoded.role,
+  company: decoded.company
+};
 
     console.log("USER VERIFIED:", req.user);
 
@@ -207,7 +214,7 @@ app.post("/api/login", rateLimit, async (req, res) => {
     }
 
     // STEP 1 — Check Users collection
-    const user = await users.findOne({ Email: email });
+    const user = await users.findOne({ Email: email.toLowerCase() });
 
     if (!user) {
 
@@ -368,7 +375,7 @@ const token = jwt.sign(
 {
   id: user._id,
   email: user.Email,
-  role: user.Role,
+  role: user.role,
   company: user.Company
 },
 JWT_SECRET,
@@ -1123,7 +1130,7 @@ app.get("/api/me", auth, async (req, res) => {
 
   try {
 
-    const user = await User.findById(req.user.id).select("-Password");
+    const user = await User.findOne({ _id: req.user.id }).select("-Password");
 
     if (!user)
       return res.status(404).json({ error: "User not found" });
@@ -1145,42 +1152,37 @@ app.get("/api/me", auth, async (req, res) => {
 
 app.put("/api/me/settings", auth, async (req, res) => {
 
-  const {
-    DarkMode,
-    EmailNotifications,
-    PublicProfile,
-    AutoLogout,
-    Name,
-    Language,
-    Timezone
-  } = req.body;
-
   try {
 
-    const user = await User.findByIdAndUpdate(
-      req.user.id,
-      {
-        DarkMode,
-        EmailNotifications,
-        PublicProfile,
-        AutoLogout,
-        Name,
-        Language,
-        Timezone
-      },
+    const update = {
+      DarkMode: req.body.DarkMode,
+      EmailNotifications: req.body.EmailNotifications,
+      PublicProfile: req.body.PublicProfile,
+      AutoLogout: req.body.AutoLogout,
+      Name: req.body.Name,
+      Language: req.body.Language,
+      Timezone: req.body.Timezone
+    };
+
+    const user = await User.findOneAndUpdate(
+      { _id: req.user.id },
+      update,
       { new: true }
     ).select("-Password");
 
+    if (!user)
+      return res.status(404).json({ error: "User not found" });
+
     res.json(user);
 
-  } catch {
+  } catch (err) {
 
+    console.error("SETTINGS_UPDATE_ERROR", err);
     res.status(500).json({ error: "Failed to update settings" });
 
   }
 
 });
-
 
 // ===============================
 // CHANGE PASSWORD
@@ -1369,14 +1371,10 @@ const { Status } = req.body;
 const task = await Task.findById(req.params.id);
 
 if (!task)
-  return res.status(404).json({ message: "Task not found" });
-  
-  if (!req.file)
-  return res.status(400).json({ message: "No file uploaded" });
+return res.status(404).json({ message: "Task not found" });
 
-if (req.user.role === "Employee" && task.EmployeeEmail !== req.user.email) {
-  return res.status(403).json({ message: "Not your task" });
-}
+if (req.user.role === "Employee" && task.EmployeeEmail !== req.user.email)
+return res.status(403).json({ message: "Not your task" });
 
 task.Status = Status;
 
