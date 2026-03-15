@@ -1399,11 +1399,12 @@ const { Status } = req.body;
 
 const task = await Task.findById(req.params.id);
 
-if(!task)
-return res.status(404).json({message:"Task not found"});
+if (!task)
+  return res.status(404).json({ message: "Task not found" });
 
-if(task.Company !== req.user.company)
-return res.status(403).json({message:"Forbidden"});
+if (req.user.role === "Employee" && task.EmployeeEmail !== req.user.email) {
+  return res.status(403).json({ message: "Not your task" });
+}
 
 task.Status = Status;
 
