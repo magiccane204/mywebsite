@@ -182,6 +182,8 @@ onClick={(e)=>e.stopPropagation()}
 
 <h3>Create Task</h3>
 
+<div className="task-form">
+
 <input
 type="text"
 placeholder="Task Title"
