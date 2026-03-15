@@ -30,7 +30,7 @@
     "libphonenumber-js": "^1.10.56",
     "compromise": "^14.10.0",
     "openai": "^4.38.0",
-    "dotenv": "^16.4.5",
+    "dotenv": "^16.4.5"
   
     
   },
