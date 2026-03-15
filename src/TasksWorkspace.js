@@ -104,6 +104,8 @@ console.log(err);
 
 function viewFile(taskId){
 
+const token = localStorage.getItem("token");
+
 window.open(
 `https://mywebsite-im3c.onrender.com/api/tasks/file/${taskId}?token=${token}`,
 "_blank"
@@ -117,16 +119,21 @@ async function downloadFile(taskId){
 
 try{
 
-const res = await api.get(`/tasks/file/${taskId}?download=true`,{
-headers:{ Authorization:`Bearer ${token}` },
+const token = localStorage.getItem("token");
+
+const res = await axios.get(
+`https://mywebsite-im3c.onrender.com/api/tasks/file/${taskId}?download=true&token=${token}`,
+{
 responseType:"blob"
-});
+}
+);
 
 const url = window.URL.createObjectURL(new Blob([res.data]));
 
 const a = document.createElement("a");
 a.href = url;
 a.download = "taskfile";
+
 document.body.appendChild(a);
 a.click();
 a.remove();
@@ -136,7 +143,6 @@ console.log(err);
 }
 
 }
-
 /* MARK COMPLETE */
 
 async function markComplete(taskId){
@@ -260,7 +266,6 @@ if(file) uploadFile(task._id,file);
 
 <td>
 
-<>
 {task.FileId && (
 <>
 <button onClick={()=>viewFile(task._id)}>
@@ -278,10 +283,8 @@ Download
 Complete
 </button>
 )}
-</>
 
 </td>
-
 </tr>
 
 ))}
