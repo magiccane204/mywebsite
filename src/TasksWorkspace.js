@@ -20,6 +20,8 @@ const headers = {
 headers:{ Authorization:`Bearer ${token}` }
 };
 
+/* CREATE TASK */
+
 async function createTask(){
 try{
 
@@ -41,6 +43,8 @@ console.log(err);
 }
 }
 
+/* LOAD EMPLOYEES */
+
 async function loadEmployees(){
 try{
 
@@ -54,11 +58,6 @@ console.log(err);
 
 /* LOAD TASKS */
 
-useEffect(()=>{
-loadTasks();
-loadEmployees();
-},[]);
-
 async function loadTasks(){
 try{
 
@@ -70,9 +69,16 @@ console.log(err);
 }
 }
 
+useEffect(()=>{
+loadTasks();
+loadEmployees();
+},[]);
+
 /* UPLOAD FILE */
 
 async function uploadFile(taskId,file){
+
+try{
 
 const form = new FormData();
 form.append("file",file);
@@ -85,26 +91,53 @@ Authorization:`Bearer ${token}`,
 });
 
 loadTasks();
-}
-
-/* VIEW FILE */
-
-async function viewFile(taskId){
-try{
-
-const res = await api.get(`/tasks/file/${taskId}`,{
-headers:{ Authorization:`Bearer ${token}` },
-responseType:"blob"
-});
-
-const file = new Blob([res.data]);
-const fileURL = window.URL.createObjectURL(file);
-
-window.open(fileURL);
 
 }catch(err){
 console.log(err);
 }
+
+}
+
+/* DOWNLOAD FILE */
+
+async function viewFile(taskId){
+
+try{
+
+const res = await api.get(`/tasks/file/${taskId}?download=true`,{
+headers:{ Authorization:`Bearer ${token}` },
+responseType:"blob"
+});
+
+const url = window.URL.createObjectURL(new Blob([res.data]));
+
+const a = document.createElement("a");
+a.href = url;
+a.download = "task-file";
+document.body.appendChild(a);
+a.click();
+a.remove();
+
+}catch(err){
+console.log(err);
+}
+
+}
+
+/* MARK COMPLETED */
+
+async function markComplete(taskId){
+
+try{
+
+await api.put(`/tasks/complete/${taskId}`,{},headers);
+
+loadTasks();
+
+}catch(err){
+console.log(err);
+}
+
 }
 
 return(
@@ -119,6 +152,8 @@ onClick={()=>setShowTaskModal(true)}
 >
 ➕ Create Task
 </button>
+
+{/* CREATE TASK MODAL */}
 
 {showTaskModal && (
 
@@ -139,12 +174,7 @@ onClick={(e)=>e.stopPropagation()}
 
 <button
 className="close-btn"
-onClick={()=>{
-setShowTaskModal(false);
-setTitle("");
-setDescription("");
-setEmployeeEmail("");
-}}
+onClick={()=>setShowTaskModal(false)}
 >
 ✖ Close
 </button>
@@ -200,6 +230,8 @@ Send Task
 
 )}
 
+{/* TASK TABLE */}
+
 <table className="excel-table">
 
 <thead>
@@ -208,7 +240,7 @@ Send Task
 <th>Description</th>
 <th>Status</th>
 <th>Upload</th>
-<th>View</th>
+<th>Actions</th>
 </tr>
 </thead>
 
@@ -238,7 +270,13 @@ if(file) uploadFile(task._id,file);
 
 {task.FilePath && (
 <button onClick={()=>viewFile(task._id)}>
-View
+Download
+</button>
+)}
+
+{task.Status !== "Completed" && (
+<button onClick={()=>markComplete(task._id)}>
+Mark Completed
 </button>
 )}
 
