@@ -15,7 +15,7 @@ const pdfParse = require("pdf-parse");
 const mammoth = require("mammoth");
 const Joi = require("joi");
 const bcrypt = require("bcrypt");
-
+const { GridFSBucket } = require("mongodb");
 const app = express();
 const upload = multer({ dest: "uploads/" });
 
@@ -31,7 +31,7 @@ app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true }));
 const client = new MongoClient(MONGO_URI);
 
-let db, users, otps, sessions, auditLogs;
+let db, users, otps, sessions, auditLogs, bucket;
 
 async function connectDB() {
 
@@ -48,6 +48,9 @@ async function connectDB() {
   await sessions.createIndex({ token: 1 });
 
   await mongoose.connect(MONGO_URI);
+  bucket = new GridFSBucket(mongoose.connection.db, {
+  bucketName: "taskFiles"
+});
 
   console.log("MongoDB connected");
 }
@@ -1275,7 +1278,7 @@ const taskSchema = new mongoose.Schema({
 
   Company: { type: String, required: true },
 
-  FilePath: { type: String, default: null },
+  FileId: { type: mongoose.Schema.Types.ObjectId, default: null },
 
   UploadedBy: { type: String, default: null },
 
@@ -1398,7 +1401,7 @@ app.get("/api/tasks", auth, async (req, res) => {
 app.post(
   "/api/tasks/upload/:id",
   auth,
-  taskUpload.single("file"),
+  upload.single("file"),
   async (req, res) => {
 
     try {
@@ -1406,34 +1409,34 @@ app.post(
       const task = await Task.findById(req.params.id);
 
       if (!task)
-        return res.status(404).json({
-          message: "Task not found"
+        return res.status(404).json({ message: "Task not found" });
+
+      const uploadStream = bucket.openUploadStream(req.file.originalname);
+
+      fs.createReadStream(req.file.path)
+        .pipe(uploadStream)
+        .on("error", err => {
+          console.error(err);
+          res.status(500).send("Upload failed");
+        })
+        .on("finish", async () => {
+
+          task.FileId = uploadStream.id;
+          task.UploadedBy = req.user.email;
+          task.Status = "Completed";
+
+          await task.save();
+
+          fs.unlinkSync(req.file.path);
+
+          res.json({ success: true });
+
         });
 
-      if (task.Company !== req.user.company)
-        return res.status(403).json({ message: "Forbidden" });
+    } catch (err) {
 
-      task.FilePath = req.file.path;
-
-      task.UploadedBy = req.user.email;
-
-      task.Status = "Completed";
-
-      await task.save();
-
-      return res.json({
-        success: true
-      });
-
-    }
-
-    catch (err) {
-
-      console.error("UPLOAD_TASK_FILE_ERROR", err);
-
-      return res.status(500).json({
-        message: "Failed to upload file"
-      });
+      console.error(err);
+      res.status(500).json({ message: "Upload failed" });
 
     }
 
@@ -1478,9 +1481,8 @@ app.get("/api/tasks/file/:id", async (req, res) => {
 
     let token = req.headers.authorization?.split(" ")[1];
 
-    if (!token && req.query.token) {
+    if (!token && req.query.token)
       token = req.query.token;
-    }
 
     if (!token)
       return res.status(401).send("Unauthorized");
@@ -1489,10 +1491,7 @@ app.get("/api/tasks/file/:id", async (req, res) => {
 
     const task = await Task.findById(req.params.id);
 
-    if (!task)
-      return res.status(404).send("Task not found");
-
-    if (!task.FilePath)
+    if (!task || !task.FileId)
       return res.status(404).send("File not found");
 
     if (task.Company !== user.company)
@@ -1505,24 +1504,21 @@ app.get("/api/tasks/file/:id", async (req, res) => {
       return res.status(403).send("Not your task");
     }
 
-    const filePath = path.resolve(task.FilePath);
-
-    if (!fs.existsSync(filePath))
-      return res.status(404).send("File missing");
-
     const download = req.query.download;
 
     if (download === "true") {
-      return res.download(filePath);
+      res.setHeader(
+        "Content-Disposition",
+        "attachment; filename=file"
+      );
     }
 
-    return res.sendFile(filePath);
+    bucket.openDownloadStream(task.FileId).pipe(res);
 
   } catch (err) {
 
-    console.error("VIEW_TASK_FILE_ERROR", err);
-
-    return res.status(500).send("Error loading file");
+    console.error(err);
+    res.status(500).send("File error");
 
   }
 
