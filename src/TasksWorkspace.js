@@ -217,7 +217,7 @@ Send Task
 </button>
 
 </div>
-
+</div> 
 </div>
 
 )}
