@@ -364,15 +364,15 @@ app.post("/api/verify-otp", async (req, res) => {
         message: "User not found",
       });
 
-    const token = jwt.sign(
-      {
-        email: user.Email,
-        role: user.Role,
-        company: user.Company,
-      },
-      JWT_SECRET,
-      { expiresIn: "1h" }
-    );
+ const token = jwt.sign(
+{
+  email: user.Email,
+  role: user.Role,
+  company: user.Company,
+},
+JWT_SECRET,
+{ expiresIn: "1h" }
+);
 
     await sessions.insertOne({
       email,
@@ -1370,6 +1370,9 @@ const task = await Task.findById(req.params.id);
 
 if (!task)
   return res.status(404).json({ message: "Task not found" });
+  
+  if (!req.file)
+  return res.status(400).json({ message: "No file uploaded" });
 
 if (req.user.role === "Employee" && task.EmployeeEmail !== req.user.email) {
   return res.status(403).json({ message: "Not your task" });
