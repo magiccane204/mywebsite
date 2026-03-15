@@ -124,7 +124,7 @@ const url = window.URL.createObjectURL(new Blob([res.data]));
 
 const a = document.createElement("a");
 a.href = url;
-a.download = "task-file";
+a.download = `task-${taskId}`;
 document.body.appendChild(a);
 a.click();
 a.remove();
@@ -275,7 +275,7 @@ if(file) uploadFile(task._id,file);
 
 <td>
 
-{task.FileId && (
+{task.FilePath && (
 <>
 <button onClick={()=>viewFile(task._id)}>
 View
