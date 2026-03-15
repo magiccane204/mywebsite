@@ -149,7 +149,9 @@ async function markComplete(taskId){
 
 try{
 
-await api.put(`/tasks/complete/${taskId}`,{},headers);
+await api.put(`/tasks/status/${taskId}`,{
+Status:"Completed"
+},headers);
 
 loadTasks();
 
