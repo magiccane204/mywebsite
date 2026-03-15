@@ -98,9 +98,20 @@ console.log(err);
 
 }
 
+/* VIEW FILE */
+
+function viewFile(taskId){
+
+window.open(
+`https://mywebsite-im3c.onrender.com/api/tasks/file/${taskId}?token=${token}`,
+"_blank"
+);
+
+}
+
 /* DOWNLOAD FILE */
 
-async function viewFile(taskId){
+async function downloadFile(taskId){
 
 try{
 
@@ -152,8 +163,6 @@ onClick={()=>setShowTaskModal(true)}
 >
 ➕ Create Task
 </button>
-
-{/* CREATE TASK MODAL */}
 
 {showTaskModal && (
 
@@ -230,8 +239,6 @@ Send Task
 
 )}
 
-{/* TASK TABLE */}
-
 <table className="excel-table">
 
 <thead>
@@ -268,10 +275,16 @@ if(file) uploadFile(task._id,file);
 
 <td>
 
-{task.FilePath && (
+{task.FileId && (
+<>
 <button onClick={()=>viewFile(task._id)}>
+View
+</button>
+
+<button onClick={()=>downloadFile(task._id)}>
 Download
 </button>
+</>
 )}
 
 {task.Status !== "Completed" && (
