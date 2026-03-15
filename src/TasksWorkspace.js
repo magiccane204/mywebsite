@@ -275,7 +275,7 @@ if(file) uploadFile(task._id,file);
 
 <td>
 
-{task.FilePath && (
+{task.FileId && (
 <>
 <button onClick={()=>viewFile(task._id)}>
 View
