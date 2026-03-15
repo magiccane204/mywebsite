@@ -124,7 +124,7 @@ const url = window.URL.createObjectURL(new Blob([res.data]));
 
 const a = document.createElement("a");
 a.href = url;
-a.download = `task-${taskId}`;
+a.download = "taskfile";
 document.body.appendChild(a);
 a.click();
 a.remove();
