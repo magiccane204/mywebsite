@@ -375,7 +375,7 @@ const token = jwt.sign(
 {
   id: user._id,
   email: user.Email,
-  role: user.role,
+  role: user.Role,
   company: user.Company
 },
 JWT_SECRET,
@@ -1119,7 +1119,7 @@ const UserSchema = new mongoose.Schema({
 
 });
 
-const User = mongoose.model("User", UserSchema);
+const User = mongoose.model("User", UserSchema, "user");
 
 
 // ===============================
