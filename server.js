@@ -739,38 +739,7 @@ app.put("/api/Employees/lock/:id", auth, async (req, res) => {
   });
 
 });
-/* ================= CURRENT USER ================= */
 
-app.get("/api/me", auth, async (req, res) => {
-  try {
-
-    const user = await users.findOne(
-      { Email: req.user.email },
-      { projection: { Password: 0 } }
-    );
-
-    if (!user)
-      return res.status(404).json({
-        message: "User not found"
-      });
-
-    return res.json({
-      Email: user.Email,
-      Role: user.Role,
-      Company: user.Company,
-      DarkMode: user.DarkMode
-    });
-
-  } catch (err) {
-
-    console.error("ME_ERROR", err);
-
-    return res.status(500).json({
-      message: "Failed to load user"
-    });
-
-  }
-});
 /* ================= RESUME PARSER UTILITIES ================= */
 
 const clean = (s) => (s || "").replace(/\s+/g, " ").trim();
@@ -1430,14 +1399,16 @@ app.post(
   auth,
   taskUpload.single("file"),
   async (req, res) => {
-
     try {
 
       const task = await Task.findById(req.params.id);
-      if(req.user.role==="Employee" && task.EmployeeEmail!==req.user.email){
-      return res.status(403).json({message:"Not your task"});
+
       if (!task)
         return res.status(404).json({ message: "Task not found" });
+
+      if (req.user.role === "Employee" && task.EmployeeEmail !== req.user.email) {
+        return res.status(403).json({ message: "Not your task" });
+      }
 
       const uploadStream = bucket.openUploadStream(req.file.originalname);
 
@@ -1467,37 +1438,8 @@ app.post(
       res.status(500).json({ message: "Upload failed" });
 
     }
-
   }
 );
-
-app.put("/api/tasks/complete/:id", auth, async (req, res) => {
-
-  try {
-
-    const task = await Task.findById(req.params.id);
-
-    if (!task)
-      return res.status(404).json({ message: "Task not found" });
-
-    if (task.Company !== req.user.company)
-      return res.status(403).json({ message: "Forbidden" });
-
-    task.Status = "Completed";
-
-    await task.save();
-
-    return res.json({ success: true });
-
-  } catch (err) {
-
-    console.error("COMPLETE_TASK_ERROR", err);
-
-    return res.status(500).json({ message: "Failed to update task" });
-
-  }
-
-});
 
 /* ================================================= */
 /* ================= VIEW FILE ===================== */
@@ -1604,6 +1546,3 @@ connectDB()
     process.exit(1);
 
   });
-
-
-
