@@ -142,10 +142,7 @@ setEmployeeEmail("");
 
 
 
-<div
-className="chart-modal-content"
-onClick={(e)=>e.stopPropagation()}
->
+<div className="chart-modal-content" onClick={(e)=>e.stopPropagation()}>
 
 <button
 className="close-btn"
@@ -155,12 +152,13 @@ setTitle("");
 setDescription("");
 setEmployeeEmail("");
 }}
-
 >
 ✖ Close
 </button>
 
 <h3>Create Task</h3>
+
+<div className="task-form">
 
 <input
 type="text"
@@ -184,7 +182,6 @@ disabled={!employees.length}
 {employees.length ? "Select Employee" : "Loading employees..."}
 </option>
 
-
 {Array.isArray(employees) && employees.map(emp=>(
 <option key={emp._id} value={emp.Email}>
 {emp.Name} ({emp.Email})
@@ -194,12 +191,12 @@ disabled={!employees.length}
 </select>
 
 <button
+className="send-btn"
 onClick={createTask}
 disabled={!title || !employeeEmail}
 >
 Send Task
 </button>
-
 
 </div>
 
