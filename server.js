@@ -47,17 +47,13 @@ async function connectDB() {
   await otps.createIndex({ createdAt: 1 }, { expireAfterSeconds: 300 });
   await sessions.createIndex({ token: 1 });
 
- await mongoose.connect(MONGO_URI);
+await mongoose.connect(MONGO_URI);
 
-const conn = mongoose.connection;
-
-conn.once("open", () => {
-  bucket = new GridFSBucket(conn.db, {
-    bucketName: "taskFiles"
-  });
-
-  console.log("GridFS bucket initialized");
+bucket = new GridFSBucket(mongoose.connection.db, {
+  bucketName: "taskFiles"
 });
+
+console.log("GridFS bucket initialized");
 
   console.log("MongoDB connected");
 }
