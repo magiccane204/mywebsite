@@ -47,9 +47,16 @@ async function connectDB() {
   await otps.createIndex({ createdAt: 1 }, { expireAfterSeconds: 300 });
   await sessions.createIndex({ token: 1 });
 
-  await mongoose.connect(MONGO_URI);
-  bucket = new GridFSBucket(mongoose.connection.db, {
-  bucketName: "taskFiles"
+ await mongoose.connect(MONGO_URI);
+
+const conn = mongoose.connection;
+
+conn.once("open", () => {
+  bucket = new GridFSBucket(conn.db, {
+    bucketName: "taskFiles"
+  });
+
+  console.log("GridFS bucket initialized");
 });
 
   console.log("MongoDB connected");
@@ -1275,7 +1282,9 @@ if (!fs.existsSync(taskDir)) {
   fs.mkdirSync(taskDir, { recursive: true });
 }
 
-const taskUpload = multer({ dest: taskDir });
+const taskUpload = multer({
+  storage: multer.memoryStorage()
+});
 
 
 /* ================================================= */
@@ -1396,97 +1405,53 @@ res.status(500).json({message:"Failed to update task"});
 /* ================================================= */
 /* ================= UPLOAD TASK FILE ============== */
 /* ================================================= */
-app.post(
-  "/api/tasks/upload/:id",
-  auth,
-  taskUpload.single("file"),
-  async (req, res) => {
-    try {
+app.post("/api/tasks/upload/:id", auth, taskUpload.single("file"), async (req,res)=>{
 
-      const task = await Task.findById(req.params.id);
+try{
 
-      if (!task) {
-        return res.status(404).json({ message: "Task not found" });
-      }
+const task = await Task.findById(req.params.id);
 
-      if (req.user.role === "Employee" && task.EmployeeEmail !== req.user.email) {
-        return res.status(403).json({ message: "Not your task" });
-      }
+if(!task)
+return res.status(404).json({message:"Task not found"});
 
-      if (!req.file) {
-        return res.status(400).json({ message: "No file uploaded" });
-      }
+if(req.user.role==="Employee" && task.EmployeeEmail!==req.user.email)
+return res.status(403).json({message:"Not your task"});
 
-      if (!bucket) {
-        console.error("GridFS bucket not initialized");
-        return res.status(500).json({ message: "Storage not ready" });
-      }
+if(!req.file)
+return res.status(400).json({message:"No file uploaded"});
 
-      let responded = false;
+if(!bucket)
+return res.status(500).json({message:"Storage not ready"});
 
-      const uploadStream = bucket.openUploadStream(req.file.originalname);
+const uploadStream = bucket.openUploadStream(req.file.originalname);
 
-      const readStream = fs.createReadStream(req.file.path);
+uploadStream.on("finish", async ()=>{
 
-      readStream.on("error", err => {
+task.FileId = uploadStream.id;
+task.UploadedBy = req.user.email;
+task.Status = "Completed";
 
-        console.error("READ_STREAM_ERROR", err);
+await task.save();
 
-        if (!responded) {
-          responded = true;
-          res.status(500).json({ message: "File read error" });
-        }
+res.json({success:true});
 
-        if (fs.existsSync(req.file.path)) {
-          fs.unlinkSync(req.file.path);
-        }
+});
 
-      });
+uploadStream.on("error", err=>{
+console.error("GRIDFS_ERROR",err);
+res.status(500).json({message:"Upload failed"});
+});
 
-      readStream.pipe(uploadStream);
+uploadStream.end(req.file.buffer);
 
-      uploadStream.on("error", err => {
+}catch(err){
 
-        if (responded) return;
-        responded = true;
+console.error("UPLOAD_ERROR",err);
+res.status(500).json({message:"Upload failed"});
 
-        console.error("GRIDFS_UPLOAD_ERROR", err);
+}
 
-        if (fs.existsSync(req.file.path)) {
-          fs.unlinkSync(req.file.path);
-        }
-
-        res.status(500).json({ message: "Upload failed" });
-
-      });
-
-      uploadStream.on("finish", async () => {
-
-        if (responded) return;
-        responded = true;
-
-        task.FileId = uploadStream.id;
-        task.UploadedBy = req.user.email;
-        task.Status = "Completed";
-
-        await task.save();
-
-        fs.unlinkSync(req.file.path);
-
-        res.json({ success: true });
-
-      });
-
-    } catch (err) {
-
-      console.error("UPLOAD_TASK_FILE_ERROR", err);
-
-      res.status(500).json({ message: "Upload failed" });
-
-    }
-  }
-);
-
+});
 /* ================================================= */
 /* ================= VIEW FILE ===================== */
 /* ================================================= */
