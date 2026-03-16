@@ -1420,10 +1420,9 @@ return res.status(403).json({message:"Not your task"});
 if(!req.file)
 return res.status(400).json({message:"No file uploaded"});
 
-if(!bucket)
-return res.status(500).json({message:"Storage not ready"});
-
 const uploadStream = bucket.openUploadStream(req.file.originalname);
+
+uploadStream.end(req.file.buffer);
 
 uploadStream.on("finish", async ()=>{
 
@@ -1437,12 +1436,10 @@ res.json({success:true});
 
 });
 
-uploadStream.on("error", err=>{
-console.error("GRIDFS_ERROR",err);
+uploadStream.on("error",(err)=>{
+console.error(err);
 res.status(500).json({message:"Upload failed"});
 });
-
-uploadStream.end(req.file.buffer);
 
 }catch(err){
 
