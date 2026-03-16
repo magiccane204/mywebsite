@@ -49,11 +49,15 @@ async function connectDB() {
 
 await mongoose.connect(MONGO_URI);
 
-bucket = new GridFSBucket(mongoose.connection.db, {
-  bucketName: "taskFiles"
-});
+mongoose.connection.once("open", () => {
 
-console.log("GridFS bucket initialized");
+  bucket = new GridFSBucket(mongoose.connection.db, {
+    bucketName: "taskFiles"
+  });
+
+  console.log("✅ GridFS bucket initialized");
+
+});
 
   console.log("MongoDB connected");
 }
@@ -1405,6 +1409,11 @@ app.post("/api/tasks/upload/:id", auth, taskUpload.single("file"), async (req,re
 
 try{
 
+console.log("UPLOAD START");
+console.log("Task ID:", req.params.id);
+console.log("File:", req.file);
+console.log("Bucket:", bucket);
+
 const task = await Task.findById(req.params.id);
 
 if(!task)
@@ -1416,9 +1425,15 @@ return res.status(403).json({message:"Not your task"});
 if(!req.file)
 return res.status(400).json({message:"No file uploaded"});
 
+if(!bucket){
+console.log("❌ Bucket not ready");
+return res.status(500).json({message:"Storage not ready"});
+}
+
 const uploadStream = bucket.openUploadStream(req.file.originalname);
 
-uploadStream.end(req.file.buffer);
+uploadStream.write(req.file.buffer);
+uploadStream.end();
 
 uploadStream.on("finish", async ()=>{
 
@@ -1433,7 +1448,7 @@ res.json({success:true});
 });
 
 uploadStream.on("error",(err)=>{
-console.error(err);
+console.error("GRIDFS ERROR:",err);
 res.status(500).json({message:"Upload failed"});
 });
 
