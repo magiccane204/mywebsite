@@ -1372,9 +1372,11 @@ const task = await Task.findById(req.params.id);
 
 if (!task)
 return res.status(404).json({ message: "Task not found" });
+  
+
 
 if (req.user.role === "Employee" && task.EmployeeEmail !== req.user.email)
-return res.status(403).json({ message: "Not your task" });
+  return res.status(403).json({ message: "Not your task" });
 
 task.Status = Status;
 
@@ -1394,7 +1396,6 @@ res.status(500).json({message:"Failed to update task"});
 /* ================================================= */
 /* ================= UPLOAD TASK FILE ============== */
 /* ================================================= */
-
 app.post(
   "/api/tasks/upload/:id",
   auth,
@@ -1404,39 +1405,82 @@ app.post(
 
       const task = await Task.findById(req.params.id);
 
-
+      if (!task) {
+        return res.status(404).json({ message: "Task not found" });
+      }
 
       if (req.user.role === "Employee" && task.EmployeeEmail !== req.user.email) {
         return res.status(403).json({ message: "Not your task" });
       }
-    if (!req.file) {
-    return res.status(400).json({ message: "No file uploaded" });
-    }
+
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      if (!bucket) {
+        console.error("GridFS bucket not initialized");
+        return res.status(500).json({ message: "Storage not ready" });
+      }
+
+      let responded = false;
+
       const uploadStream = bucket.openUploadStream(req.file.originalname);
 
-      fs.createReadStream(req.file.path)
-        .pipe(uploadStream)
-        .on("error", err => {
-          console.error(err);
-          res.status(500).send("Upload failed");
-        })
-        .on("finish", async () => {
+      const readStream = fs.createReadStream(req.file.path);
 
-          task.FileId = uploadStream.id;
-          task.UploadedBy = req.user.email;
-          task.Status = "Completed";
+      readStream.on("error", err => {
 
-          await task.save();
+        console.error("READ_STREAM_ERROR", err);
 
+        if (!responded) {
+          responded = true;
+          res.status(500).json({ message: "File read error" });
+        }
+
+        if (fs.existsSync(req.file.path)) {
           fs.unlinkSync(req.file.path);
+        }
 
-          res.json({ success: true });
+      });
 
-        });
+      readStream.pipe(uploadStream);
+
+      uploadStream.on("error", err => {
+
+        if (responded) return;
+        responded = true;
+
+        console.error("GRIDFS_UPLOAD_ERROR", err);
+
+        if (fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
+        }
+
+        res.status(500).json({ message: "Upload failed" });
+
+      });
+
+      uploadStream.on("finish", async () => {
+
+        if (responded) return;
+        responded = true;
+
+        task.FileId = uploadStream.id;
+        task.UploadedBy = req.user.email;
+        task.Status = "Completed";
+
+        await task.save();
+
+        fs.unlinkSync(req.file.path);
+
+        res.json({ success: true });
+
+      });
 
     } catch (err) {
 
-      console.error(err);
+      console.error("UPLOAD_TASK_FILE_ERROR", err);
+
       res.status(500).json({ message: "Upload failed" });
 
     }
