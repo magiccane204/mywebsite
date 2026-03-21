@@ -35,7 +35,7 @@ let db, users, otps, sessions, auditLogs, bucket;
 
 async function connectDB() {
 
-  await client.connect();
+ await mongoose.connect();
 
   db = client.db("Users");
 
@@ -1439,7 +1439,7 @@ uploadStream.on("finish", async ()=>{
 
 task.FileId = uploadStream.id;
 task.UploadedBy = req.user.email;
-task.Status = "Completed";
+
 
 await task.save();
 
@@ -1546,22 +1546,29 @@ app.get(/^\/(?!api).*/, (req, res) => {
 });
 /* ================= SERVER START ================= */
 
-connectDB()
-  .then(() => {
+async function startServer() {
 
-    app.listen(PORT, () => {
+  await client.connect();   
+  await mongoose.connect(MONGO_URI);
 
-      console.log(
-        `🔥 Server running on PORT ${PORT} | ENV: ${NODE_ENV}`
-      );
+  db = client.db("Users");
 
-    });
+  // 🔥 ADD THESE BACK
+  users = db.collection("user");
+  otps = db.collection("OTPs");
+  sessions = db.collection("Sessions");
+  auditLogs = db.collection("AuditLogs");
 
-  })
-  .catch(err => {
-
-    console.error("DB_CONNECTION_FAILED", err);
-
-    process.exit(1);
-
+  bucket = new GridFSBucket(mongoose.connection.db, {
+    bucketName: "taskFiles"
   });
+
+  console.log("✅ DB + GridFS ready");
+
+  app.listen(PORT, () => {
+    console.log(`🔥 Server running on PORT ${PORT}`);
+  });
+
+}
+
+startServer();
