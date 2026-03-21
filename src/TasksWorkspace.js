@@ -81,7 +81,6 @@ console.log(err);
 
 async function uploadFile(taskId,file){
 
-// ✅ validation
 if(!file){
 alert("Please select a file!");
 return;
@@ -277,7 +276,6 @@ type="file"
 onChange={(e)=>{
 const file = e.target.files[0];
 
-// ✅ validation here too
 if(!file){
 alert("Please select a file!");
 return;
@@ -289,6 +287,9 @@ return;
 }
 
 uploadFile(task._id,file);
+
+// 🔥 reset input so same file can be selected again
+e.target.value = null;
 }}
 />
 
@@ -296,6 +297,7 @@ uploadFile(task._id,file);
 
 <td>
 
+{/* ✅ View & Download only if file exists */}
 {task.FileId && (
 <>
 <button onClick={()=>viewFile(task._id)}>
@@ -308,7 +310,8 @@ Download
 </>
 )}
 
-{task.Status !== "Completed" && (
+{/* ✅ Complete only if file uploaded */}
+{task.Status !== "Completed" && task.FileId && (
 <button onClick={()=>markComplete(task._id)}>
 Complete
 </button>
