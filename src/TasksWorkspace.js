@@ -21,7 +21,6 @@ headers:{ Authorization:`Bearer ${token}` }
 };
 
 /* LOAD TASKS */
-
 async function loadTasks(){
 try{
 const res = await api.get("/tasks",headers);
@@ -32,7 +31,6 @@ console.log(err);
 }
 
 /* LOAD EMPLOYEES */
-
 async function loadEmployees(){
 try{
 const res = await api.get("/Employees",headers);
@@ -48,7 +46,6 @@ loadEmployees();
 },[]);
 
 /* CREATE TASK */
-
 async function createTask(){
 
 if(!title || !description || !employeeEmail){
@@ -78,7 +75,6 @@ console.log(err);
 }
 
 /* UPLOAD FILE */
-
 async function uploadFile(taskId,file){
 
 if(!file){
@@ -114,31 +110,23 @@ alert("Upload failed!");
 }
 
 /* VIEW FILE */
-
 function viewFile(taskId){
-
 const token = localStorage.getItem("token");
 
 window.open(
 `https://mywebsite-im3c.onrender.com/api/tasks/file/${taskId}?token=${token}`,
 "_blank"
 );
-
 }
 
 /* DOWNLOAD FILE */
-
 async function downloadFile(taskId){
-
 try{
-
 const token = localStorage.getItem("token");
 
 const res = await axios.get(
 `https://mywebsite-im3c.onrender.com/api/tasks/file/${taskId}?download=true&token=${token}`,
-{
-responseType:"blob"
-}
+{ responseType:"blob" }
 );
 
 const url = window.URL.createObjectURL(new Blob([res.data]));
@@ -155,15 +143,11 @@ a.remove();
 console.log(err);
 alert("Download failed!");
 }
-
 }
 
 /* MARK COMPLETE */
-
 async function markComplete(taskId){
-
 try{
-
 await api.put(`/tasks/status/${taskId}`,{
 Status:"Completed"
 },headers);
@@ -173,7 +157,6 @@ loadTasks();
 }catch(err){
 console.log(err);
 }
-
 }
 
 return(
@@ -190,18 +173,9 @@ onClick={()=>setShowTaskModal(true)}
 </button>
 
 {/* CREATE TASK MODAL */}
-
 {showTaskModal && (
-
-<div
-className="chart-modal"
-onClick={()=>setShowTaskModal(false)}
->
-
-<div
-className="chart-modal-content"
-onClick={(e)=>e.stopPropagation()}
->
+<div className="chart-modal" onClick={()=>setShowTaskModal(false)}>
+<div className="chart-modal-content" onClick={(e)=>e.stopPropagation()}>
 
 <h3>Create Task</h3>
 
@@ -224,7 +198,6 @@ onChange={e=>setDescription(e.target.value)}
 value={employeeEmail}
 onChange={e=>setEmployeeEmail(e.target.value)}
 >
-
 <option value="">Select Employee</option>
 
 {Array.isArray(employees) && employees.map(emp=>(
@@ -242,11 +215,9 @@ Send Task
 </div>
 </div> 
 </div>
-
 )}
 
 {/* TASK TABLE */}
-
 <table className="excel-table">
 
 <thead>
@@ -270,7 +241,6 @@ Send Task
 <td>{task.Status}</td>
 
 <td>
-
 <input
 type="file"
 onChange={(e)=>{
@@ -287,17 +257,14 @@ return;
 }
 
 uploadFile(task._id,file);
-
-// 🔥 reset input so same file can be selected again
 e.target.value = null;
 }}
 />
-
 </td>
 
 <td>
 
-{/* ✅ View & Download only if file exists */}
+{/* View & Download */}
 {task.FileId && (
 <>
 <button onClick={()=>viewFile(task._id)}>
@@ -310,14 +277,21 @@ Download
 </>
 )}
 
-{/* ✅ Complete only if file uploaded */}
-{task.Status !== "Completed" && task.FileId && (
-<button onClick={()=>markComplete(task._id)}>
+{/* Complete Button */}
+<button
+disabled={!task.FileId || task.Status === "Completed"}
+style={{
+backgroundColor: (!task.FileId || task.Status === "Completed") ? "#ccc" : "#4CAF50",
+cursor: (!task.FileId || task.Status === "Completed") ? "not-allowed" : "pointer",
+opacity: (!task.FileId || task.Status === "Completed") ? 0.6 : 1
+}}
+onClick={()=>markComplete(task._id)}
+>
 Complete
 </button>
-)}
 
 </td>
+
 </tr>
 
 ))}
