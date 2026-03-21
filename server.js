@@ -6,7 +6,6 @@ const cors = require("cors");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const path = require("path");
-const { MongoClient, ObjectId } = require("mongodb");
 const mongoose = require("mongoose");
 const { Resend } = require("resend");
 const multer = require("multer");
@@ -15,7 +14,7 @@ const pdfParse = require("pdf-parse");
 const mammoth = require("mammoth");
 const Joi = require("joi");
 const bcrypt = require("bcrypt");
-const { GridFSBucket } = require("mongodb");
+const { GridFSBucket , ObjectId } = require("mongodb");
 const app = express();
 const upload = multer({ dest: "uploads/" });
 
@@ -29,7 +28,7 @@ app.use(cors({   origin: [     "https://mywebsite-im3c.onrender.com"   ],   meth
 app.options("*", cors());
 app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true }));
-const client = new MongoClient(MONGO_URI);
+
 
 let db, users, otps, sessions, auditLogs, bucket;
 
@@ -37,7 +36,7 @@ async function connectDB() {
 
  await mongoose.connect();
 
-  db = client.db("Users");
+db = mongoose.connection.db;
 
   users = db.collection("user");
   otps = db.collection("OTPs");
@@ -1548,12 +1547,10 @@ app.get(/^\/(?!api).*/, (req, res) => {
 
 async function startServer() {
 
-  await client.connect();   
   await mongoose.connect(MONGO_URI);
 
-  db = client.db("Users");
+  db = mongoose.connection.db;
 
-  // 🔥 ADD THESE BACK
   users = db.collection("user");
   otps = db.collection("OTPs");
   sessions = db.collection("Sessions");
