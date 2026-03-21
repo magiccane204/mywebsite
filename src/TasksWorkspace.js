@@ -24,10 +24,8 @@ headers:{ Authorization:`Bearer ${token}` }
 
 async function loadTasks(){
 try{
-
 const res = await api.get("/tasks",headers);
 setTasks(res.data);
-
 }catch(err){
 console.log(err);
 }
@@ -37,10 +35,8 @@ console.log(err);
 
 async function loadEmployees(){
 try{
-
 const res = await api.get("/Employees",headers);
 setEmployees(res.data);
-
 }catch(err){
 console.log(err);
 }
@@ -54,6 +50,11 @@ loadEmployees();
 /* CREATE TASK */
 
 async function createTask(){
+
+if(!title || !description || !employeeEmail){
+alert("Please fill all fields!");
+return;
+}
 
 try{
 
@@ -80,6 +81,17 @@ console.log(err);
 
 async function uploadFile(taskId,file){
 
+// ✅ validation
+if(!file){
+alert("Please select a file!");
+return;
+}
+
+if(file.size === 0){
+alert("File is empty!");
+return;
+}
+
 try{
 
 const form = new FormData();
@@ -92,10 +104,12 @@ Authorization:`Bearer ${token}`,
 }
 });
 
+alert("File uploaded successfully!");
 loadTasks();
 
 }catch(err){
 console.log(err);
+alert("Upload failed!");
 }
 
 }
@@ -140,9 +154,11 @@ a.remove();
 
 }catch(err){
 console.log(err);
+alert("Download failed!");
 }
 
 }
+
 /* MARK COMPLETE */
 
 async function markComplete(taskId){
@@ -260,7 +276,19 @@ Send Task
 type="file"
 onChange={(e)=>{
 const file = e.target.files[0];
-if(file) uploadFile(task._id,file);
+
+// ✅ validation here too
+if(!file){
+alert("Please select a file!");
+return;
+}
+
+if(file.size === 0){
+alert("File is empty!");
+return;
+}
+
+uploadFile(task._id,file);
 }}
 />
 
