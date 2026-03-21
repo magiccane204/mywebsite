@@ -133,7 +133,16 @@ const url = window.URL.createObjectURL(new Blob([res.data]));
 
 const a = document.createElement("a");
 a.href = url;
-a.download = "taskfile";
+const contentDisposition = res.headers["content-disposition"];
+
+let filename = "taskfile";
+
+if(contentDisposition){
+  const match = contentDisposition.match(/filename="(.+)"/);
+  if(match) filename = match[1];
+}
+
+a.download = filename;
 
 document.body.appendChild(a);
 a.click();
