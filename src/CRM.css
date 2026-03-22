@@ -749,3 +749,71 @@ body.dark .upload-label {
   color: #e5e7eb;
   border: 1px solid #4c1d95;
 }
+/* ================= TABLE EDITOR DARK FIX ================= */
+
+/* container */
+body.dark .editor-container {
+  background: #020617;
+  color: #e5e7eb;
+}
+
+/* toolbar */
+body.dark .editor-container .toolbar {
+  background: #111827;
+  border: 1px solid #4c1d95;
+  padding: 10px;
+  border-radius: 8px;
+}
+
+/* toolbar inputs */
+body.dark .editor-container input,
+body.dark .editor-container select {
+  background: #020617 !important;
+  color: #e5e7eb !important;
+  border: 1px solid #4c1d95;
+}
+
+/* toolbar button */
+body.dark .editor-container button {
+  background: linear-gradient(90deg,#7c3aed,#6d28d9);
+  color: white;
+}
+
+/* ================= TABLE ================= */
+
+body.dark .editor-container .table-wrapper {
+  background: #020617;
+}
+
+/* THIS TARGETS YOUR ACTUAL TABLE */
+body.dark .editor-container table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #020617;
+}
+
+/* cells */
+body.dark .editor-container td {
+  border: 1px solid #312e81;
+  background: #020617 !important;
+  color: #e5e7eb !important;
+  padding: 8px;
+  min-width: 100px;
+}
+
+/* focus effect (important for contentEditable) */
+body.dark .editor-container td:focus {
+  outline: none;
+  background: #1e1b4b !important;
+  box-shadow: 0 0 10px rgba(168,85,247,0.6);
+}
+
+/* hover */
+body.dark .editor-container td:hover {
+  background: #111827;
+}
+
+/* selected cell (if you add class) */
+body.dark .editor-container td.selected {
+  background: #1e1b4b;
+}
