@@ -11,7 +11,6 @@ import TasksWorkspace from"./TasksWorkspace";
 import LineChart from "./LineChart";
 import api from "./api";
 import "./CRM.css";
-
 function CRM({ setMode }) {
   const [backendData, setBackendData] = useState(null);
   const [showTableEditor, setShowTableEditor] = useState(false);
