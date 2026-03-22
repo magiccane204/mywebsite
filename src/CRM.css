@@ -817,3 +817,20 @@ body.dark .editor-container td:hover {
 body.dark .editor-container td.selected {
   background: #1e1b4b;
 }
+/* ===== HEADERS ===== */
+
+body.dark .editor-container th {
+  background: #1e1b4b;
+  color: #e5e7eb;
+  border: 1px solid #4c1d95;
+  padding: 8px;
+  text-align: center;
+  min-width: 100px;
+}
+
+/* editable headers focus */
+
+body.dark .editor-container th:focus {
+  outline: none;
+  background: #312e81;
+}
