@@ -705,3 +705,47 @@ margin-bottom:10px;
 text-align:left;
 width:100%;
 }
+/* ================= FIX TABLE DARK MODE ================= */
+
+body.dark table {
+  background: #020617 !important;
+  color: #e5e7eb;
+  border-collapse: collapse;
+}
+
+body.dark table th {
+  background: #1e1b4b !important;
+  color: #e5e7eb;
+  border: 1px solid #4c1d95;
+}
+
+body.dark table td {
+  background: #020617 !important;
+  color: #e5e7eb;
+  border: 1px solid #312e81;
+}
+
+/* INPUT INSIDE TABLE */
+
+body.dark table td input {
+  background: #020617 !important;
+  color: #e5e7eb;
+  border: 1px solid #4c1d95;
+}
+/* TABLE CONTAINER */
+
+body.dark .excel-container,
+body.dark .table-wrapper,
+body.dark .table-toolbar {
+  background: #020617;
+  color: #e5e7eb;
+}
+
+/* BUTTONS IN TOOLBAR */
+
+body.dark .table-toolbar button,
+body.dark .upload-label {
+  background: #111827;
+  color: #e5e7eb;
+  border: 1px solid #4c1d95;
+}
