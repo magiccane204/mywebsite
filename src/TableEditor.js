@@ -42,26 +42,51 @@ export default function TableEditorApp({ tableData, setTableData }) {
       </div>
 
       <div className="table-wrapper">
-        <table>
-          <tbody>
-            {tableData.map((row, r) => (
-              <tr key={r}>
-                {row.map((cell, c) => (
-                  <td
-                    id={`cell-${r}-${c}`}
-                    key={c}
-                    onClick={() => setSelectedCell({ row: r, col: c })}
-                    contentEditable
-                    suppressContentEditableWarning={true}
-                    onBlur={(e) => updateCell(r, c, e.target.textContent)}
-                  >
-                    {cell}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+<table>
+  <thead>
+    <tr>
+      <th></th>
+      {tableData[0]?.map((_, c) => (
+        <th
+          key={c}
+          contentEditable
+          suppressContentEditableWarning
+        >
+          Column {c + 1}
+        </th>
+      ))}
+    </tr>
+  </thead>
+
+  <tbody>
+    {tableData.map((row, r) => (
+      <tr key={r}>
+
+        {/* ROW HEADER */}
+        <th
+          contentEditable
+          suppressContentEditableWarning
+        >
+          Row {r + 1}
+        </th>
+
+        {row.map((cell, c) => (
+          <td
+            id={`cell-${r}-${c}`}
+            key={c}
+            onClick={() => setSelectedCell({ row: r, col: c })}
+            contentEditable
+            suppressContentEditableWarning={true}
+            onBlur={(e) => updateCell(r, c, e.target.textContent)}
+          >
+            {cell}
+          </td>
+        ))}
+
+      </tr>
+    ))}
+  </tbody>
+</table>
       </div>
     </div>
   );
