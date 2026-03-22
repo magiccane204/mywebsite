@@ -7,6 +7,23 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
 
   const [selectedColumn, setSelectedColumn] = useState(null);
 
+  /* ================= LOAD FROM LOCAL STORAGE ================= */
+  useEffect(() => {
+    const saved = localStorage.getItem("excel-table-data");
+
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      setTableData(parsed);
+    }
+  }, [setTableData]);
+
+  /* ================= AUTO SAVE ================= */
+  useEffect(() => {
+    if (tableData && tableData.length > 0) {
+      localStorage.setItem("excel-table-data", JSON.stringify(tableData));
+    }
+  }, [tableData]);
+
   /* ================= ENSURE TABLE EXISTS ================= */
   useEffect(() => {
     if (!tableData || tableData.length === 0) {
@@ -47,7 +64,6 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
 
   /* ================= COLUMN OPS ================= */
   const insertColumnAt = (colIndex) => {
-
     const data = tableData.map(row => {
       const r = [...row];
       r.splice(colIndex + 1, 0, "");
@@ -58,7 +74,6 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
   };
 
   const deleteColumn = (colIndex) => {
-
     if (!tableData[0] || tableData[0].length <= 1) return;
 
     const data = tableData.map(row => {
@@ -72,32 +87,23 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
 
   /* ================= EXCEL OPS ================= */
   const saveExcel = () => {
-
     const ws = XLSX.utils.aoa_to_sheet(tableData);
     const wb = XLSX.utils.book_new();
-
     XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
-
     XLSX.writeFile(wb, "Data.xlsx");
   };
 
   const handleUploadExcel = (e) => {
-
     const file = e.target.files[0];
     if (!file) return;
 
     const reader = new FileReader();
 
     reader.onload = (evt) => {
-
       const wb = XLSX.read(evt.target.result, { type: "array" });
-
       const sheet = wb.Sheets[wb.SheetNames[0]];
-
       const data = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-
       setTableData(normalize(data));
-
     };
 
     reader.readAsArrayBuffer(file);
@@ -105,19 +111,15 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
 
   /* ================= RESUME UPLOAD ================= */
   const handleUploadResume = async (e) => {
-
     const files = e.target.files;
-
     if (!files || files.length === 0) return;
 
     const formData = new FormData();
-
     for (const file of files) {
       formData.append("resumes", file);
     }
 
     try {
-
       const token = localStorage.getItem("token");
 
       const res = await axios.post(
@@ -136,7 +138,6 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
       const rowsToAdd = parsedResumes
         .filter(r => r.success)
         .map(r => {
-
           const d = r.data || {};
 
           const values = [
@@ -150,7 +151,6 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
           ];
 
           const cols = Math.max(tableData[0]?.length || 10, values.length);
-
           const row = Array(cols).fill("");
 
           for (let i = 0; i < values.length; i++) {
@@ -158,30 +158,19 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
           }
 
           return row;
-
         });
 
       setTableData(normalize([...tableData, ...rowsToAdd]));
 
-    }
-
-    catch (err) {
-
+    } catch (err) {
       console.error("Resume upload failed:", err);
-
-    }
-
-    finally {
-
+    } finally {
       e.target.value = "";
-
     }
-
   };
 
   /* ================= COLUMN SELECT ================= */
   const handleColumnClick = (colIndex) => {
-
     setSelectedColumn(colIndex);
 
     const values = tableData
@@ -193,147 +182,59 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
 
   /* ================= UI ================= */
   return (
-
     <div className="excel-container">
 
       <div className="table-toolbar">
-
         <button onClick={addRow} className="col-buttons">➕ Add Row</button>
-
         <button onClick={saveExcel} className="col-buttons">💾 Save Excel</button>
 
         <label className="upload-label">
           Upload Excel / CSV
-          <input
-            type="file"
-            accept=".xlsx,.xls,.csv"
-            onChange={handleUploadExcel}
-            hidden
-          />
+          <input type="file" accept=".xlsx,.xls,.csv" onChange={handleUploadExcel} hidden />
         </label>
 
         <label className="upload-label">
           Upload Resume
-          <input
-            type="file"
-            accept=".pdf,.doc,.docx"
-            multiple
-            onChange={handleUploadResume}
-            hidden
-          />
+          <input type="file" accept=".pdf,.doc,.docx" multiple onChange={handleUploadResume} hidden />
         </label>
-
       </div>
 
       <div className="table-wrapper">
-
         <table>
 
           <thead>
-
             <tr>
-
               {tableData[0]?.map((_, c) => (
-
-                <th
-                  key={c}
-                  onClick={() => handleColumnClick(c)}
-                  style={{
-                    cursor: "pointer",
-                    background:
-                      selectedColumn === c
-                        ? "rgba(173,216,230,0.4)"
-                        : "transparent"
-                  }}
-                >
-
-                  <div style={{
-                    display: "flex",
-                    gap: "4px",
-                    justifyContent: "center",
-                    alignItems: "center"
-                  }}>
-
-                    <span>{c + 1}</span>
-
-                    <button
-                      type="button"
-                      className="square-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        insertColumnAt(c);
-                      }}
-                    >
-                      +
-                    </button>
-
-                    <button
-                      type="button"
-                      className="square-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteColumn(c);
-                      }}
-                    >
-                      🗑
-                    </button>
-
-                  </div>
-
+                <th key={c} onClick={() => handleColumnClick(c)}>
+                  <span>{c + 1}</span>
                 </th>
-
               ))}
-
               <th>Actions</th>
-
             </tr>
-
           </thead>
 
           <tbody>
-
             {tableData.map((row, r) => (
-
               <tr key={r}>
-
                 {row.map((cell, c) => (
-
                   <td key={c}>
-
                     <input
                       type="text"
                       value={cell}
-                      onChange={(e) =>
-                        handleChange(r, c, e.target.value)
-                      }
+                      onChange={(e) => handleChange(r, c, e.target.value)}
                     />
-
                   </td>
-
                 ))}
-
                 <td>
-
-                  <button
-                    onClick={() => deleteRow(r)}
-                    className="square-btn"
-                  >
-                    🗑
-                  </button>
-
+                  <button onClick={() => deleteRow(r)}>🗑</button>
                 </td>
-
               </tr>
-
             ))}
-
           </tbody>
 
         </table>
-
       </div>
 
     </div>
-
   );
 }
