@@ -6,23 +6,33 @@ import "./ExcelTable.css";
 export default function ExcelTable({ tableData, setTableData, onColumnSelect }) {
 
   const [selectedColumn, setSelectedColumn] = useState(null);
+  const [colHeaders, setColHeaders] = useState([]);
 
-  /* ================= LOAD FROM LOCAL STORAGE ================= */
+  /* ================= LOAD TABLE DATA ================= */
   useEffect(() => {
     const saved = localStorage.getItem("excel-table-data");
 
     if (saved) {
-      const parsed = JSON.parse(saved);
-      setTableData(parsed);
+      setTableData(JSON.parse(saved));
     }
   }, [setTableData]);
 
-  /* ================= AUTO SAVE ================= */
+  /* ================= SAVE TABLE DATA ================= */
   useEffect(() => {
     if (tableData && tableData.length > 0) {
       localStorage.setItem("excel-table-data", JSON.stringify(tableData));
     }
   }, [tableData]);
+
+  /* ================= LOAD HEADERS FROM TABLE EDITOR ================= */
+  useEffect(() => {
+    const saved = localStorage.getItem("table-editor-data");
+
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      setColHeaders(parsed.colHeaders || []);
+    }
+  }, []);
 
   /* ================= ENSURE TABLE EXISTS ================= */
   useEffect(() => {
@@ -185,54 +195,141 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
     <div className="excel-container">
 
       <div className="table-toolbar">
+
         <button onClick={addRow} className="col-buttons">➕ Add Row</button>
+
         <button onClick={saveExcel} className="col-buttons">💾 Save Excel</button>
 
         <label className="upload-label">
           Upload Excel / CSV
-          <input type="file" accept=".xlsx,.xls,.csv" onChange={handleUploadExcel} hidden />
+          <input
+            type="file"
+            accept=".xlsx,.xls,.csv"
+            onChange={handleUploadExcel}
+            hidden
+          />
         </label>
 
         <label className="upload-label">
           Upload Resume
-          <input type="file" accept=".pdf,.doc,.docx" multiple onChange={handleUploadResume} hidden />
+          <input
+            type="file"
+            accept=".pdf,.doc,.docx"
+            multiple
+            onChange={handleUploadResume}
+            hidden
+          />
         </label>
+
       </div>
 
       <div className="table-wrapper">
+
         <table>
 
           <thead>
             <tr>
+
               {tableData[0]?.map((_, c) => (
-                <th key={c} onClick={() => handleColumnClick(c)}>
-                  <span>{c + 1}</span>
+
+                <th
+                  key={c}
+                  onClick={() => handleColumnClick(c)}
+                  style={{
+                    cursor: "pointer",
+                    background:
+                      selectedColumn === c
+                        ? "rgba(173,216,230,0.4)"
+                        : "transparent"
+                  }}
+                >
+
+                  <div style={{
+                    display: "flex",
+                    gap: "4px",
+                    justifyContent: "center",
+                    alignItems: "center"
+                  }}>
+
+                    {/* ✅ HEADER FIX */}
+                    <span>
+                      {colHeaders && colHeaders.length === tableData[0]?.length
+                        ? colHeaders[c]
+                        : c + 1}
+                    </span>
+
+                    <button
+                      type="button"
+                      className="square-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        insertColumnAt(c);
+                      }}
+                    >
+                      +
+                    </button>
+
+                    <button
+                      type="button"
+                      className="square-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteColumn(c);
+                      }}
+                    >
+                      🗑
+                    </button>
+
+                  </div>
+
                 </th>
+
               ))}
+
               <th>Actions</th>
+
             </tr>
           </thead>
 
           <tbody>
+
             {tableData.map((row, r) => (
+
               <tr key={r}>
+
                 {row.map((cell, c) => (
+
                   <td key={c}>
+
                     <input
                       type="text"
                       value={cell}
-                      onChange={(e) => handleChange(r, c, e.target.value)}
+                      onChange={(e) =>
+                        handleChange(r, c, e.target.value)
+                      }
                     />
+
                   </td>
+
                 ))}
+
                 <td>
-                  <button onClick={() => deleteRow(r)}>🗑</button>
+                  <button
+                    onClick={() => deleteRow(r)}
+                    className="square-btn"
+                  >
+                    🗑
+                  </button>
                 </td>
+
               </tr>
+
             ))}
+
           </tbody>
 
         </table>
+
       </div>
 
     </div>
