@@ -3,30 +3,74 @@ import "./TableEditor.css";
 
 export default function TableEditorApp({ tableData, setTableData }) {
 
+  const [selectedCell, setSelectedCell] = useState({ row: null, col: null });
+
+  const [fontSize, setFontSize] = useState("16px");
+  const [fontFamily, setFontFamily] = useState("Arial");
+
   const [colHeaders, setColHeaders] = useState([]);
   const [rowHeaders, setRowHeaders] = useState([]);
 
-  /* ===== INIT HEADERS ===== */
+  /* ================= LOAD ================= */
   useEffect(() => {
-    if (tableData.length) {
-      setColHeaders(prev =>
-        prev.length ? prev : tableData[0].map((_, i) => `Col ${i + 1}`)
-      );
+    const saved = localStorage.getItem("table-editor-data");
 
-      setRowHeaders(prev =>
-        prev.length ? prev : tableData.map((_, i) => `Row ${i + 1}`)
-      );
+    if (saved) {
+      const parsed = JSON.parse(saved);
+
+      setTableData(parsed.tableData || []);
+      setColHeaders(parsed.colHeaders || []);
+      setRowHeaders(parsed.rowHeaders || []);
     }
+  }, []);
+
+  /* ================= INIT HEADERS ================= */
+  useEffect(() => {
+    if (!tableData.length) return;
+
+    setColHeaders(prev =>
+      prev.length === tableData[0].length
+        ? prev
+        : tableData[0].map((_, i) => `Col ${i + 1}`)
+    );
+
+    setRowHeaders(prev =>
+      prev.length === tableData.length
+        ? prev
+        : tableData.map((_, i) => `Row ${i + 1}`)
+    );
   }, [tableData]);
 
-  /* ===== UPDATE CELL ===== */
+  /* ================= SAVE ================= */
+  useEffect(() => {
+    localStorage.setItem(
+      "table-editor-data",
+      JSON.stringify({ tableData, colHeaders, rowHeaders })
+    );
+  }, [tableData, colHeaders, rowHeaders]);
+
+  /* ================= UPDATE CELL ================= */
   const updateCell = (r, c, value) => {
     const newData = [...tableData];
     newData[r][c] = value;
     setTableData(newData);
   };
 
-  /* ===== UPDATE HEADERS ===== */
+  /* ================= FONT APPLY ================= */
+  const applyFont = () => {
+    if (selectedCell.row === null) return;
+
+    const cell = document.getElementById(
+      `cell-${selectedCell.row}-${selectedCell.col}`
+    );
+
+    if (cell) {
+      cell.style.fontSize = fontSize;
+      cell.style.fontFamily = fontFamily;
+    }
+  };
+
+  /* ================= HEADER UPDATES ================= */
   const updateColHeader = (c, value) => {
     const newHeaders = [...colHeaders];
     newHeaders[c] = value;
@@ -39,10 +83,41 @@ export default function TableEditorApp({ tableData, setTableData }) {
     setRowHeaders(newHeaders);
   };
 
+  /* ================= RESET ================= */
+  const resetData = () => {
+    localStorage.removeItem("table-editor-data");
+    window.location.reload();
+  };
+
   return (
     <div className="editor-container">
 
       <h2>🎨 Table Editor</h2>
+
+      {/* ===== TOOLBAR (RESTORED) ===== */}
+      <div className="toolbar">
+        <label>Font Size:</label>
+        <input
+          type="number"
+          value={parseInt(fontSize)}
+          onChange={(e) => setFontSize(e.target.value + "px")}
+        />
+
+        <label>Font Family:</label>
+        <select
+          value={fontFamily}
+          onChange={(e) => setFontFamily(e.target.value)}
+        >
+          <option>Arial</option>
+          <option>Times New Roman</option>
+          <option>Courier New</option>
+          <option>Verdana</option>
+        </select>
+
+        <button onClick={applyFont}>Apply Font</button>
+
+        <button onClick={resetData}>Reset</button>
+      </div>
 
       <div className="table-wrapper">
 
@@ -52,20 +127,20 @@ export default function TableEditorApp({ tableData, setTableData }) {
           <thead>
             <tr>
               <th></th>
-
               {colHeaders.map((col, c) => (
                 <th key={c}>
                   <input
                     value={col}
-                    onChange={(e) => updateColHeader(c, e.target.value)}
+                    onChange={(e) =>
+                      updateColHeader(c, e.target.value)
+                    }
                   />
                 </th>
               ))}
-
             </tr>
           </thead>
 
-          {/* ===== TABLE BODY ===== */}
+          {/* ===== BODY ===== */}
           <tbody>
 
             {tableData.map((row, r) => (
@@ -75,12 +150,20 @@ export default function TableEditorApp({ tableData, setTableData }) {
                 <th>
                   <input
                     value={rowHeaders[r] || ""}
-                    onChange={(e) => updateRowHeader(r, e.target.value)}
+                    onChange={(e) =>
+                      updateRowHeader(r, e.target.value)
+                    }
                   />
                 </th>
 
                 {row.map((cell, c) => (
-                  <td key={c}>
+                  <td
+                    id={`cell-${r}-${c}`}
+                    key={c}
+                    onClick={() =>
+                      setSelectedCell({ row: r, col: c })
+                    }
+                  >
                     <input
                       value={cell}
                       onChange={(e) =>
