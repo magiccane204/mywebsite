@@ -37,14 +37,14 @@ function LineChart({ chartData, title }) {
       {
         label: "Trend / Progress",
         data: chartData,
-        borderColor: "rgba(59, 130, 246, 1)", // bright blue
-        backgroundColor: "rgba(59, 130, 246, 0.25)", // subtle fill
-        pointBackgroundColor: "#1e3a8a", // deep blue
+        borderColor: "rgba(59, 130, 246, 1)", 
+        backgroundColor: "rgba(59, 130, 246, 0.25)", 
+        pointBackgroundColor: "#1e3a8a", 
         pointBorderColor: "#fff",
         pointHoverRadius: 6,
         pointHoverBorderWidth: 2,
         fill: true,
-        tension: 0.4, // smooth curve
+        tension: 0.4, 
       },
     ],
   };
