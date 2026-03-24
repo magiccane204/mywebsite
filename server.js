@@ -1,6 +1,5 @@
 require("dotenv").config();
 console.log("🔥 SERVER FILE RUNNING");
-
 const express = require("express");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
@@ -17,7 +16,6 @@ const bcrypt = require("bcrypt");
 const { GridFSBucket , ObjectId } = require("mongodb");
 const app = express();
 const upload = multer({ dest: "uploads/" });
-
 const PORT = process.env.PORT || 10000;
 const MONGO_URI = process.env.MONGODB_URI;
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -203,7 +201,7 @@ app.post("/api/signup", async (req, res) => {
   }
 
 });
-/* ================= LOGIN – SEND OTP ================= */
+
 
 app.post("/api/login", rateLimit, async (req, res) => {
 
@@ -219,12 +217,11 @@ app.post("/api/login", rateLimit, async (req, res) => {
       });
     }
 
-    // STEP 1 — Check Users collection
     const user = await users.findOne({ Email: email.toLowerCase() });
 
     if (!user) {
 
-      // STEP 2 — Check Employees collection
+   
       const employee = await EmployeesModel.findOne({ Email: email });
 
       if (employee) {
@@ -244,11 +241,11 @@ app.post("/api/login", rateLimit, async (req, res) => {
 
     }
 
- // STEP 3 — Verify password
+
 
 let match = false;
 
-// SUPER ADMIN → SHA256
+
 if (user.Role === "SuperAdmin") {
 
   const hashedInput = crypto
@@ -262,7 +259,7 @@ if (user.Role === "SuperAdmin") {
 
 }
 
-// EMPLOYEES → BCRYPT
+
 else {
 
   match = await bcrypt.compare(password, user.Password);
@@ -276,7 +273,7 @@ if (!match) {
   });
 }
 
-    // STEP 4 — Send OTP
+   
     const otp = generateOTP();
 
     await otps.deleteMany({ Email: email });
@@ -313,7 +310,7 @@ if (!match) {
 });
 
 
-/* ================= VERIFY OTP ================= */
+
 
 app.post("/api/verify-otp", async (req, res) => {
 
@@ -413,7 +410,7 @@ JWT_SECRET,
   }
 
 });
-/* ================= EMPLOYEE SCHEMA ================= */
+
 
 const employeeSchema = new mongoose.Schema({
 
@@ -445,7 +442,6 @@ const EmployeesModel = mongoose.model(
   employeeSchema,
   "Employee"
 );
-/* ================= VALIDATION SCHEMA ================= */
 
 const addEmployeeSchema = Joi.object({
 
@@ -470,7 +466,7 @@ const addEmployeeSchema = Joi.object({
     .required(),
 
 });
-/* ================= EMAIL FUNCTIONS ================= */
+
 
 async function sendAppointmentEmail({
   to,
@@ -532,7 +528,7 @@ console.error("TERMINATION EMAIL FAILED:", err);
 }
 
 }
-/* ================= ADD EMPLOYEE ================= */
+
 
 app.post("/api/Employees", auth, async (req, res) => {
 
@@ -591,7 +587,7 @@ app.post("/api/Employees", auth, async (req, res) => {
   }
 
 });
-/* ================= GET EMPLOYEES ================= */
+
 
 app.get("/api/Employees", auth, async (req, res) => {
 
@@ -616,7 +612,7 @@ app.get("/api/Employees", auth, async (req, res) => {
   }
 
 });
-/* ================= UPDATE EMPLOYEE ================= */
+
 
 app.put("/api/update-employee", auth, async (req, res) => {
 
@@ -663,7 +659,7 @@ app.put("/api/update-employee", auth, async (req, res) => {
   return res.json({ success: true });
 
 });
-/* ================= DELETE EMPLOYEE ================= */
+
 
 app.delete("/api/Employees/:id", auth, async (req, res) => {
 
@@ -708,7 +704,7 @@ app.delete("/api/Employees/:id", auth, async (req, res) => {
 
 });
 
-/* ================= LOCK / UNLOCK EMPLOYEE ================= */
+
 
 app.put("/api/Employees/lock/:id", auth, async (req, res) => {
 
@@ -753,7 +749,7 @@ app.put("/api/Employees/lock/:id", auth, async (req, res) => {
 
 });
 
-/* ================= RESUME PARSER UTILITIES ================= */
+
 
 const clean = (s) => (s || "").replace(/\s+/g, " ").trim();
 
@@ -841,7 +837,7 @@ function parseResumeText(text) {
   };
 
 }
-/* ================= RESUME UPLOAD API ================= */
+
 
 app.post("/api/resume/extract", auth, upload.array("resumes", 20), async (req, res) => {
 
@@ -924,7 +920,7 @@ app.post("/api/resume/extract", auth, upload.array("resumes", 20), async (req, r
   }
 
 });
-/* ================= DASHBOARD ================= */
+
 
 app.get("/api/dashboard", auth, async (req, res) => {
 
@@ -956,7 +952,6 @@ app.get("/api/dashboard", auth, async (req, res) => {
   }
 
 });
-/* ================= REPORTS SUMMARY ================= */
 
 app.get("/api/reports", auth, async (req, res) => {
 
@@ -1026,7 +1021,7 @@ app.get("/api/reports", auth, async (req, res) => {
   }
 
 });
-/* ================= UPDATE DARK MODE ================= */
+
 
 app.put("/api/me/darkmode", auth, async (req, res) => {
 
@@ -1069,7 +1064,7 @@ app.put("/api/me/darkmode", auth, async (req, res) => {
   }
 
 });
-/* ================= SESSION VALIDATION ================= */
+
 
 app.get("/api/validate-session", auth, async (req, res) => {
 
@@ -1101,9 +1096,6 @@ app.get("/api/validate-session", auth, async (req, res) => {
   }
 
 });
-// ===============================
-// USER MODEL
-// ===============================
 
 
 
@@ -1128,9 +1120,7 @@ const UserSchema = new mongoose.Schema({
 const User = mongoose.model("User", UserSchema, "user");
 
 
-// ===============================
-// GET CURRENT USER
-// ===============================
+
 
 app.get("/api/me", auth, async (req, res) => {
 
@@ -1152,9 +1142,7 @@ app.get("/api/me", auth, async (req, res) => {
 });
 
 
-// ===============================
-// UPDATE SETTINGS
-// ===============================
+
 
 app.put("/api/me/settings", auth, async (req, res) => {
 
@@ -1190,9 +1178,7 @@ app.put("/api/me/settings", auth, async (req, res) => {
 
 });
 
-// ===============================
-// CHANGE PASSWORD
-// ===============================
+
 
 app.put("/api/me/password", auth, async (req, res) => {
 
@@ -1220,9 +1206,7 @@ app.put("/api/me/password", auth, async (req, res) => {
 });
 
 
-// ===============================
-// DELETE ACCOUNT
-// ===============================
+
 
 app.delete("/api/me", auth, async (req, res) => {
 
@@ -1239,11 +1223,7 @@ app.delete("/api/me", auth, async (req, res) => {
   }
 
 });
-/* ================================================= */
-/* ================= TASK SYSTEM =================== */
-/* ================================================= */
 
-/* ===== TASK SCHEMA ===== */
 
 const taskSchema = new mongoose.Schema({
   Title: { type: String, required: true },
@@ -1273,7 +1253,7 @@ const Task = mongoose.model("Task", taskSchema);
 
 
 
-/* ===== MULTER FOR TASK FILES ===== */
+
 
 const taskDir = path.join(__dirname, "taskUploads");
 
@@ -1286,9 +1266,6 @@ const taskUpload = multer({
 });
 
 
-/* ================================================= */
-/* ================= CREATE TASK =================== */
-/* ================================================= */
 
 app.post("/api/tasks", auth, async (req, res) => {
 
@@ -1338,8 +1315,6 @@ app.post("/api/tasks", auth, async (req, res) => {
 
 
 
-/* ================= GET TASKS ===================== */
-
 app.get("/api/tasks", auth, async (req, res) => {
 
   try {
@@ -1368,7 +1343,7 @@ app.get("/api/tasks", auth, async (req, res) => {
   }
 
 });
-/* ================= UPDATE TASK STATUS ================= */
+
 
 app.put("/api/tasks/status/:id", auth, async (req,res)=>{
 
@@ -1401,9 +1376,7 @@ res.status(500).json({message:"Failed to update task"});
 }
 
 });
-/* ================================================= */
-/* ================= UPLOAD TASK FILE ============== */
-/* ================================================= */
+
 app.post("/api/tasks/upload/:id", auth, taskUpload.single("file"), async (req,res)=>{
 
 try{
@@ -1459,9 +1432,6 @@ res.status(500).json({message:"Upload failed"});
 }
 
 });
-/* ================================================= */
-/* ================= VIEW FILE ===================== */
-/* ================================================= */
 
 app.get("/api/tasks/file/:id", async (req,res)=>{
 try{
@@ -1511,7 +1481,7 @@ res.status(500).send("File error");
 }
 });
 
-/* ================= GLOBAL ERROR HANDLER ================= */
+
 
 app.use((err, req, res, next) => {
 
@@ -1523,7 +1493,7 @@ app.use((err, req, res, next) => {
   });
 
 });
-/* ================= ROOT / HEALTH ================= */
+
 app.get("/api/health", (req, res) => {
 
   res.json({
@@ -1534,7 +1504,7 @@ app.get("/api/health", (req, res) => {
   });
 
 });
-/* ================= SERVE FRONTEND ================= */
+
 
 const frontendPath = path.join(__dirname, "build");
 
@@ -1543,7 +1513,7 @@ app.use(express.static(frontendPath));
 app.get(/^\/(?!api).*/, (req, res) => {
   res.sendFile(path.join(frontendPath, "index.html"));
 });
-/* ================= SERVER START ================= */
+
 
 async function startServer() {
 
