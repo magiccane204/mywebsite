@@ -16,7 +16,7 @@ function MyPieChart({ chartData, headers, title }) {
   let values = [];
 
   if (chartData.length > 20) {
-    // Range mode (like histogram bins)
+
     const min = Math.min(...chartData);
     const max = Math.max(...chartData);
     const rangeCount = 10;
@@ -38,7 +38,7 @@ function MyPieChart({ chartData, headers, title }) {
     });
     values = bins;
   } else {
-    // Normal mode: show direct data
+
     labels = chartData.map((_, i) => `Row ${i + 1}`);
     values = chartData;
   }
