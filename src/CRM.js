@@ -93,7 +93,7 @@ function CRM({ setMode }) {
           <img src="D&T.png" alt="logo" />
         </div>
 
-      <button onClick={() => fetchData("/hello", "")}>
+      <button onClick={() => fetchData("/hello", "dashboard")}>
           <span>🏠</span> <span>Dashboard</span>
         </button>
 
@@ -156,8 +156,8 @@ function CRM({ setMode }) {
       </div>
 
     </div>
-
-
+   </>
+)}
 
           <div className="charts-container">
             <div className="chart" onClick={() => setExpandedChart("bar")}>
