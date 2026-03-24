@@ -20,7 +20,6 @@ const headers = {
 headers:{ Authorization:`Bearer ${token}` }
 };
 
-/* LOAD TASKS */
 async function loadTasks(){
 try{
 const res = await api.get("/tasks",headers);
@@ -30,7 +29,7 @@ console.log(err);
 }
 }
 
-/* LOAD EMPLOYEES */
+
 async function loadEmployees(){
 try{
 const res = await api.get("/Employees",headers);
@@ -45,7 +44,7 @@ loadTasks();
 loadEmployees();
 },[]);
 
-/* CREATE TASK */
+
 async function createTask(){
 
 if(!title || !description || !employeeEmail){
@@ -74,7 +73,7 @@ console.log(err);
 
 }
 
-/* UPLOAD FILE */
+
 async function uploadFile(taskId,file){
 
 if(!file){
@@ -109,7 +108,7 @@ alert("Upload failed!");
 
 }
 
-/* VIEW FILE */
+
 function viewFile(taskId){
 const token = localStorage.getItem("token");
 
@@ -119,7 +118,7 @@ window.open(
 );
 }
 
-/* DOWNLOAD FILE */
+
 async function downloadFile(taskId){
 try{
 const token = localStorage.getItem("token");
@@ -154,7 +153,7 @@ alert("Download failed!");
 }
 }
 
-/* MARK COMPLETE */
+
 async function markComplete(taskId){
 try{
 await api.put(`/tasks/status/${taskId}`,{
@@ -181,7 +180,7 @@ onClick={()=>setShowTaskModal(true)}
 ➕ Create Task
 </button>
 
-{/* CREATE TASK MODAL */}
+{}
 {showTaskModal && (
 <div className="chart-modal" onClick={()=>setShowTaskModal(false)}>
 <div className="chart-modal-content" onClick={(e)=>e.stopPropagation()}>
@@ -226,7 +225,7 @@ Send Task
 </div>
 )}
 
-{/* TASK TABLE */}
+{}
 <table className="excel-table">
 
 <thead>
@@ -273,7 +272,7 @@ e.target.value = null;
 
 <td>
 
-{/* View & Download */}
+{}
 {task.FileId && (
 <>
 <button onClick={()=>viewFile(task._id)}>
@@ -286,7 +285,7 @@ Download
 </>
 )}
 
-{/* Complete Button */}
+{}
 <button
 disabled={!task.FileId || task.Status === "Completed"}
 style={{
