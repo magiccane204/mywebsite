@@ -29,7 +29,7 @@ color: #2563eb;
   height: 22px;
   border-radius: 50%;
 }
-/* ================= CARDS ================= */
+
 
 .Employee-card {
 background: #ffffff;
@@ -44,7 +44,7 @@ margin-bottom: 15px;
 font-size: 20px;
 }
 
-/* ================= FORM ================= */
+
 
 .Employee-form {
 display: grid;
@@ -75,7 +75,7 @@ transition: 0.2s;
 background: #1e40af;
 }
 
-/* ================= TABLE ================= */
+
 
 table {
 width: 100%;
@@ -99,9 +99,7 @@ color: #6b7280;
 font-style: italic;
 }
 
-/* ================================================= */
-/* ================= DARK MODE ===================== */
-/* ================================================= */
+
 
 body.dark .Employee-card {
 background: #111827;
