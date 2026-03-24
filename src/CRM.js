@@ -7,10 +7,11 @@ import Employee from "./Employee";
 import Reports from "./Reports";
 import Settings from "./Settings";
 import ScatterChart from "./ScatterChart";
-import TasksWorkspace from"./TasksWorkspace";
+import TasksWorkspace from "./TasksWorkspace";
 import LineChart from "./LineChart";
 import api from "./api";
 import "./CRM.css";
+
 function CRM({ setMode }) {
   const [backendData, setBackendData] = useState(null);
   const [showTableEditor, setShowTableEditor] = useState(false);
@@ -29,23 +30,11 @@ function CRM({ setMode }) {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (!token) {
-      setMode("login");
-    }
+    if (!token) setMode("login");
   }, [setMode]);
 
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === "Escape") setExpandedChart(null);
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
-
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("loggedInUser");
-    localStorage.removeItem("loggedInName");
+    localStorage.clear();
     setMode("login");
   };
 
@@ -61,274 +50,171 @@ function CRM({ setMode }) {
         setBackendData(res.data);
       }
     } catch (err) {
-      console.error("Error fetching data:", err);
+      console.error(err);
     }
   };
 
   const handleColumnSelect = (columnValues, colIndex) => {
-    const columnName = headers[colIndex] || `Column ${colIndex + 1}`;
-    const numericValues = columnValues
+    const numeric = columnValues
       .map((v) => parseFloat(v))
       .filter((v) => !isNaN(v));
-    setSelectedColumnName(columnName);
-    setSelectedStats(numericValues.length > 0 ? numericValues : []);
+
+    setSelectedStats(numeric);
+    setSelectedColumnName(headers[colIndex] || `Column ${colIndex + 1}`);
   };
 
-  const storedName = localStorage.getItem("loggedInName");
-  const storedEmail = localStorage.getItem("loggedInUser");
-
-  let displayName = "User";
-  if (storedName) {
-    displayName = storedName;
-  } else if (storedEmail) {
-    displayName =
-      storedEmail.split("@")[0].charAt(0).toUpperCase() +
-      storedEmail.split("@")[0].slice(1);
-  }
+  const displayName =
+    localStorage.getItem("loggedInName") ||
+    (localStorage.getItem("loggedInUser") || "User").split("@")[0];
 
   return (
     <div className="app">
+      {/* SIDEBAR */}
       <div className="sidebar">
-        <div className="logo">
-          <img src="D&T.png" alt="logo" />
-        </div>
-
-      <button onClick={() => fetchData("/hello", "dashboard")}>
-          <span>🏠</span> <span>Dashboard</span>
-        </button>
-
-        <button onClick={() => fetchData("/Employees", "Employees")}>
-          <span>👥</span> <span>Employees</span>
-        </button>
-
-        <button onClick={() => setActiveSection("reports")}>
-          <span>📊</span> <span>Reports</span>
-        </button>
-
-         <button onClick={() => setActiveSection("workspace")}>
-          <span>💼</span> <span>Workspace</span>
-        </button>
-  
-        <button onClick={() => setActiveSection("settings")}>
-          <span>⚙️</span> <span>Settings</span>
-        </button>
-
-        <button onClick={handleLogout}>
-          <span>⏻</span> <span>Logout</span>
-        </button>
+        <button onClick={() => setActiveSection("dashboard")}>🏠</button>
+        <button onClick={() => fetchData("/Employees", "Employees")}>👥</button>
+        <button onClick={() => setActiveSection("reports")}>📊</button>
+        <button onClick={() => setActiveSection("workspace")}>💼</button>
+        <button onClick={() => setActiveSection("settings")}>⚙️</button>
+        <button onClick={handleLogout}>⏻</button>
       </div>
 
+      {/* CONTENT */}
       <div className="content">
         <div className="horizontalbar">
-          <span>Data and Technology CRM Systems</span>
- <div className="user-info">
-  <img src="/user.png" alt="user" />
-  <span>Welcome, {displayName}</span>
-</div>
+          CRM Dashboard — Welcome {displayName}
         </div>
 
- {activeSection === "dashboard" && (
-  <>
-    <div className="dashboard-grid">
-
-      <div className="kpi-card">
-        <h3>Total Revenue</h3>
-        <h1>₹1,24,000</h1>
-        <span className="growth">+12.5%</span>
-      </div>
-
-      <div className="kpi-card">
-        <h3>Active Leads</h3>
-        <h1>342</h1>
-        <span className="growth">+5%</span>
-      </div>
-
-      <div className="kpi-card">
-        <h3>Conversion Rate</h3>
-        <h1>24%</h1>
-        <span className="growth down">-2%</span>
-      </div>
-
-      <div className="kpi-card">
-        <h3>Tasks Completed</h3>
-        <h1>89</h1>
-        <span className="growth">+18%</span>
-      </div>
-
-    </div>
-   </>
-)}
-
-          <div className="charts-container">
-            <div className="chart" onClick={() => setExpandedChart("bar")}>
-              <MyBarChart
-                chartData={selectedStats}
-                headers={headers}
-                title={selectedColumnName}
-              />
+        {/* DASHBOARD */}
+        {activeSection === "dashboard" && (
+          <>
+            {/* KPI */}
+            <div className="dashboard-grid">
+              <div className="kpi-card">
+                <h3>💰 Revenue</h3>
+                <h1>₹1,24,000</h1>
+              </div>
+              <div className="kpi-card">
+                <h3>📈 Leads</h3>
+                <h1>342</h1>
+              </div>
+              <div className="kpi-card">
+                <h3>🎯 Conversion</h3>
+                <h1>24%</h1>
+              </div>
+              <div className="kpi-card">
+                <h3>✅ Tasks</h3>
+                <h1>89</h1>
+              </div>
             </div>
 
-            <div className="chart" onClick={() => setExpandedChart("pie")}>
-              <MyPieChart
-                chartData={selectedStats}
-                headers={headers}
-                title={selectedColumnName}
-              />
+            {/* CHARTS */}
+            <div className="charts-container">
+              <div className="chart" onClick={() => setExpandedChart("bar")}>
+                <MyBarChart chartData={selectedStats} />
+              </div>
+
+              <div className="chart" onClick={() => setExpandedChart("pie")}>
+                <MyPieChart chartData={selectedStats} />
+              </div>
+
+              <div className="chart" onClick={() => setExpandedChart("line")}>
+                <LineChart chartData={selectedStats} />
+              </div>
+
+              <div className="chart" onClick={() => setExpandedChart("scatter")}>
+                <ScatterChart
+                  chartDataX={selectedStats.slice(0, -1)}
+                  chartDataY={selectedStats.slice(1)}
+                />
+              </div>
             </div>
 
-            <div className="chart" onClick={() => setExpandedChart("line")}>
-              <LineChart
-                chartData={selectedStats}
-                headers={headers}
-                title={selectedColumnName}
-              />
-            </div>
-
-            <div className="chart" onClick={() => setExpandedChart("scatter")}>
-              <ScatterChart
-                chartDataX={selectedStats.slice(0, selectedStats.length - 1)}
-                chartDataY={selectedStats.slice(1)}
-                title={selectedColumnName}
-              />
-            </div>
-
+            {/* MODAL WITH ANALYTICS */}
             {expandedChart && (
-              <div className="chart-modal" onClick={() => setExpandedChart(null)}>
+              <div
+                className="chart-modal"
+                onClick={() => setExpandedChart(null)}
+              >
                 <div
                   className="chart-modal-content"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <button
-                    className="close-btn"
-                    onClick={() => setExpandedChart(null)}
-                  >
-                    ✖ Close
-                  </button>
+                  <button onClick={() => setExpandedChart(null)}>Close</button>
 
                   {expandedChart === "bar" && (
-                    <MyBarChart
-                      chartData={selectedStats}
-                      headers={headers}
-                      title={selectedColumnName}
-                    />
+                    <MyBarChart chartData={selectedStats} />
                   )}
                   {expandedChart === "pie" && (
-                    <MyPieChart
-                      chartData={selectedStats}
-                      headers={headers}
-                      title={selectedColumnName}
-                    />
+                    <MyPieChart chartData={selectedStats} />
                   )}
                   {expandedChart === "line" && (
-                    <LineChart
-                      chartData={selectedStats}
-                      headers={headers}
-                      title={selectedColumnName}
-                    />
+                    <LineChart chartData={selectedStats} />
                   )}
                   {expandedChart === "scatter" && (
                     <ScatterChart
-                      chartDataX={selectedStats.slice(
-                        0,
-                        selectedStats.length - 1
-                      )}
+                      chartDataX={selectedStats.slice(0, -1)}
                       chartDataY={selectedStats.slice(1)}
-                      title={selectedColumnName}
                     />
                   )}
 
-                  {selectedStats && selectedStats.length > 0 ? (
-                    <div className="chart-stats">
-                      <p>
-                        <strong>Count:</strong> {selectedStats.length}
-                      </p>
-                      <p>
-                        <strong>Min:</strong>{" "}
-                        {Math.min(...selectedStats).toFixed(2)}
-                      </p>
-                      <p>
-                        <strong>Max:</strong>{" "}
-                        {Math.max(...selectedStats).toFixed(2)}
-                      </p>
-                      <p>
-                        <strong>Average:</strong>{" "}
-                        {(
-                          selectedStats.reduce((a, b) => a + b, 0) /
-                          selectedStats.length
-                        ).toFixed(2)}
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="chart-stats">
-                      No numeric statistics found
-                    </div>
-                  )}
+                  {/* DATA ANALYTICS */}
+                  <div className="chart-stats">
+                    {selectedStats.length > 0 ? (
+                      <>
+                        <p>Count: {selectedStats.length}</p>
+                        <p>Min: {Math.min(...selectedStats)}</p>
+                        <p>Max: {Math.max(...selectedStats)}</p>
+                        <p>
+                          Avg:{" "}
+                          {(
+                            selectedStats.reduce((a, b) => a + b, 0) /
+                            selectedStats.length
+                          ).toFixed(2)}
+                        </p>
+                      </>
+                    ) : (
+                      <p>No data</p>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
-          </div>
+          </>
         )}
 
+        {/* OTHER SECTIONS */}
         {activeSection === "Employees" && (
-          <div className="Employees-section">
-            <Employee Employees={Employees} />
-          </div>
+          <Employee Employees={Employees} />
         )}
+        {activeSection === "reports" && <Reports />}
+        {activeSection === "workspace" && <TasksWorkspace />}
+        {activeSection === "settings" && <Settings />}
 
-        {activeSection === "reports" && (
-          <div className="reports-section">
-            <Reports />
-          </div>
-        )}
-          {activeSection === "workspace" && (
-          <div className="workspace-section">
-            <TasksWorkspace />
-            </div>
-)}
-        {activeSection === "settings" && (
-          <div className="settings-section">
-            <Settings />
-          </div>
-        )}
+        {/* TABLE */}
+        {activeSection === "dashboard" && (
+          <div className="table-section">
+            <button onClick={() => setShowTableEditor(false)}>
+              Excel Table
+            </button>
+            <button onClick={() => setShowTableEditor(true)}>
+              Editor
+            </button>
 
-{activeSection !== "Employees" &&
- activeSection !== "reports" &&
- activeSection !== "settings" &&
- activeSection !== "workspace" && (
-            <div className="table-section">
-              <div className="table-toolbar">
-                <button onClick={() => setShowTableEditor(false)}>
-                  📑 Excel Table
-                </button>
-                <button onClick={() => setShowTableEditor(true)}>
-                  🧮 Table Editor
-                </button>
-              </div>
-              <div className="excel-container">
-                {showTableEditor ? (
-                  <TableEditor
-                    tableData={tableData}
-                    setTableData={setTableData}
-                    headers={headers}
-                    setHeaders={setHeaders}
-                  />
-                ) : (
-                  <ExcelTable
-                    tableData={tableData}
-                    setTableData={setTableData}
-                    headers={headers}
-                    setHeaders={setHeaders}
-                    onColumnSelect={handleColumnSelect}
-                  />
-                )}
-              </div>
-            </div>
-          )}
-
-        {backendData && (
-          <div className="backend-response">
-            <h3>Response from backend:</h3>
-            <pre>{JSON.stringify(backendData, null, 2)}</pre>
+            {showTableEditor ? (
+              <TableEditor
+                tableData={tableData}
+                setTableData={setTableData}
+                headers={headers}
+                setHeaders={setHeaders}
+              />
+            ) : (
+              <ExcelTable
+                tableData={tableData}
+                headers={headers}
+                onColumnSelect={handleColumnSelect}
+              />
+            )}
           </div>
         )}
       </div>
@@ -337,8 +223,3 @@ function CRM({ setMode }) {
 }
 
 export default CRM;
-
-
-
-
-
