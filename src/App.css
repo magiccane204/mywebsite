@@ -1,12 +1,11 @@
 
-/* ===== LOGIN PAGE FULL BACKGROUND FIX ===== */
 
 body {
 background: #f3f4f6;
 margin: 0;
 }
 
-/* make login page fill the whole screen */
+
 
 .auth-page {
 min-height: 100vh;
@@ -19,7 +18,7 @@ align-items: center;
 background: #f3f4f6;
 }
 
-/* LOGIN / AUTH PAGE WRAPPER */
+
 
 .auth-page {
 height: 100vh;
@@ -29,7 +28,7 @@ align-items: center;
 background: #f3f4f6;
 }
 
-/* Floating login card */
+
 
 .auth-page .floating-card {
 background-color: #FFFFFF;
@@ -47,7 +46,7 @@ align-items: center;
 gap: 15px;
 }
 
-/* Image */
+
 
 .auth-page .floating-card img {
 width: 450px;
@@ -55,7 +54,7 @@ height: 150px;
 border-radius: 50%;
 }
 
-/* Inputs */
+
 
 .auth-page .floating-card input {
 width: 80%;
@@ -68,7 +67,7 @@ background: white;
 color: black;
 }
 
-/* Checkbox row */
+
 
 .auth-page .floating-card .options-row {
 display: flex;
@@ -79,7 +78,6 @@ font-size: 14px;
 align-items: center;
 }
 
-/* Login button */
 
 .auth-page .button {
 font-size: 22px;
