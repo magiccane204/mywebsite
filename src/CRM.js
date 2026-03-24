@@ -93,7 +93,7 @@ function CRM({ setMode }) {
           <img src="D&T.png" alt="logo" />
         </div>
 
-      <button onClick={() => fetchData("/hello", "dashboard")}>
+      <button onClick={() => fetchData("/hello", "")}>
           <span>🏠</span> <span>Dashboard</span>
         </button>
 
@@ -127,7 +127,38 @@ function CRM({ setMode }) {
 </div>
         </div>
 
-        {activeSection === "dashboard" && (
+ {activeSection === "dashboard" && (
+  <>
+    <div className="dashboard-grid">
+
+      <div className="kpi-card">
+        <h3>Total Revenue</h3>
+        <h1>₹1,24,000</h1>
+        <span className="growth">+12.5%</span>
+      </div>
+
+      <div className="kpi-card">
+        <h3>Active Leads</h3>
+        <h1>342</h1>
+        <span className="growth">+5%</span>
+      </div>
+
+      <div className="kpi-card">
+        <h3>Conversion Rate</h3>
+        <h1>24%</h1>
+        <span className="growth down">-2%</span>
+      </div>
+
+      <div className="kpi-card">
+        <h3>Tasks Completed</h3>
+        <h1>89</h1>
+        <span className="growth">+18%</span>
+      </div>
+
+    </div>
+
+
+
           <div className="charts-container">
             <div className="chart" onClick={() => setExpandedChart("bar")}>
               <MyBarChart
