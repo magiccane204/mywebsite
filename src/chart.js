@@ -23,9 +23,9 @@ function MyBarChart({ chartData, headers, title }) {
   let labels = [];
   let values = [];
 
-  // ✅ Check if dataset is large
+
   if (chartData.length > 20) {
-    // Create histogram-style ranges
+ 
     const min = Math.min(...chartData);
     const max = Math.max(...chartData);
     const rangeCount = 10;
@@ -47,7 +47,7 @@ function MyBarChart({ chartData, headers, title }) {
     });
     values = bins;
   } else {
-    // Normal mode: show each value directly
+
     labels = chartData.map((_, i) => `Row ${i + 1}`);
     values = chartData;
   }
