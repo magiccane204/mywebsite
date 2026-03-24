@@ -8,7 +8,7 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
   const [selectedColumn, setSelectedColumn] = useState(null);
   const [colHeaders, setColHeaders] = useState([]);
 
-  /* ================= LOAD TABLE DATA ================= */
+
   useEffect(() => {
     const saved = localStorage.getItem("excel-table-data");
 
@@ -17,14 +17,13 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
     }
   }, [setTableData]);
 
-  /* ================= SAVE TABLE DATA ================= */
+
   useEffect(() => {
     if (tableData && tableData.length > 0) {
       localStorage.setItem("excel-table-data", JSON.stringify(tableData));
     }
   }, [tableData]);
 
-  /* ================= LOAD HEADERS FROM TABLE EDITOR ================= */
   useEffect(() => {
     const saved = localStorage.getItem("table-editor-data");
 
@@ -34,14 +33,14 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
     }
   }, []);
 
-  /* ================= ENSURE TABLE EXISTS ================= */
+
   useEffect(() => {
     if (!tableData || tableData.length === 0) {
       setTableData([Array(10).fill("")]);
     }
   }, [tableData, setTableData]);
 
-  /* ================= NORMALIZE ================= */
+
   const normalize = (data) => {
     if (!data.length) return [Array(10).fill("")];
 
@@ -54,14 +53,13 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
     });
   };
 
-  /* ================= CELL EDIT ================= */
   const handleChange = (r, c, value) => {
     const data = normalize([...tableData]);
     data[r][c] = value;
     setTableData(data);
   };
 
-  /* ================= ROW OPS ================= */
+
   const addRow = () => {
     const cols = tableData[0]?.length || 10;
     setTableData(normalize([...tableData, Array(cols).fill("")]));
@@ -72,7 +70,7 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
     setTableData(data.length ? normalize(data) : [Array(10).fill("")]);
   };
 
-  /* ================= COLUMN OPS ================= */
+
   const insertColumnAt = (colIndex) => {
     const data = tableData.map(row => {
       const r = [...row];
@@ -95,7 +93,7 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
     setTableData(normalize(data));
   };
 
-  /* ================= EXCEL OPS ================= */
+
   const saveExcel = () => {
     const ws = XLSX.utils.aoa_to_sheet(tableData);
     const wb = XLSX.utils.book_new();
@@ -119,7 +117,7 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
     reader.readAsArrayBuffer(file);
   };
 
-  /* ================= RESUME UPLOAD ================= */
+
   const handleUploadResume = async (e) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -179,7 +177,7 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
     }
   };
 
-  /* ================= COLUMN SELECT ================= */
+
   const handleColumnClick = (colIndex) => {
     setSelectedColumn(colIndex);
 
@@ -190,7 +188,7 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
     if (onColumnSelect) onColumnSelect(values, colIndex);
   };
 
-  /* ================= UI ================= */
+
   return (
     <div className="excel-container">
 
@@ -251,7 +249,7 @@ export default function ExcelTable({ tableData, setTableData, onColumnSelect }) 
                     alignItems: "center"
                   }}>
 
-                    {/* ✅ HEADER FIX */}
+                    {}
                     <span>
                       {colHeaders && colHeaders.length === tableData[0]?.length
                         ? colHeaders[c]
