@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react"; // Added useMemo
 import MyBarChart from "./chart";
 import MyPieChart from "./pchart";
 import ExcelTable from "./ExcelTable";
@@ -19,8 +19,7 @@ function CRM({ setMode }) {
   const [expandedChart, setExpandedChart] = useState(null);
   const [Employees, setEmployees] = useState([]);
   
-  // --- DATA INITIALIZATION (CRITICAL FIX) ---
-  // We use a function to initialize state so it never starts as 'undefined'
+  // --- DATA INITIALIZATION ---
   const [headers, setHeaders] = useState(() => {
     try {
       const saved = localStorage.getItem("crm_vault_headers");
@@ -32,7 +31,6 @@ function CRM({ setMode }) {
     try {
       const saved = localStorage.getItem("crm_vault_main_data");
       const parsed = saved ? JSON.parse(saved) : null;
-      // Ensure it's a valid 2D array, otherwise return default
       if (Array.isArray(parsed) && parsed.length > 0 && Array.isArray(parsed[0])) {
         return parsed;
       }
@@ -42,6 +40,20 @@ function CRM({ setMode }) {
 
   const [selectedStats, setSelectedStats] = useState([]);
   const [selectedColumnName, setSelectedColumnName] = useState("No Column Selected");
+
+  // --- CHART DATA PROCESSING (THE MISSING PIECE) ---
+  const simpleChartData = useMemo(() => {
+    return selectedStats && selectedStats.length > 0 ? selectedStats : [];
+  }, [selectedStats]);
+
+  const scatterData = useMemo(() => {
+    if (!selectedStats || selectedStats.length < 2) return [];
+    // Creates coordinate pairs: [{x: 10, y: 20}, {x: 20, y: 15}...]
+    return selectedStats.slice(0, -1).map((val, i) => ({
+      x: val,
+      y: selectedStats[i + 1]
+    }));
+  }, [selectedStats]);
 
   // --- PERSISTENCE ---
   useEffect(() => {
@@ -104,51 +116,44 @@ function CRM({ setMode }) {
               <div className="kpi-card"><h3>✅ Tasks</h3><h1>89</h1></div>
             </div>
 
-{/* CHARTS CONTAINER */}
-<div className="charts-container">
-  
-  {/* BAR CHART */}
-  <div className="chart-card" onClick={() => setExpandedChart("bar")}>
-    <div className="chart-header">Bar: {selectedColumnName}</div>
-    {simpleChartData.length > 0 ? (
-      <MyBarChart chartData={simpleChartData} />
-    ) : (
-      <div className="chart-placeholder">Select numeric column</div>
-    )}
-  </div>
+            {/* CHARTS CONTAINER */}
+            <div className="charts-container">
+              <div className="chart-card" onClick={() => setExpandedChart("bar")}>
+                <div className="chart-header">Bar: {selectedColumnName}</div>
+                {simpleChartData.length > 0 ? (
+                  <MyBarChart chartData={simpleChartData} />
+                ) : (
+                  <div className="chart-placeholder">Select numeric column</div>
+                )}
+              </div>
 
-  {/* PIE CHART */}
-  <div className="chart-card" onClick={() => setExpandedChart("pie")}>
-    <div className="chart-header">Distribution</div>
-    {simpleChartData.length > 0 ? (
-      <MyPieChart chartData={simpleChartData} />
-    ) : (
-      <div className="chart-placeholder">No data</div>
-    )}
-  </div>
+              <div className="chart-card" onClick={() => setExpandedChart("pie")}>
+                <div className="chart-header">Distribution</div>
+                {simpleChartData.length > 0 ? (
+                  <MyPieChart chartData={simpleChartData} />
+                ) : (
+                  <div className="chart-placeholder">No data</div>
+                )}
+              </div>
 
-  {/* LINE CHART */}
-  <div className="chart-card" onClick={() => setExpandedChart("line")}>
-    <div className="chart-header">Timeline</div>
-    {simpleChartData.length > 0 ? (
-      <LineChart chartData={simpleChartData} />
-    ) : (
-      <div className="chart-placeholder">No data</div>
-    )}
-  </div>
+              <div className="chart-card" onClick={() => setExpandedChart("line")}>
+                <div className="chart-header">Timeline</div>
+                {simpleChartData.length > 0 ? (
+                  <LineChart chartData={simpleChartData} />
+                ) : (
+                  <div className="chart-placeholder">No data</div>
+                )}
+              </div>
 
-  {/* SCATTER PLOT - THE CRITICAL FIX */}
-  <div className="chart-card" onClick={() => setExpandedChart("scatter")}>
-    <div className="chart-header">Correlation (X:Y)</div>
-    {scatterData.length > 0 ? (
-      <ScatterChart chartData={scatterData} />
-    ) : (
-      <div className="chart-placeholder">Requires 2+ numbers</div>
-    )}
-  </div>
-
-</div>
-
+              <div className="chart-card" onClick={() => setExpandedChart("scatter")}>
+                <div className="chart-header">Correlation (X:Y)</div>
+                {scatterData.length > 0 ? (
+                  <ScatterChart chartData={scatterData} />
+                ) : (
+                  <div className="chart-placeholder">Requires 2+ numbers</div>
+                )}
+              </div>
+            </div>
 
             {/* TABLE SECTION */}
             <div className="table-section">
@@ -158,7 +163,6 @@ function CRM({ setMode }) {
               </div>
 
               <div className="table-view-port">
-                {/* FIX: Ensure tableData[0] exists before rendering */}
                 {tableData && tableData.length > 0 ? (
                   showTableEditor ? (
                     <TableEditor tableData={tableData} setTableData={setTableData} headers={headers} setHeaders={setHeaders} />
@@ -179,9 +183,10 @@ function CRM({ setMode }) {
             <div className="chart-modal-body" onClick={(e) => e.stopPropagation()}>
               <button className="close-modal-btn" onClick={() => setExpandedChart(null)}>✕</button>
               <div className="modal-viz">
-                {expandedChart === "bar" && <MyBarChart chartData={selectedStats} />}
-                {expandedChart === "pie" && <MyPieChart chartData={selectedStats} />}
-                {/* ... other cases ... */}
+                {expandedChart === "bar" && <MyBarChart chartData={simpleChartData} />}
+                {expandedChart === "pie" && <MyPieChart chartData={simpleChartData} />}
+                {expandedChart === "line" && <LineChart chartData={simpleChartData} />}
+                {expandedChart === "scatter" && <ScatterChart chartData={scatterData} />}
               </div>
               <div className="modal-stats">
                 <p>Count: {selectedStats?.length || 0}</p>
