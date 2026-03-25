@@ -104,31 +104,51 @@ function CRM({ setMode }) {
               <div className="kpi-card"><h3>✅ Tasks</h3><h1>89</h1></div>
             </div>
 
-            {/* CHARTS WITH OPTIONAL CHAINING GUARD */}
-            <div className="charts-container">
-              <div className="chart-card" onClick={() => setExpandedChart("bar")}>
-                <div className="chart-header">{selectedColumnName}</div>
-                <MyBarChart chartData={selectedStats || []} />
-              </div>
+{/* CHARTS CONTAINER */}
+<div className="charts-container">
+  
+  {/* BAR CHART */}
+  <div className="chart-card" onClick={() => setExpandedChart("bar")}>
+    <div className="chart-header">Bar: {selectedColumnName}</div>
+    {simpleChartData.length > 0 ? (
+      <MyBarChart chartData={simpleChartData} />
+    ) : (
+      <div className="chart-placeholder">Select numeric column</div>
+    )}
+  </div>
 
-              <div className="chart-card" onClick={() => setExpandedChart("pie")}>
-                <div className="chart-header">Distribution</div>
-                <MyPieChart chartData={selectedStats || []} />
-              </div>
+  {/* PIE CHART */}
+  <div className="chart-card" onClick={() => setExpandedChart("pie")}>
+    <div className="chart-header">Distribution</div>
+    {simpleChartData.length > 0 ? (
+      <MyPieChart chartData={simpleChartData} />
+    ) : (
+      <div className="chart-placeholder">No data</div>
+    )}
+  </div>
 
-              <div className="chart-card" onClick={() => setExpandedChart("line")}>
-                <div className="chart-header">Timeline</div>
-                <LineChart chartData={selectedStats || []} />
-              </div>
+  {/* LINE CHART */}
+  <div className="chart-card" onClick={() => setExpandedChart("line")}>
+    <div className="chart-header">Timeline</div>
+    {simpleChartData.length > 0 ? (
+      <LineChart chartData={simpleChartData} />
+    ) : (
+      <div className="chart-placeholder">No data</div>
+    )}
+  </div>
 
-              <div className="chart-card" onClick={() => setExpandedChart("scatter")}>
-                <div className="chart-header">Correlation</div>
-                <ScatterChart
-                  chartDataX={(selectedStats || []).slice(0, -1)}
-                  chartDataY={(selectedStats || []).slice(1)}
-                />
-              </div>
-            </div>
+  {/* SCATTER PLOT - THE CRITICAL FIX */}
+  <div className="chart-card" onClick={() => setExpandedChart("scatter")}>
+    <div className="chart-header">Correlation (X:Y)</div>
+    {scatterData.length > 0 ? (
+      <ScatterChart chartData={scatterData} />
+    ) : (
+      <div className="chart-placeholder">Requires 2+ numbers</div>
+    )}
+  </div>
+
+</div>
+
 
             {/* TABLE SECTION */}
             <div className="table-section">
