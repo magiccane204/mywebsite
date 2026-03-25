@@ -107,57 +107,56 @@ email={localStorage.getItem("otp_email")}
 
 if (mode === "crm") return <CRM setMode={setMode} api={api} />;
 
-return ( 
+return (
   <div className="auth-page">
 
+    <div className="floating-card">
 
-  <div className="floating-card">
+      <div className="profile-wrapper">
+        <img
+          src="/user.png"
+          alt="profile pic"
+          className="profile-img"
+        />
+      </div>
 
-    <img
-      src="/user.png"
-      alt="profile pic"
-      style={{ width: 150, height: 150, borderRadius: "50%" }}
-    />
+      <h1 className="title">Welcome Back</h1>
+      <p className="subtitle">Login to continue</p>
 
-    <h1>Login</h1>
+      <input
+        type="email"
+        value={email}
+        placeholder="Email"
+        onChange={(e) => setEmail(e.target.value)}
+        className="input"
+      />
 
-    <input
-      type="email"
-      value={email}
-      placeholder="Email"
-      onChange={(e) => setEmail(e.target.value)}
-    />
+      <input
+        type="password"
+        value={password}
+        placeholder="Password"
+        onChange={(e) => setPassword(e.target.value)}
+        className="input"
+      />
 
-    <input
-      type="password"
-      value={password}
-      placeholder="Password"
-      onChange={(e) => setPassword(e.target.value)}
-    />
-
-    <button
-      type="button"
-      className="button"
-      onClick={handleLogin}
-    >
-      Login
-    </button>
-
-    <p style={{ marginTop: "15px" }}>
-      Not registered?{" "}
-      <span
-        style={{ color: "blue", cursor: "pointer" }}
-        onClick={() => setMode("signup")}
+      <button
+        type="button"
+        className="button"
+        onClick={handleLogin}
       >
-        Register Now
-      </span>
-    </p>
+        Login
+      </button>
+
+      <p className="register-text">
+        Not registered?
+        <span onClick={() => setMode("signup")}>
+          Register Now
+        </span>
+      </p>
+
+    </div>
 
   </div>
-
-</div>
-
-
 );
 
 }
