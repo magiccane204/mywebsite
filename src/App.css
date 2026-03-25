@@ -1,234 +1,100 @@
-
-
-body {
-background: #f3f4f6;
-margin: 0;
-}
-
-
-
-.auth-page {
-min-height: 100vh;
-width: 500vw;
-
-display: flex;
-justify-content: center;
-align-items: center;
-
-background: #f3f4f6;
-}
-
-
-
-.auth-page {
-height: 100vh;
-display: flex;
-justify-content: center;
-align-items: center;
-background: #f3f4f6;
-}
-
-
-
-.auth-page .floating-card {
-background-color: #FFFFFF;
-padding: 40px 60px;
-width: 650px;
-height: 500px;
-max-width: 90%;
-text-align: center;
-border-radius: 20px;
-box-shadow: 0 12px 40px rgba(121, 234, 222, 0.922);
-
-display: flex;
-flex-direction: column;
-align-items: center;
-gap: 15px;
-}
-
-
-
-.auth-page .floating-card img {
-width: 450px;
-height: 150px;
-border-radius: 50%;
-}
-
-
-
-.auth-page .floating-card input {
-width: 80%;
-max-width: 400px;
-padding: 12px 12px;
-font-size: 20px;
-border-radius: 20px;
-border: 1px solid #ccc;
-background: white;
-color: black;
-}
-
-
-
-.auth-page .floating-card .options-row {
-display: flex;
-justify-content: space-between;
-width: 80%;
-max-width: 400px;
-font-size: 14px;
-align-items: center;
-}
-
-
-.auth-page .button {
-font-size: 22px;
-width: 80%;
-max-width: 400px;
-border: none;
-border-radius: 35px;
-padding: 18px;
-text-align: center;
-box-shadow: 0 12px 35px lightblue;
-cursor: pointer;
-background-color: #05b2fc;
-color: white;
-}
-
-.auth-page .button:hover {
-background-color: azure;
-color: black;
-}
-
 body {
   margin: 0;
   font-family: "Poppins", sans-serif;
+  background: #0f172a;
 }
 
+/* Page */
 .auth-page {
   height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
-
-  background: linear-gradient(135deg, #0f172a, #1e293b);
 }
 
-/* Glass card */
-.floating-card {
-  width: 320px;
-  padding: 30px 25px;
+/* Card */
+.auth-page .floating-card {
+  background-color: #ffffff;
+  padding: 35px 40px;
+
+  width: 420px;   /* FIXED proportion */
+  max-width: 90%;
+
   border-radius: 20px;
-
-  backdrop-filter: blur(15px);
-  background: rgba(255, 255, 255, 0.05);
-
-  border: 1px solid rgba(255, 255, 255, 0.1);
-
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-
   text-align: center;
 
-  animation: fadeIn 0.5s ease;
-}
+  box-shadow: 0 10px 35px rgba(56, 189, 248, 0.3);
 
-.profile-wrapper {
   display: flex;
-  justify-content: center;
-  margin-bottom: 10px;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
 }
 
-.profile-img {
-  width: 110px;
-  height: 110px;
+/* Profile image */
+.auth-page .floating-card img {
+  width: 120px;   /* FIXED (was 450 💀) */
+  height: 120px;
   border-radius: 50%;
-  border: 3px solid #38bdf8;
-  padding: 5px;
 }
 
 /* Title */
-.title {
-  margin: 10px 0 5px;
-  color: white;
-}
-
-.subtitle {
-  font-size: 14px;
-  color: #94a3b8;
-  margin-bottom: 20px;
+.auth-page h1 {
+  margin: 5px 0;
 }
 
 /* Inputs */
-.input {
+.auth-page .floating-card input {
   width: 100%;
   padding: 12px;
-  margin: 8px 0;
+  font-size: 16px;
 
-  border-radius: 10px;
-  border: none;
+  border-radius: 25px;
+  border: 1px solid #ccc;
 
   outline: none;
-
-  background: rgba(255, 255, 255, 0.08);
-  color: white;
-
   transition: 0.3s;
 }
 
-.input::placeholder {
-  color: #94a3b8;
-}
-
-.input:focus {
-  background: rgba(255, 255, 255, 0.12);
-  box-shadow: 0 0 0 2px #38bdf8;
+.auth-page .floating-card input:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 5px rgba(56, 189, 248, 0.5);
 }
 
 /* Button */
-.button {
+.auth-page .button {
   width: 100%;
-  padding: 12px;
-  margin-top: 15px;
+  padding: 14px;
+  font-size: 18px;
 
+  border-radius: 30px;
   border: none;
-  border-radius: 10px;
 
-  background: linear-gradient(135deg, #38bdf8, #6366f1);
+  background: linear-gradient(135deg, #7c3aed, #6d28d9);
   color: white;
-  font-weight: bold;
 
   cursor: pointer;
   transition: 0.3s;
+
+  margin-top: 10px;
 }
 
-.button:hover {
+.auth-page .button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(56, 189, 248, 0.3);
+  box-shadow: 0 8px 20px rgba(124, 58, 237, 0.4);
 }
 
 /* Register text */
-.register-text {
-  margin-top: 15px;
+.auth-page p {
   font-size: 14px;
-  color: #94a3b8;
+  margin-top: 10px;
 }
 
-.register-text span {
-  color: #38bdf8;
+.auth-page span {
+  color: #2563eb;
   cursor: pointer;
-  margin-left: 5px;
 }
 
-.register-text span:hover {
+.auth-page span:hover {
   text-decoration: underline;
-}
-
-/* Animation */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
