@@ -1,290 +1,289 @@
-import React, { useState, useEffect, useCallback } from "react";
-import * as XLSX from "xlsx";
-import axios from "axios";
-import "./ExcelTable.css";
+import React, { useState, useEffect } from "react";
+import MyBarChart from "./chart";
+import MyPieChart from "./pchart";
+import ExcelTable from "./ExcelTable";
+import TableEditor from "./TableEditor";
+import Employee from "./Employee";
+import Reports from "./Reports";
+import Settings from "./Settings";
+import ScatterChart from "./ScatterChart";
+import TasksWorkspace from "./TasksWorkspace";
+import LineChart from "./LineChart";
+import api from "./api";
+import "./CRM.css";
 
-export default function ExcelTable({ tableData, setTableData, onColumnSelect, headers }) {
-  // --- EXTENDED STATE ---
-  const [selectedColumn, setSelectedColumn] = useState(null);
-  const [isFormatModalOpen, setIsFormatModalOpen] = useState(false);
-  const [formatConfirmText, setFormatConfirmText] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
-  const [uploadStatus, setUploadStatus] = useState("");
+function CRM({ setMode }) {
+  // --- UI NAVIGATION STATE ---
+  const [activeSection, setActiveSection] = useState("dashboard");
+  const [showTableEditor, setShowTableEditor] = useState(false);
+  const [expandedChart, setExpandedChart] = useState(null);
+  
+  // --- CRM DATA STATE (Lifted from ExcelTable) ---
+  const [Employees, setEmployees] = useState([]);
+  
+  // Persistence: Initialize Headers from storage or use defaults
+  const [headers, setHeaders] = useState(() => {
+    const saved = localStorage.getItem("crm_vault_headers");
+    return saved ? JSON.parse(saved) : ["Client Name", "Contact Email", "Deal Value", "Lead Status", "Last Contact"];
+  });
 
-  // --- PERSISTENCE ENGINE ---
-  // Ensure the table stays stored in the "CRM Vault"
+  // Persistence: Initialize Table Data from storage or use defaults
+  const [tableData, setTableData] = useState(() => {
+    const saved = localStorage.getItem("crm_vault_main_data");
+    return saved ? JSON.parse(saved) : Array(12).fill(null).map(() => Array(5).fill(""));
+  });
+
+  // --- ANALYTICS & STATS STATE ---
+  const [selectedStats, setSelectedStats] = useState([]);
+  const [selectedColumnName, setSelectedColumnName] = useState("No Column Selected");
+
+  // --- PERSISTENCE LAYER ---
+  // Save to LocalStorage whenever table or headers change
   useEffect(() => {
-    const saved = localStorage.getItem("crm-excel-data-main");
-    if (saved && (!tableData || tableData.length === 0)) {
-      setTableData(JSON.parse(saved));
-    }
-  }, [setTableData, tableData]);
-
-  useEffect(() => {
-    if (tableData && tableData.length > 0) {
-      setIsSaving(true);
-      const timer = setTimeout(() => {
-        localStorage.setItem("crm-excel-data-main", JSON.stringify(tableData));
-        setIsSaving(false);
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
+    localStorage.setItem("crm_vault_main_data", JSON.stringify(tableData));
   }, [tableData]);
 
-  // --- CORE DATA MANIPULATION ---
-  const normalize = useCallback((data) => {
-    if (!data || data.length === 0) return [Array(10).fill("")];
-    const maxCols = Math.max(...data.map((r) => (r ? r.length : 0)), 10);
-    return data.map((r) => {
-      const row = r ? [...r] : [];
-      while (row.length < maxCols) row.push("");
-      return row;
-    });
-  }, []);
+  useEffect(() => {
+    localStorage.setItem("crm_vault_headers", JSON.stringify(headers));
+  }, [headers]);
 
-  const handleChange = (rowIndex, colIndex, value) => {
-    // Deep clone to ensure React detects the change
-    const newData = tableData.map((row, rIdx) => {
-      if (rIdx === rowIndex) {
-        const newRow = [...row];
-        newRow[colIndex] = value;
-        return newRow;
-      }
-      return row;
-    });
-    setTableData(newData);
+  // Auth Check: Ensure user is logged in
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) setMode("login");
+  }, [setMode]);
+
+  // --- ACTIONS & HANDLERS ---
+  const handleLogout = () => {
+    localStorage.clear();
+    setMode("login");
   };
 
-  const addRow = () => {
-    const colCount = tableData[0]?.length || 10;
-    const newRow = Array(colCount).fill("");
-    setTableData([...tableData, newRow]);
-  };
-
-  const deleteRow = (rowIndex) => {
-    if (window.confirm("Are you sure you want to delete this row?")) {
-      const newData = tableData.filter((_, i) => i !== rowIndex);
-      setTableData(newData.length ? newData : [Array(10).fill("")]);
-    }
-  };
-
-  const insertColumnAt = (colIndex) => {
-    const newData = tableData.map((row) => {
-      const r = [...row];
-      r.splice(colIndex + 1, 0, "");
-      return r;
-    });
-    setTableData(normalize(newData));
-  };
-
-  const deleteColumn = (colIndex) => {
-    if (tableData[0]?.length <= 1) return;
-    if (window.confirm("This will delete the entire column. Continue?")) {
-      const newData = tableData.map((row) => {
-        const r = [...row];
-        r.splice(colIndex, 1);
-        return r;
-      });
-      setTableData(normalize(newData));
-    }
-  };
-
-  // --- FILE I/O ---
-  const saveExcel = () => {
+  const fetchData = async (route, section) => {
     try {
-      const ws = XLSX.utils.aoa_to_sheet(tableData);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "CRM_Data_Export");
-      XLSX.writeFile(wb, `CRM_Database_${new Date().toLocaleDateString()}.xlsx`);
-    } catch (err) {
-      console.error("Export failed", err);
-    }
-  };
-
-  const handleUploadExcel = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      try {
-        const bstr = evt.target.result;
-        const wb = XLSX.read(bstr, { type: "binary" });
-        const wsname = wb.SheetNames[0];
-        const ws = wb.Sheets[wsname];
-        const data = XLSX.utils.sheet_to_json(ws, { header: 1 });
-        setTableData(normalize(data));
-        setUploadStatus("Excel Imported!");
-      } catch (err) {
-        setUploadStatus("Import Failed.");
+      setActiveSection(section);
+      const res = await api.get(route);
+      if (section === "Employees") {
+        setEmployees(res.data);
       }
-    };
-    reader.readAsBinaryString(file);
-  };
-
-  // --- RESUME PARSER (300+ Line Complexity) ---
-  const handleUploadResume = async (e) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    setUploadStatus("Parsing Resumes...");
-    const formData = new FormData();
-    for (const file of files) {
-      formData.append("resumes", file);
-    }
-
-    try {
-      const token = localStorage.getItem("token");
-      const res = await axios.post("/api/resume/extract", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const parsedResumes = res.data?.resumes || [];
-      const rowsToAdd = parsedResumes
-        .filter((r) => r.success)
-        .map((r) => {
-          const d = r.data || {};
-          const values = [
-            d.name || "N/A",
-            d.email || "N/A",
-            d.phone || "N/A",
-            d.linkedIn || "N/A",
-            d.experience || "N/A",
-            d.education || "N/A",
-            (d.skills || []).join(", "),
-          ];
-          // Ensure row matches table width
-          const row = Array(Math.max(tableData[0]?.length || 7, values.length)).fill("");
-          values.forEach((v, i) => (row[i] = v));
-          return row;
-        });
-
-      setTableData(normalize([...tableData, ...rowsToAdd]));
-      setUploadStatus("Success!");
     } catch (err) {
-      console.error("Resume extraction error", err);
-      setUploadStatus("Extraction Error.");
-    } finally {
-      e.target.value = "";
+      console.error("CRM Data Fetching Failed:", err);
     }
   };
 
-  // --- SECURITY: NUCLEAR FORMAT ---
-  const triggerFormat = () => {
-    if (formatConfirmText === "FORMAT") {
-      const resetData = [Array(10).fill("")];
-      setTableData(resetData);
-      localStorage.removeItem("crm-excel-data-main");
-      setFormatConfirmText("");
-      setIsFormatModalOpen(false);
-      alert("CRM Database has been wiped clean.");
-    } else {
-      alert("Incorrect confirmation text. Database NOT deleted.");
-    }
+  const handleColumnSelect = (columnValues, colIndex) => {
+    // Process numeric data for the charts
+    const numeric = columnValues
+      .map((v) => parseFloat(v))
+      .filter((v) => !isNaN(v));
+
+    setSelectedStats(numeric);
+    setSelectedColumnName(headers[colIndex] || `Column ${colIndex + 1}`);
   };
 
-  const handleHeaderClick = (c) => {
-    setSelectedColumn(c);
-    const colValues = tableData.map((row) => row[c]);
-    if (onColumnSelect) onColumnSelect(colValues, c);
-  };
+  const displayName = 
+    localStorage.getItem("loggedInName") || 
+    (localStorage.getItem("loggedInUser") || "Administrator").split("@")[0];
 
   return (
-    <div className="excel-container">
-      <div className="table-toolbar">
-        <div className="toolbar-left">
-          <button onClick={addRow} className="col-buttons action-btn">➕ Add Row</button>
-          <button onClick={saveExcel} className="col-buttons action-btn">💾 Save Excel</button>
-          
-          <label className="upload-label">
-            Import Excel
-            <input type="file" accept=".xlsx,.xls,.csv" onChange={handleUploadExcel} hidden />
-          </label>
-
-          <label className="upload-label resume-btn">
-            Bulk Resume Parse
-            <input type="file" accept=".pdf,.doc,.docx" multiple onChange={handleUploadResume} hidden />
-          </label>
-        </div>
-
-        <div className="toolbar-right">
-          <span className="status-badge">{isSaving ? "Auto-saving..." : "✓ Saved"}</span>
-          <button onClick={() => setIsFormatModalOpen(true)} className="danger-reset-btn">⚠️ FORMAT SYSTEM</button>
-        </div>
+    <div className="app">
+      {/* 1. SIDEBAR NAVIGATION */}
+      <div className="sidebar">
+        <div className="sidebar-logo">CRM</div>
+        <button 
+          className={activeSection === "dashboard" ? "active" : ""} 
+          onClick={() => setActiveSection("dashboard")}
+          title="Dashboard"
+        >🏠</button>
+        <button 
+          className={activeSection === "Employees" ? "active" : ""} 
+          onClick={() => fetchData("/Employees", "Employees")}
+          title="Team Members"
+        >👥</button>
+        <button 
+          className={activeSection === "reports" ? "active" : ""} 
+          onClick={() => setActiveSection("reports")}
+          title="Analytics Reports"
+        >📊</button>
+        <button 
+          className={activeSection === "workspace" ? "active" : ""} 
+          onClick={() => setActiveSection("workspace")}
+          title="Task Workspace"
+        >💼</button>
+        <button 
+          className={activeSection === "settings" ? "active" : ""} 
+          onClick={() => setActiveSection("settings")}
+          title="System Settings"
+        >⚙️</button>
+        <button onClick={handleLogout} className="logout-trigger" title="Sign Out">⏻</button>
       </div>
 
-      {uploadStatus && <div className="upload-notification">{uploadStatus}</div>}
+      {/* 2. MAIN CONTENT AREA */}
+      <div className="content">
+        <div className="horizontalbar">
+          <div className="hb-title">Enterprise Management Suite</div>
+          <div className="hb-user">Welcome back, <span>{displayName}</span></div>
+        </div>
 
-      <div className="table-wrapper">
-        <table>
-          <thead>
-            <tr>
-              {tableData[0]?.map((_, c) => (
-                <th 
-                  key={`head-${c}`} 
-                  onClick={() => handleHeaderClick(c)}
-                  style={{ background: selectedColumn === c ? "#e3f2fd" : "inherit" }}
-                >
-                  <div className="th-content">
-                    <span className="th-text">{headers[c] || `Column ${c + 1}`}</span>
-                    <div className="th-actions">
-                      <button onClick={(e) => { e.stopPropagation(); insertColumnAt(c); }}>+</button>
-                      <button onClick={(e) => { e.stopPropagation(); deleteColumn(c); }}>🗑</button>
-                    </div>
-                  </div>
-                </th>
-              ))}
-              <th className="sticky-action">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {tableData.map((row, r) => (
-              <tr key={`row-${r}`}>
-                {row.map((cell, c) => (
-                  <td key={`cell-${r}-${c}`}>
-                    <input
-                      type="text"
-                      className="cell-input"
-                      value={cell || ""}
-                      onChange={(e) => handleChange(r, c, e.target.value)}
-                    />
-                  </td>
-                ))}
-                <td className="sticky-action">
-                  <button onClick={() => deleteRow(r)} className="square-btn del-row">🗑</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* SECURITY MODAL */}
-      {isFormatModalOpen && (
-        <div className="security-overlay">
-          <div className="security-modal">
-            <h2>⚠️ Critical Security Warning</h2>
-            <p>You are about to delete <strong>ALL</strong> entries in your CRM system.</p>
-            <p>This cannot be undone. To proceed, please type <strong>FORMAT</strong> below:</p>
+        {/* DASHBOARD SECTION */}
+        {activeSection === "dashboard" && (
+          <div className="dashboard-container">
             
-            <input 
-              type="text" 
-              className="confirm-input"
-              value={formatConfirmText}
-              onChange={(e) => setFormatConfirmText(e.target.value)}
-              autoFocus
-            />
+            {/* KPI METRICS */}
+            <div className="dashboard-grid">
+              <div className="kpi-card">
+                <div className="kpi-icon">💰</div>
+                <div className="kpi-info">
+                  <h3>Total Revenue</h3>
+                  <h1>₹1,24,000</h1>
+                  <span className="trend positive">↑ 12.5% vs last month</span>
+                </div>
+              </div>
+              <div className="kpi-card">
+                <div className="kpi-icon">📈</div>
+                <div className="kpi-info">
+                  <h3>Active Leads</h3>
+                  <h1>342</h1>
+                  <span className="trend positive">↑ 8 new today</span>
+                </div>
+              </div>
+              <div className="kpi-card">
+                <div className="kpi-icon">🎯</div>
+                <div className="kpi-info">
+                  <h3>Conversion Rate</h3>
+                  <h1>24%</h1>
+                  <span className="trend negative">↓ 1.2% this week</span>
+                </div>
+              </div>
+              <div className="kpi-card">
+                <div className="kpi-icon">✅</div>
+                <div className="kpi-info">
+                  <h3>Tasks Completed</h3>
+                  <h1>89</h1>
+                  <span className="trend neutral">9 tasks remaining</span>
+                </div>
+              </div>
+            </div>
 
-            <div className="modal-buttons">
-              <button className="cancel-btn" onClick={() => setIsFormatModalOpen(false)}>Abort Action</button>
-              <button className="confirm-btn" onClick={triggerFormat}>Wipe Everything</button>
+            {/* ANALYTICS CHARTS */}
+            <div className="charts-container">
+              <div className="chart-card" onClick={() => setExpandedChart("bar")}>
+                <div className="chart-header">Revenue by {selectedColumnName}</div>
+                <MyBarChart chartData={selectedStats} />
+              </div>
+
+              <div className="chart-card" onClick={() => setExpandedChart("pie")}>
+                <div className="chart-header">Distribution Ratio</div>
+                <MyPieChart chartData={selectedStats} />
+              </div>
+
+              <div className="chart-card" onClick={() => setExpandedChart("line")}>
+                <div className="chart-header">Growth Timeline</div>
+                <LineChart chartData={selectedStats} />
+              </div>
+
+              <div className="chart-card" onClick={() => setExpandedChart("scatter")}>
+                <div className="chart-header">Performance Correlation</div>
+                <ScatterChart
+                  chartDataX={selectedStats.slice(0, -1)}
+                  chartDataY={selectedStats.slice(1)}
+                />
+              </div>
+            </div>
+
+            {/* DATABASE & EDITOR TOGGLE */}
+            <div className="table-section">
+              <div className="table-header-tabs">
+                <button 
+                  className={!showTableEditor ? "tab-active" : ""} 
+                  onClick={() => setShowTableEditor(false)}
+                >
+                  📁 Master Excel Table
+                </button>
+                <button 
+                  className={showTableEditor ? "tab-active" : ""} 
+                  onClick={() => setShowTableEditor(true)}
+                >
+                  ✏️ Column Header Editor
+                </button>
+              </div>
+
+              <div className="table-view-port">
+                {showTableEditor ? (
+                  <TableEditor
+                    tableData={tableData}
+                    setTableData={setTableData}
+                    headers={headers}
+                    setHeaders={setHeaders}
+                  />
+                ) : (
+                  <ExcelTable
+                    tableData={tableData}
+                    setTableData={setTableData}
+                    headers={headers}
+                    onColumnSelect={handleColumnSelect}
+                  />
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+
+        {/* ANALYTICS MODAL (Expanded View) */}
+        {expandedChart && (
+          <div className="chart-modal-overlay" onClick={() => setExpandedChart(null)}>
+            <div className="chart-modal-body" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2>Detailed Insights: {selectedColumnName}</h2>
+                <button className="close-modal-btn" onClick={() => setExpandedChart(null)}>✕</button>
+              </div>
+
+              <div className="modal-content-grid">
+                <div className="modal-viz">
+                  {expandedChart === "bar" && <MyBarChart chartData={selectedStats} />}
+                  {expandedChart === "pie" && <MyPieChart chartData={selectedStats} />}
+                  {expandedChart === "line" && <LineChart chartData={selectedStats} />}
+                  {expandedChart === "scatter" && (
+                    <ScatterChart
+                      chartDataX={selectedStats.slice(0, -1)}
+                      chartDataY={selectedStats.slice(1)}
+                    />
+                  )}
+                </div>
+
+                <div className="modal-stats-sidebar">
+                  <h4>Data Summary</h4>
+                  {selectedStats.length > 0 ? (
+                    <div className="stats-list">
+                      <div className="stat-item"><span>Entry Count:</span> <strong>{selectedStats.length}</strong></div>
+                      <div className="stat-item"><span>Minimum Value:</span> <strong>{Math.min(...selectedStats)}</strong></div>
+                      <div className="stat-item"><span>Maximum Value:</span> <strong>{Math.max(...selectedStats)}</strong></div>
+                      <div className="stat-item">
+                        <span>Arithmetic Mean:</span> 
+                        <strong>{(selectedStats.reduce((a, b) => a + b, 0) / selectedStats.length).toFixed(2)}</strong>
+                      </div>
+                      <div className="stat-item">
+                        <span>Total Sum:</span> 
+                        <strong>{selectedStats.reduce((a, b) => a + b, 0).toLocaleString()}</strong>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="no-data-msg">Select a numeric column from the table to see deep analytics.</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* OTHER MODULE SECTIONS */}
+        {activeSection === "Employees" && <Employee Employees={Employees} />}
+        {activeSection === "reports" && <Reports />}
+        {activeSection === "workspace" && <TasksWorkspace />}
+        {activeSection === "settings" && <Settings />}
+      </div>
     </div>
   );
 }
+
+export default CRM;
