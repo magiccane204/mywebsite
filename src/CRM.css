@@ -969,3 +969,11 @@ body.dark .editor-container th:focus {
   font-size: 16px;
   color: #334155;
 }
+.time-display {
+  position: absolute;
+  top: 20px;
+  right: 30px;
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
+}
