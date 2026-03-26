@@ -127,8 +127,7 @@ function CRM({ setMode }) {
     <span>Welcome, {displayName}</span>
   </div>
 </div>
-</div>
-        </div>
+
 
         {activeSection === "dataanalysis" && (
           <div className="charts-container">
