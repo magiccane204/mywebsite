@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import Signup from "./SignUp.js";
 import Otp from "./otp.js";
-import CRM from "./CRM.js";
+import Dashboard from "./Dashboard.js";
+import CRM from "./CRM.js"
 import axios from "axios";
 import "./App.css";
 
@@ -105,7 +106,7 @@ email={localStorage.getItem("otp_email")}
 />
 );
 
-if (mode === "crm") return <CRM setMode={setMode} api={api} />;
+if (mode === "crm") return <Dashboard setMode={setMode} api={api} />;
 
 return (
   <div className="auth-page">
