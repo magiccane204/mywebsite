@@ -60,7 +60,18 @@ function ScatterChart({ chartDataX, chartDataY, title }) {
     },
   };
 
-  return <Scatter data={data} options={options} />;
+  return <Scatter data={data}   options={{
+    responsive: true,
+    maintainAspectRatio: false,
+    layout: {
+      padding: 10
+    },
+    scales: {
+      y: {
+        beginAtZero: true
+      }
+    }
+  }} />;
 }
 
 export default ScatterChart;
