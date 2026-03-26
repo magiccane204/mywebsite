@@ -119,11 +119,14 @@ function CRM({ setMode }) {
       </div>
 
       <div className="content">
-        <div className="horizontalbar">
-          <span>Data and Technology CRM Systems</span>
- <div className="user-info">
-  <img src="/user.png" alt="user" />
-  <span>Welcome, {displayName}</span>
+<div className="horizontalbar">
+  <div className="title">Data and Technology CRM Systems</div>
+
+  <div className="user-info">
+    <img src="/user.png" alt="user" />
+    <span>Welcome, {displayName}</span>
+  </div>
+</div>
 </div>
         </div>
 
