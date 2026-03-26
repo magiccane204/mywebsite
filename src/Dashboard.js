@@ -7,7 +7,6 @@ import TasksWorkspace from "./TasksWorkspace";
 import MyBarChart from "./chart";
 import MyPieChart from "./pchart";
 import LineChart from "./LineChart";
-import ScatterChart from "./ScatterChart";
 import api from "./api";
 import "./CRM.css";
 
@@ -15,7 +14,17 @@ function Dashboard({ setMode }) {
 
   const [activePage, setActivePage] = useState("dashboard");
   const [kpis, setKpis] = useState(null);
-  const [stats, setStats] = useState([10,20,30,40]);
+  const [stats, setStats] = useState([10, 20, 30, 40]);
+
+  // 🔥 PAGE TITLES (CLEAN)
+  const titles = {
+    dashboard: "Sales Dashboard",
+    crm: "Analytics",
+    employees: "Employees",
+    workspace: "Workspace",
+    settings: "Settings",
+    reports: "Reports"
+  };
 
   useEffect(() => {
     loadDashboard();
@@ -27,7 +36,7 @@ function Dashboard({ setMode }) {
       const data = res.data;
 
       setKpis(data);
-      setStats(data.roles.map(r => r.value));
+      setStats(data.roles?.map(r => r.value) || []);
 
     } catch (err) {
       console.error(err);
@@ -52,19 +61,23 @@ function Dashboard({ setMode }) {
           <span>🏠</span><span>Dashboard</span>
         </button>
 
-        <button onClick={()=>setActivePage("crm")}>
+        <button className={activePage==="crm"?"active":""} onClick={()=>setActivePage("crm")}>
           <span>📊</span><span>Analytics</span>
         </button>
 
-        <button onClick={()=>setActivePage("employees")}>
+        <button className={activePage==="employees"?"active":""} onClick={()=>setActivePage("employees")}>
           <span>👥</span><span>Employees</span>
         </button>
 
-        <button onClick={()=>setActivePage("workspace")}>
+        <button className={activePage==="workspace"?"active":""} onClick={()=>setActivePage("workspace")}>
           <span>💼</span><span>Workspace</span>
         </button>
 
-        <button onClick={()=>setActivePage("settings")}>
+        <button className={activePage==="reports"?"active":""} onClick={()=>setActivePage("reports")}>
+          <span>📈</span><span>Reports</span>
+        </button>
+
+        <button className={activePage==="settings"?"active":""} onClick={()=>setActivePage("settings")}>
           <span>⚙️</span><span>Settings</span>
         </button>
 
@@ -76,45 +89,43 @@ function Dashboard({ setMode }) {
       {/* CONTENT */}
       <div className="content">
 
+        {/* 🔥 DYNAMIC HEADER */}
         <div className="horizontalbar">
-          <h2>Sales Dashboard</h2>
+          <h2>{titles[activePage]}</h2>
+          <p style={{ fontSize: "13px", color: "#94a3b8" }}>
+            Live overview of your system
+          </p>
         </div>
 
-        {/* DASHBOARD MAIN */}
+        {/* 🏠 DASHBOARD (MAIN HOME) */}
         {activePage === "dashboard" && (
           <div className="bitrix-grid">
 
-            {/* CARD 1 */}
             <div className="bitrix-card">
-              <h3>My Closed Business</h3>
+              <h3>Closed Business</h3>
               <MyBarChart chartData={stats} title="Performance" />
             </div>
 
-            {/* CARD 2 */}
             <div className="bitrix-card">
-              <h3>My Pipeline</h3>
+              <h3>Pipeline</h3>
               <LineChart chartData={stats} title="Pipeline" />
             </div>
 
-            {/* CARD 3 */}
             <div className="bitrix-card">
-              <h3>My Activities</h3>
+              <h3>Activities</h3>
               <MyPieChart chartData={stats} title="Activities" />
             </div>
 
-            {/* CARD 4 */}
             <div className="bitrix-card">
-              <h3>Team Leaderboard</h3>
+              <h3>Leaderboard</h3>
               <MyBarChart chartData={stats} title="Leaderboard" />
             </div>
 
-            {/* CARD 5 */}
             <div className="bitrix-card">
               <h3>Forecast</h3>
               <LineChart chartData={stats} title="Forecast" />
             </div>
 
-            {/* CARD 6 */}
             <div className="bitrix-card">
               <h3>Top Opportunities</h3>
 
@@ -142,9 +153,11 @@ function Dashboard({ setMode }) {
           </div>
         )}
 
+        {/* OTHER PAGES */}
         {activePage === "crm" && <CRM />}
         {activePage === "employees" && <Employee />}
         {activePage === "workspace" && <TasksWorkspace />}
+        {activePage === "reports" && <Reports />}
         {activePage === "settings" && <Settings />}
 
       </div>
