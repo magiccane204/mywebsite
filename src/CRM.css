@@ -136,11 +136,11 @@ overflow: hidden;
   width: 100%;
 
   display: flex;
-  justify-content: center;
+  justify-content: space-between; /* ✅ FIX */
   align-items: center;
 
-  font-size: 22px;
-  padding: 12px 20px;   /* ✅ FIXED */
+  font-size: 20px;
+  padding: 12px 20px;
 
   position: sticky;
   top: 0;
