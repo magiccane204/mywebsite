@@ -260,18 +260,85 @@ background: #4338ca;
 
 
 
+.settings-wrapper {
+  padding: 20px;
+}
+
 .settings {
-padding: 20px;
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+
+  background: #020617;
+  border: 1px solid #6d28d9;
+  border-radius: 16px;
+
+  padding: 25px;
+
+  box-shadow:
+    0 10px 30px rgba(0,0,0,0.7),
+    0 0 25px rgba(168,85,247,0.25);
 }
 
-.settings-card {
-background: #f5f5f5;
-border-radius: 10px;
-padding: 15px 20px;
-box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+/* headings */
+.settings h2 {
+  margin-bottom: 15px;
 }
 
+.settings h3 {
+  margin-top: 25px;
+  margin-bottom: 10px;
+}
 
+/* info text */
+.settings p {
+  margin: 6px 0;
+}
+
+/* inputs */
+.settings input,
+.settings select {
+  width: 100%;
+  padding: 12px;
+
+  background: #020617;
+  color: #e5e7eb;
+
+  border: 1px solid #6d28d9;
+  border-radius: 8px;
+
+  margin-top: 8px;
+  margin-bottom: 12px;
+}
+
+/* checkboxes */
+.settings label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0;
+}
+
+/* buttons */
+.settings button {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-right: 10px;
+}
+
+/* primary */
+.save-btn {
+  background: linear-gradient(90deg,#7c3aed,#6d28d9);
+  color: white;
+}
+
+/* danger */
+.delete-btn {
+  background: #dc2626;
+  color: white;
+}
 
 body.dark {
 background: #020617;
