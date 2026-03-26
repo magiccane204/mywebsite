@@ -15,17 +15,17 @@ function Dashboard({ setMode }) {
   const [activePage, setActivePage] = useState("dashboard");
   const [kpis, setKpis] = useState(null);
   const [stats, setStats] = useState([10, 20, 30, 40]);
+  const [currentTime, setCurrentTime] = useState("");
 
-  // 🔥 PAGE TITLES (CLEAN)
-  const titles = {
-    dashboard: "Sales Dashboard",
-    crm: "Analytics",
-    employees: "Employees",
-    workspace: "Workspace",
-    settings: "Settings",
-    reports: "Reports"
-  };
+  // 🔥 LIVE TIME
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date().toLocaleTimeString());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
+  // 🔥 LOAD DATA
   useEffect(() => {
     loadDashboard();
   }, []);
@@ -48,6 +48,68 @@ function Dashboard({ setMode }) {
     setMode("login");
   };
 
+  // 🏠 CLEAN DASHBOARD (NO SIDEBAR)
+  if (activePage === "dashboard") {
+    return (
+      <div style={{
+        width: "100vw",
+        height: "100vh",
+        background: "#f9fafb",
+        position: "relative",
+        padding: "40px"
+      }}>
+
+        {/* TIME */}
+        <div className="time-display">
+          {currentTime}
+        </div>
+
+        {/* DASHBOARD GRID */}
+        <div className="bitrix-grid">
+
+          <div className="bitrix-card">
+            <h3>Closed Business</h3>
+            <MyBarChart chartData={stats} title="Performance" />
+          </div>
+
+          <div className="bitrix-card">
+            <h3>Pipeline</h3>
+            <LineChart chartData={stats} title="Pipeline" />
+          </div>
+
+          <div className="bitrix-card">
+            <h3>Activities</h3>
+            <MyPieChart chartData={stats} title="Activities" />
+          </div>
+
+        </div>
+
+        {/* ENTER CRM BUTTON */}
+        <div style={{
+          position: "absolute",
+          bottom: "40px",
+          right: "40px"
+        }}>
+          <button
+            style={{
+              padding: "12px 20px",
+              borderRadius: "8px",
+              border: "none",
+              background: "#7c3aed",
+              color: "white",
+              cursor: "pointer"
+            }}
+            onClick={() => setActivePage("crm")}
+          >
+            Enter CRM →
+          </button>
+        </div>
+
+      </div>
+    );
+  }
+
+  // 🔥 FULL SYSTEM (SIDEBAR + CONTENT)
   return (
     <div className="app">
 
@@ -57,27 +119,27 @@ function Dashboard({ setMode }) {
           <img src="D&T.png" alt="logo" />
         </div>
 
-        <button className={activePage==="dashboard"?"active":""} onClick={()=>setActivePage("dashboard")}>
-          <span>🏠</span><span>Dashboard</span>
+        <button onClick={()=>setActivePage("dashboard")}>
+          <span>🏠</span><span>Home</span>
         </button>
 
-        <button className={activePage==="crm"?"active":""} onClick={()=>setActivePage("crm")}>
+        <button onClick={()=>setActivePage("crm")}>
           <span>📊</span><span>Analytics</span>
         </button>
 
-        <button className={activePage==="employees"?"active":""} onClick={()=>setActivePage("employees")}>
+        <button onClick={()=>setActivePage("employees")}>
           <span>👥</span><span>Employees</span>
         </button>
 
-        <button className={activePage==="workspace"?"active":""} onClick={()=>setActivePage("workspace")}>
+        <button onClick={()=>setActivePage("workspace")}>
           <span>💼</span><span>Workspace</span>
         </button>
 
-        <button className={activePage==="reports"?"active":""} onClick={()=>setActivePage("reports")}>
+        <button onClick={()=>setActivePage("reports")}>
           <span>📈</span><span>Reports</span>
         </button>
 
-        <button className={activePage==="settings"?"active":""} onClick={()=>setActivePage("settings")}>
+        <button onClick={()=>setActivePage("settings")}>
           <span>⚙️</span><span>Settings</span>
         </button>
 
@@ -89,71 +151,11 @@ function Dashboard({ setMode }) {
       {/* CONTENT */}
       <div className="content">
 
-        {/* 🔥 DYNAMIC HEADER */}
-        <div className="horizontalbar">
-          <h2>{titles[activePage]}</h2>
-          <p style={{ fontSize: "13px", color: "#94a3b8" }}>
-            Live overview of your system
-          </p>
+        {/* TIME (still visible but clean) */}
+        <div className="time-display">
+          {currentTime}
         </div>
 
-        {/* 🏠 DASHBOARD (MAIN HOME) */}
-        {activePage === "dashboard" && (
-          <div className="bitrix-grid">
-
-            <div className="bitrix-card">
-              <h3>Closed Business</h3>
-              <MyBarChart chartData={stats} title="Performance" />
-            </div>
-
-            <div className="bitrix-card">
-              <h3>Pipeline</h3>
-              <LineChart chartData={stats} title="Pipeline" />
-            </div>
-
-            <div className="bitrix-card">
-              <h3>Activities</h3>
-              <MyPieChart chartData={stats} title="Activities" />
-            </div>
-
-            <div className="bitrix-card">
-              <h3>Leaderboard</h3>
-              <MyBarChart chartData={stats} title="Leaderboard" />
-            </div>
-
-            <div className="bitrix-card">
-              <h3>Forecast</h3>
-              <LineChart chartData={stats} title="Forecast" />
-            </div>
-
-            <div className="bitrix-card">
-              <h3>Top Opportunities</h3>
-
-              <table className="excel-table">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Stage</th>
-                    <th>Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {kpis?.roles?.map((r, i) => (
-                    <tr key={i}>
-                      <td>{r.name}</td>
-                      <td>Active</td>
-                      <td>₹{r.value}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-
-            </div>
-
-          </div>
-        )}
-
-        {/* OTHER PAGES */}
         {activePage === "crm" && <CRM />}
         {activePage === "employees" && <Employee />}
         {activePage === "workspace" && <TasksWorkspace />}
