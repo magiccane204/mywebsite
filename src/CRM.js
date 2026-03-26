@@ -127,7 +127,7 @@ function CRM({ setMode }) {
 </div>
         </div>
 
-        {activeSection === "dataanalyis" && (
+        {activeSection === "dataanalysis" && (
           <div className="charts-container">
             <div className="chart" onClick={() => setExpandedChart("bar")}>
               <MyBarChart
