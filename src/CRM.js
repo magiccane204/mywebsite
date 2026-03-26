@@ -14,7 +14,7 @@ import "./CRM.css";
 function CRM({ setMode }) {
   const [backendData, setBackendData] = useState(null);
   const [showTableEditor, setShowTableEditor] = useState(false);
-  const [activeSection, setActiveSection] = useState("dashboard");
+  const [activeSection, setActiveSection] = useState("dataanalysis");
   const [Employees, setEmployees] = useState([]);
   const [headers, setHeaders] = useState(["Header 1", "Header 2", "Header 3"]);
   const [tableData, setTableData] = useState([
@@ -93,8 +93,8 @@ function CRM({ setMode }) {
           <img src="D&T.png" alt="logo" />
         </div>
 
-      <button onClick={() => fetchData("/hello", "dashboard")}>
-          <span>🏠</span> <span>Dashboard</span>
+      <button onClick={() => fetchData("/hello", "dataanalysis")}>
+          <span>🏠</span> <span>Data Analysis</span>
         </button>
 
         <button onClick={() => fetchData("/Employees", "Employees")}>
@@ -127,7 +127,7 @@ function CRM({ setMode }) {
 </div>
         </div>
 
-        {activeSection === "dashboard" && (
+        {activeSection === "dataanalyis" && (
           <div className="charts-container">
             <div className="chart" onClick={() => setExpandedChart("bar")}>
               <MyBarChart
