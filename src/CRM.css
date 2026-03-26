@@ -163,7 +163,9 @@ padding-bottom: 10px;
 
 
 .chart {
-  width: 100%;
+  flex: 1 1 calc(25% - 20px);
+  max-width: calc(25% - 20px);
+
   height: 260px;
 
   position: relative; /* CRITICAL */
