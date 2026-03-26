@@ -922,7 +922,7 @@ app.post("/api/resume/extract", auth, upload.array("resumes", 20), async (req, r
 });
 
 
-app.get("/api/dashboard", auth, async (req, res) => {
+app.get("/api/dataanalysis", auth, async (req, res) => {
 
   try {
 
@@ -943,10 +943,10 @@ app.get("/api/dashboard", auth, async (req, res) => {
 
   catch (err) {
 
-    console.error("DASHBOARD_ERROR", err);
+    console.error("ANALYSIS_ERROR", err);
 
     return res.status(500).json({
-      message: "Failed to load dashboard",
+      message: "Failed to load Data",
     });
 
   }
