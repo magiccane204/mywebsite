@@ -77,7 +77,18 @@ function MyPieChart({ chartData, headers, title }) {
     },
   };
 
-  return <Pie data={data} options={options} />;
+  return <Pie data={data}   options={{
+    responsive: true,
+    maintainAspectRatio: false,
+    layout: {
+      padding: 10
+    },
+    scales: {
+      y: {
+        beginAtZero: true
+      }
+    }
+  }} />;
 }
 
 export default MyPieChart;
