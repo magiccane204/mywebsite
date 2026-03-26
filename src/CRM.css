@@ -111,15 +111,12 @@ overflow: hidden;
   background: rgba(139, 92, 246, 0.2);
 }
 
-/* CONTENT SHIFT */
-.sidebar:hover ~ .content {
-  margin-left: 220px;
-  width: calc(100% - 220px);
-}
 .content {
   position: relative;
 
   margin-left: 70px;
+  padding-left: 10px; /* 👈 THIS FIXES ALIGNMENT */
+
   width: calc(100% - 70px);
 
   height: 100vh;
@@ -130,7 +127,6 @@ overflow: hidden;
 
   background: #f9fafb;
 }
-
 
 .horizontalbar {
   width: 100%;
