@@ -74,7 +74,18 @@ function MyBarChart({ chartData, headers, title }) {
     },
   };
 
-  return <Bar data={data} options={options} />;
+  return <Bar data={data}   options={{
+    responsive: true,
+    maintainAspectRatio: false,
+    layout: {
+      padding: 10
+    },
+    scales: {
+      y: {
+        beginAtZero: true
+      }
+    }
+  }}/>;
 }
 
 export default MyBarChart;
