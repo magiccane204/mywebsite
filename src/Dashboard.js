@@ -4,64 +4,67 @@ import Employee from "./Employee";
 import Reports from "./Reports";
 import Settings from "./Settings";
 import TasksWorkspace from "./TasksWorkspace";
+import MyBarChart from "./chart";
+import MyPieChart from "./pchart";
+import LineChart from "./LineChart";
+import ScatterChart from "./ScatterChart";
+import api from "./api";
 import "./CRM.css";
 
 function Dashboard({ setMode }) {
-  const [activePage, setActivePage] = useState("crm");
-  const [currentTime, setCurrentTime] = useState("");
+
+  const [activePage, setActivePage] = useState("dashboard");
+  const [kpis, setKpis] = useState(null);
+  const [stats, setStats] = useState([10,20,30,40]);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) setMode("login");
-  }, [setMode]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTime(new Date().toLocaleString());
-    }, 1000);
-    return () => clearInterval(interval);
+    loadDashboard();
   }, []);
+
+  const loadDashboard = async () => {
+    try {
+      const res = await api.get("/api/reports");
+      const data = res.data;
+
+      setKpis(data);
+      setStats(data.roles.map(r => r.value));
+
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.clear();
     setMode("login");
   };
 
-  const storedName = localStorage.getItem("loggedInName");
-  const storedEmail = localStorage.getItem("loggedInUser");
-
-  let displayName = "User";
-  if (storedName) displayName = storedName;
-  else if (storedEmail) {
-    displayName =
-      storedEmail.split("@")[0].charAt(0).toUpperCase() +
-      storedEmail.split("@")[0].slice(1);
-  }
-
   return (
     <div className="app">
+
+      {/* SIDEBAR */}
       <div className="sidebar">
         <div className="logo">
           <img src="D&T.png" alt="logo" />
         </div>
 
-        <button className={activePage==="crm"?"active":""} onClick={()=>setActivePage("crm")}>
+        <button className={activePage==="dashboard"?"active":""} onClick={()=>setActivePage("dashboard")}>
           <span>🏠</span><span>Dashboard</span>
         </button>
 
-        <button className={activePage==="employees"?"active":""} onClick={()=>setActivePage("employees")}>
+        <button onClick={()=>setActivePage("crm")}>
+          <span>📊</span><span>Analytics</span>
+        </button>
+
+        <button onClick={()=>setActivePage("employees")}>
           <span>👥</span><span>Employees</span>
         </button>
 
-        <button className={activePage==="reports"?"active":""} onClick={()=>setActivePage("reports")}>
-          <span>📊</span><span>Reports</span>
-        </button>
-
-        <button className={activePage==="workspace"?"active":""} onClick={()=>setActivePage("workspace")}>
+        <button onClick={()=>setActivePage("workspace")}>
           <span>💼</span><span>Workspace</span>
         </button>
 
-        <button className={activePage==="settings"?"active":""} onClick={()=>setActivePage("settings")}>
+        <button onClick={()=>setActivePage("settings")}>
           <span>⚙️</span><span>Settings</span>
         </button>
 
@@ -70,19 +73,80 @@ function Dashboard({ setMode }) {
         </button>
       </div>
 
+      {/* CONTENT */}
       <div className="content">
+
         <div className="horizontalbar">
-          <span>CRM Dashboard</span>
-          <div style={{marginTop:"10px", fontSize:"14px"}}>
-            🕒 {currentTime} | 👤 {displayName}
-          </div>
+          <h2>Sales Dashboard</h2>
         </div>
 
-        {activePage==="crm" && <CRM />}
-        {activePage==="employees" && <Employee />}
-        {activePage==="reports" && <Reports />}
-        {activePage==="workspace" && <TasksWorkspace />}
-        {activePage==="settings" && <Settings />}
+        {/* DASHBOARD MAIN */}
+        {activePage === "dashboard" && (
+          <div className="bitrix-grid">
+
+            {/* CARD 1 */}
+            <div className="bitrix-card">
+              <h3>My Closed Business</h3>
+              <MyBarChart chartData={stats} title="Performance" />
+            </div>
+
+            {/* CARD 2 */}
+            <div className="bitrix-card">
+              <h3>My Pipeline</h3>
+              <LineChart chartData={stats} title="Pipeline" />
+            </div>
+
+            {/* CARD 3 */}
+            <div className="bitrix-card">
+              <h3>My Activities</h3>
+              <MyPieChart chartData={stats} title="Activities" />
+            </div>
+
+            {/* CARD 4 */}
+            <div className="bitrix-card">
+              <h3>Team Leaderboard</h3>
+              <MyBarChart chartData={stats} title="Leaderboard" />
+            </div>
+
+            {/* CARD 5 */}
+            <div className="bitrix-card">
+              <h3>Forecast</h3>
+              <LineChart chartData={stats} title="Forecast" />
+            </div>
+
+            {/* CARD 6 */}
+            <div className="bitrix-card">
+              <h3>Top Opportunities</h3>
+
+              <table className="excel-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Stage</th>
+                    <th>Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {kpis?.roles?.map((r, i) => (
+                    <tr key={i}>
+                      <td>{r.name}</td>
+                      <td>Active</td>
+                      <td>₹{r.value}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+            </div>
+
+          </div>
+        )}
+
+        {activePage === "crm" && <CRM />}
+        {activePage === "employees" && <Employee />}
+        {activePage === "workspace" && <TasksWorkspace />}
+        {activePage === "settings" && <Settings />}
+
       </div>
     </div>
   );
