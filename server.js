@@ -687,7 +687,7 @@ app.post("/api/resume/extract", auth, upload.array("resumes", 20), async (req, r
     if (!req.files || req.files.length === 0)
       return res.status(400).json({ success: false, message: "No files uploaded" });
 
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const model = genAI.getGenerativeModel({ model: "gemini-3-flash" });
     const results = [];
 
     for (const file of req.files) {
