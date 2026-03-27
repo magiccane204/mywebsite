@@ -17,38 +17,41 @@ color: #1e293b;
 
 
 
+/* Ensure the app is a relative container */
 .app {
-display: flex;
-height: 100vh;
-width: 100vw;
-overflow: hidden;
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
 }
-
 
 .sidebar {
   width: 70px;
-  min-width: 70px;
-  background: linear-gradient(180deg,#020617,#0f172a);
-  border-right: 1px solid #1e293b;
-
   position: fixed;
-  height: 100vh;
-  left: 0;
-  top: 0;
-
-  z-index: 1000;
-
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-
   transition: width 0.3s ease;
+  z-index: 1000;
 }
 
 .sidebar:hover {
   width: 220px;
 }
 
+.content {
+  margin-left: 70px;
+  /* Removed padding-left: 10px to keep bar flush */
+  width: calc(100% - 70px);
+  transition: margin-left 0.3s ease, width 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow-y: auto;
+  background: #f9fafb;
+}
+/* When sidebar is hovered, push the content and bar */
+.sidebar:hover + .content {
+  margin-left: 220px;
+  width: calc(100% - 220px);
+}
 /* LOGO */
 .sidebar .logo {
   width: 100%;
@@ -130,48 +133,49 @@ overflow: hidden;
 
 .horizontalbar {
   width: 100%;
-
   display: flex;
-  justify-content: space-between; /* ✅ FIX */
+  justify-content: space-between;
   align-items: center;
-
-  font-size: 20px;
   padding: 12px 20px;
-
   position: sticky;
   top: 0;
-
   background: white;
   z-index: 10;
-
   box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+  box-sizing: border-box; /* Ensures padding doesn't push it out */
 }
 
 
 .charts-container {
-display: flex;
-flex-wrap: wrap;
-justify-content: flex-start;
-margin: 10px;   /* instead of 20px */
-margin: 15px 20px;
-padding-bottom: 10px;
+  display: grid;
+  /* 'auto-fill' is safer than 'auto-fit' to prevent a single chart from stretching 100% wide */
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); 
+  gap: 20px;
+  padding: 20px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-
-
 .chart {
-  flex: 1 1 calc(25% - 20px);
-  max-width: calc(25% - 20px);
-
-  height: 260px;
-
-  position: relative; /* CRITICAL */
-
+  position: relative;
+  min-width: 0; /* CRITICAL: Prevents the grid from blowing up */
+  height: 320px; 
+  width: 100%;
   background: #fff;
-  padding: 10px;
   border-radius: 12px;
-
+  padding: 15px;
   box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+  overflow: hidden; /* Clamps the canvas */
+  display: flex;
+  flex-direction: column;
+}
+/* Force the canvas/svg to respect the container */
+.chart > div, 
+.chart canvas {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100%;
+  max-height: 100%;
 }
 
 .chart:hover {
