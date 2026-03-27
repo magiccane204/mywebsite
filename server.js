@@ -21,7 +21,10 @@ const MONGO_URI = process.env.MONGODB_URI;
 const JWT_SECRET = process.env.JWT_SECRET;
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const NODE_ENV = process.env.NODE_ENV || "production";
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 console.log("RESEND KEY:", RESEND_API_KEY ? "Loaded" : "Missing");
+
 app.use(cors({   origin: [     "https://mywebsite-im3c.onrender.com"   ],   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],   allowedHeaders: ["Content-Type", "Authorization"],   credentials: true }));
 app.options("*", cors());
 app.use(express.json({ limit: "5mb" }));
@@ -751,153 +754,59 @@ app.put("/api/Employees/lock/:id", auth, async (req, res) => {
 
 
 
-const clean = (s) => (s || "").replace(/\s+/g, " ").trim();
-
-function extractEmail(text) {
-  return text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] || "No email";
-}
-
-function extractPhone(text) {
-
-  const candidates = text.match(/(\+?\d[\d\s().-]{7,20}\d)/g);
-
-  if (!candidates) return "No phone";
-
-  for (const raw of candidates) {
-
-    if (/\b(18|19|20)\d{2}/.test(raw)) continue;
-
-    const digits = raw.replace(/\D/g, "");
-
-    if (digits.length >= 8 && digits.length <= 15)
-      return raw.trim();
-
-  }
-
-  return "No phone";
-
-}
-
-function extractName(lines, email) {
-
-  const blacklist = [
-    "profile","info","resume","summary","curriculum","vitae","personal",
-    "experience","education","skills","languages","contact","objective"
-  ];
-
-  for (const line of lines.slice(0, 8)) {
-
-    const l = line.toLowerCase();
-
-    if (line.length < 50 && !/\d/.test(line) && !blacklist.some(b => l.includes(b)))
-      return line;
-
-  }
-
-  if (email !== "No email")
-    return email.split("@")[0].replace(/[._-]/g, " ").toUpperCase();
-
-  return "No name";
-
-}
-
-function extractSkills(text) {
-
-  const tokens = text.match(/\b[A-Za-z][A-Za-z0-9.+#\/()-]{2,40}\b/g) || [];
-
-  const unique = [...new Set(tokens)];
-
-  return unique.slice(0, 25);
-
-}
-
-function parseResumeText(text) {
-
-  const lines = text.split(/\r?\n/).map(l => clean(l)).filter(Boolean);
-
-  const email = extractEmail(text);
-
-  return {
-
-    name: extractName(lines, email),
-
-    email,
-
-    phone: extractPhone(text),
-
-    linkedIn:
-      text.match(/https?:\/\/(www\.)?linkedin\.com\/[^\s)]+/i)?.[0] || "No LinkedIn",
-
-    skills: extractSkills(text),
-
-    experience: "Present",
-
-    education: "Present",
-
-  };
-
-}
-
-
+// --- AI RESUME EXTRACTION (GEMINI) ---
 app.post("/api/resume/extract", auth, upload.array("resumes", 20), async (req, res) => {
-
   try {
-
     if (!req.files || req.files.length === 0)
-      return res.status(400).json({
-        success: false,
-        message: "No files uploaded"
-      });
+      return res.status(400).json({ success: false, message: "No files uploaded" });
 
+    // Initialize the Gemini model
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     const results = [];
 
     for (const file of req.files) {
-
       const buffer = fs.readFileSync(file.path);
-
       let text = "";
 
+      // 1. Convert File to Text
       if (file.mimetype === "application/pdf") {
-
         const parsed = await pdfParse(buffer);
         text = parsed.text || "";
-
-      }
-
-      else if (
-        file.mimetype ===
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-      ) {
-
+      } else if (file.mimetype === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
         const out = await mammoth.extractRawText({ buffer });
         text = out.value || "";
-
+      } else {
+        fs.unlinkSync(file.path);
+        results.push({ filename: file.originalname, success: false, error: "Unsupported type" });
+        continue;
       }
 
-      else {
+      // 2. AI Parsing Prompt
+      try {
+        const prompt = `Extract info from this resume and return ONLY a valid JSON object.
+        Use these EXACT keys: "name", "email", "phone", "linkedIn", "skills", "experience", "education".
+        The "skills" field should be a comma-separated string. If info is missing, use "N/A".
+        Resume Text: ${text}`;
 
-        fs.unlinkSync(file.path);
+        const aiResult = await model.generateContent(prompt);
+        const aiResponse = await aiResult.response;
+        
+        // Clean the AI response (removes markdown backticks)
+        let aiJsonText = aiResponse.text().replace(/```json|```/g, "").trim();
+        const data = JSON.parse(aiJsonText);
 
         results.push({
           filename: file.originalname,
-          success: false,
-          error: "Unsupported file type"
+          success: true,
+          data: data
         });
-
-        continue;
-
+      } catch (aiErr) {
+        console.error("Gemini Parse Error:", aiErr);
+        results.push({ filename: file.originalname, success: false, error: "AI failed to parse" });
       }
 
-      const data = parseResumeText(text);
-
-      results.push({
-        filename: file.originalname,
-        success: true,
-        data
-      });
-
-      fs.unlinkSync(file.path);
-
+      // Cleanup local temp file
+      if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
     }
 
     return res.json({
@@ -906,21 +815,11 @@ app.post("/api/resume/extract", auth, upload.array("resumes", 20), async (req, r
       resumes: results
     });
 
+  } catch (err) {
+    console.error("SERVER_RESUME_ERROR", err);
+    return res.status(500).json({ success: false, message: "Server error during parsing" });
   }
-
-  catch (err) {
-
-    console.error("RESUME_PARSE_ERROR", err);
-
-    return res.status(500).json({
-      success: false,
-      message: "Failed to parse resumes"
-    });
-
-  }
-
 });
-
 
 app.get("/api/dataanalysis", auth, async (req, res) => {
 
@@ -1250,8 +1149,18 @@ const taskSchema = new mongoose.Schema({
   }
 });
 const Task = mongoose.model("Task", taskSchema);
+const leaveSchema = new mongoose.Schema({
+  Date: { type: String, required: true },
+  Reason: { type: String, required: true },
+  EmployeeEmail: String,
+  Company: String,
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
+});
 
-
+const Leave = mongoose.model("Leave", leaveSchema);
 
 
 
@@ -1313,7 +1222,55 @@ app.post("/api/tasks", auth, async (req, res) => {
 
 });
 
+// ================= LEAVE SYSTEM =================
 
+// APPLY LEAVE
+app.post("/api/leaves", auth, async (req,res)=>{
+try{
+
+const { Date, Reason } = req.body;
+
+if(!Date || !Reason)
+return res.status(400).json({message:"Missing fields"});
+
+const leave = await Leave.create({
+Date,
+Reason,
+EmployeeEmail: req.user.email,
+Company: req.user.company
+});
+
+res.json({success:true, leave});
+
+}catch(err){
+console.error("LEAVE_CREATE_ERROR",err);
+res.status(500).json({message:"Failed to apply leave"});
+}
+});
+
+
+// GET LEAVES (ADMIN ONLY)
+app.get("/api/leaves", auth, async (req,res)=>{
+try{
+
+let filter = { Company: req.user.company };
+
+// employees only see their own
+if(req.user.role === "Employee"){
+filter.EmployeeEmail = req.user.email;
+}
+
+const leaves = await Leave.find(filter)
+.sort({createdAt:-1})
+.lean();
+
+res.json(leaves);
+
+}catch(err){
+console.error("GET_LEAVES_ERROR",err);
+res.status(500).json({message:"Failed to fetch leaves"});
+}
+});
 
 app.get("/api/tasks", auth, async (req, res) => {
 
