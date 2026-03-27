@@ -7,27 +7,44 @@ const api = axios.create({
 
 function TasksWorkspace(){
 
+// ================= STATES =================
 const [tasks,setTasks] = useState([]);
 const [employees,setEmployees] = useState([]);
+const [leaves,setLeaves] = useState([]);
+
 const [title,setTitle] = useState("");
 const [description,setDescription] = useState("");
 const [employeeEmail,setEmployeeEmail] = useState("");
-const [showTaskModal,setShowTaskModal] = useState(false);
 
-// LEAVE
 const [leaveDate,setLeaveDate] = useState("");
 const [leaveReason,setLeaveReason] = useState("");
-const [leaves,setLeaves] = useState([]);
+
+const [showTaskModal,setShowTaskModal] = useState(false);
 const [showLeaveModal,setShowLeaveModal] = useState(false);
 
+// ================= AUTH =================
 const token = localStorage.getItem("token");
 
-// ✅ FIXED ROLE CHECK
-const userRole = (localStorage.getItem("role") || "").toLowerCase();
+// ✅ SAFE ROLE HANDLING
+const rawRole = localStorage.getItem("role");
+
+const userRole =
+  rawRole === "Admin" || rawRole === "admin"
+    ? "admin"
+    : rawRole === "SuperAdmin" || rawRole === "superadmin"
+    ? "superadmin"
+    : "employee";
 
 const headers = {
 headers:{ Authorization:`Bearer ${token}` }
 };
+
+// ================= LOAD DATA =================
+useEffect(()=>{
+loadTasks();
+loadEmployees();
+loadLeaves();
+},[]);
 
 async function loadTasks(){
 try{
@@ -56,16 +73,11 @@ console.log(err);
 }
 }
 
-useEffect(()=>{
-loadTasks();
-loadEmployees();
-loadLeaves();
-},[]);
-
+// ================= CREATE TASK =================
 async function createTask(){
 
 if(!title || !description || !employeeEmail){
-alert("Please fill all fields!");
+alert("Fill all fields");
 return;
 }
 
@@ -88,14 +100,15 @@ console.log(err);
 }
 }
 
-// APPLY LEAVE
+// ================= APPLY LEAVE =================
 async function applyLeave(){
 
 if(!leaveDate || !leaveReason){
-alert("Fill all fields!");
+alert("Fill all fields");
 return;
 }
 
+// ✅ FUTURE ONLY VALIDATION
 const today = new Date().toISOString().split("T")[0];
 if(leaveDate < today){
 alert("Cannot select past date");
@@ -119,106 +132,21 @@ console.log(err);
 }
 }
 
-async function uploadFile(taskId,file){
-
-if(!file){
-alert("Please select a file!");
-return;
-}
-
-try{
-const form = new FormData();
-form.append("file",file);
-
-await api.post(`/tasks/upload/${taskId}`,form,{
-headers:{
-Authorization:`Bearer ${token}`,
-"Content-Type":"multipart/form-data"
-}
-});
-
-alert("File uploaded successfully!");
-loadTasks();
-
-}catch(err){
-console.log(err);
-alert("Upload failed!");
-}
-}
-
-function viewFile(taskId){
-window.open(
-`https://mywebsite-im3c.onrender.com/api/tasks/file/${taskId}?token=${token}`,
-"_blank"
-);
-}
-
-async function downloadFile(taskId){
-try{
-const res = await axios.get(
-`https://mywebsite-im3c.onrender.com/api/tasks/file/${taskId}?download=true&token=${token}`,
-{ responseType:"blob" }
-);
-
-const url = window.URL.createObjectURL(new Blob([res.data]));
-
-const a = document.createElement("a");
-a.href = url;
-
-let filename = "taskfile";
-const contentDisposition = res.headers["content-disposition"];
-
-if(contentDisposition){
-const match = contentDisposition.match(/filename="(.+)"/);
-if(match) filename = match[1];
-}
-
-a.download = filename;
-document.body.appendChild(a);
-a.click();
-a.remove();
-
-}catch(err){
-console.log(err);
-alert("Download failed!");
-}
-}
-
-async function markComplete(taskId){
-try{
-await api.put(`/tasks/status/${taskId}`,{
-Status:"Completed"
-},headers);
-
-loadTasks();
-
-}catch(err){
-console.log(err);
-}
-}
-
+// ================= RENDER =================
 return(
 
-<div>
+<div style={{padding:"20px"}}>
 
 <h2>Task Board</h2>
 
-<button
-className="create-task-btn"
-onClick={()=>setShowTaskModal(true)}
->
-➕ Create Task
-</button>
-
-<button
-className="create-task-btn"
-onClick={()=>setShowLeaveModal(true)}
-style={{marginLeft:"10px"}}
->
+<div style={{marginBottom:"20px"}}>
+<button onClick={()=>setShowTaskModal(true)}>➕ Create Task</button>
+<button onClick={()=>setShowLeaveModal(true)} style={{marginLeft:"10px"}}>
 📅 Apply Leave
 </button>
+</div>
 
-{/* TASK MODAL */}
+{/* ================= TASK MODAL ================= */}
 {showTaskModal && (
 <div className="chart-modal" onClick={()=>setShowTaskModal(false)}>
 <div className="chart-modal-content" onClick={(e)=>e.stopPropagation()}>
@@ -226,14 +154,13 @@ style={{marginLeft:"10px"}}
 <h3>Create Task</h3>
 
 <input
-type="text"
 placeholder="Task Title"
 value={title}
 onChange={e=>setTitle(e.target.value)}
 />
 
 <textarea
-placeholder="Task Description"
+placeholder="Description"
 value={description}
 onChange={e=>setDescription(e.target.value)}
 />
@@ -243,13 +170,11 @@ value={employeeEmail}
 onChange={e=>setEmployeeEmail(e.target.value)}
 >
 <option value="">Select Employee</option>
-
 {employees.map(emp=>(
 <option key={emp._id} value={emp.Email}>
 {emp.Name}
 </option>
 ))}
-
 </select>
 
 <button onClick={createTask}>Send Task</button>
@@ -258,7 +183,7 @@ onChange={e=>setEmployeeEmail(e.target.value)}
 </div>
 )}
 
-{/* LEAVE MODAL */}
+{/* ================= LEAVE MODAL ================= */}
 {showLeaveModal && (
 <div className="chart-modal" onClick={()=>setShowLeaveModal(false)}>
 <div className="chart-modal-content" onClick={(e)=>e.stopPropagation()}>
@@ -278,68 +203,38 @@ value={leaveReason}
 onChange={e=>setLeaveReason(e.target.value)}
 />
 
-<button onClick={applyLeave}>Submit Leave</button>
+<button onClick={applyLeave}>Submit</button>
 
 </div>
 </div>
 )}
 
-{/* TASK TABLE */}
+{/* ================= TASK TABLE ================= */}
 <table className="excel-table">
+
 <thead>
 <tr>
 <th>Title</th>
 <th>Description</th>
 <th>Status</th>
-<th>Upload</th>
-<th>Actions</th>
 </tr>
 </thead>
 
 <tbody>
+
 {tasks.map(task=>(
-
 <tr key={task._id}>
-
 <td>{task.Title}</td>
 <td>{task.Description}</td>
 <td>{task.Status}</td>
-
-<td>
-<input
-type="file"
-onChange={(e)=>{
-const file = e.target.files[0];
-if(file) uploadFile(task._id,file);
-}}
-/>
-</td>
-
-<td>
-
-{task.FileId && (
-<>
-<button onClick={()=>viewFile(task._id)}>View</button>
-<button onClick={()=>downloadFile(task._id)}>Download</button>
-</>
-)}
-
-<button
-disabled={!task.FileId || task.Status === "Completed"}
-onClick={()=>markComplete(task._id)}
->
-Complete
-</button>
-
-</td>
-
 </tr>
-
 ))}
+
 </tbody>
+
 </table>
 
-{/* ✅ ADMIN ONLY LEAVES */}
+{/* ================= LEAVE SECTION (ADMIN ONLY) ================= */}
 {(userRole === "admin" || userRole === "superadmin") && (
 
 <div style={{marginTop:"40px"}}>
@@ -347,6 +242,7 @@ Complete
 <h2>Leave Applications</h2>
 
 <table className="excel-table">
+
 <thead>
 <tr>
 <th>Date</th>
@@ -356,7 +252,7 @@ Complete
 
 <tbody>
 
-{leaves.map((leave)=>(
+{leaves.map(leave=>(
 <tr key={leave._id}>
 <td>{leave.Date}</td>
 <td>{leave.Reason}</td>
@@ -364,6 +260,7 @@ Complete
 ))}
 
 </tbody>
+
 </table>
 
 </div>
