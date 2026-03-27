@@ -21,8 +21,8 @@ const [leaveReason,setLeaveReason] = useState("");
 const [showTaskModal,setShowTaskModal] = useState(false);
 const [showLeaveModal,setShowLeaveModal] = useState(false);
 
-// ✅ GET TOKEN LIVE (important)
-const [token,setToken] = useState(localStorage.getItem("token"));
+// ✅ ALWAYS GET FRESH TOKEN
+const token = localStorage.getItem("token");
 
 const rawRole = localStorage.getItem("role");
 
@@ -37,14 +37,21 @@ const headers = {
   headers:{ Authorization:`Bearer ${token}` }
 };
 
-// ✅ ONLY LOAD WHEN TOKEN EXISTS
+// ✅ LOAD DATA AFTER PAGE LOAD
 useEffect(()=>{
-  if(token){
-    loadTasks();
-    loadEmployees();
-    loadLeaves();
+
+  if(!token){
+    console.log("NO TOKEN FOUND");
+    return;
   }
-},[token]);
+
+  loadTasks();
+  loadEmployees();
+  loadLeaves();
+
+},[]);
+
+// ================= LOAD =================
 
 async function loadTasks(){
 try{
@@ -73,6 +80,8 @@ console.log(err);
 }
 }
 
+// ================= CREATE TASK =================
+
 async function createTask(){
 
 if(!title || !description || !employeeEmail){
@@ -98,6 +107,8 @@ loadTasks();
 console.log(err);
 }
 }
+
+// ================= APPLY LEAVE =================
 
 async function applyLeave(){
 
@@ -129,6 +140,8 @@ console.log(err);
 }
 }
 
+// ================= UI =================
+
 return(
 
 <div style={{padding:"20px"}}>
@@ -142,6 +155,7 @@ return(
 </button>
 </div>
 
+{/* TASK MODAL */}
 {showTaskModal && (
 <div className="chart-modal" onClick={()=>setShowTaskModal(false)}>
 <div className="chart-modal-content" onClick={(e)=>e.stopPropagation()}>
@@ -165,11 +179,17 @@ value={employeeEmail}
 onChange={e=>setEmployeeEmail(e.target.value)}
 >
 <option value="">Select Employee</option>
-{employees.map(emp=>(
-<option key={emp._id} value={emp.Email}>
-{emp.Name}
-</option>
-))}
+
+{employees.length === 0 ? (
+  <option disabled>Loading...</option>
+) : (
+  employees.map(emp=>(
+    <option key={emp._id} value={emp.Email}>
+      {emp.Name}
+    </option>
+  ))
+)}
+
 </select>
 
 <button onClick={createTask}>Send Task</button>
@@ -178,6 +198,7 @@ onChange={e=>setEmployeeEmail(e.target.value)}
 </div>
 )}
 
+{/* LEAVE MODAL */}
 {showLeaveModal && (
 <div className="chart-modal" onClick={()=>setShowLeaveModal(false)}>
 <div className="chart-modal-content" onClick={(e)=>e.stopPropagation()}>
@@ -203,6 +224,7 @@ onChange={e=>setLeaveReason(e.target.value)}
 </div>
 )}
 
+{/* TASK TABLE */}
 <table className="excel-table">
 <thead>
 <tr>
@@ -223,6 +245,7 @@ onChange={e=>setLeaveReason(e.target.value)}
 </tbody>
 </table>
 
+{/* LEAVE SECTION */}
 {(userRole === "admin" || userRole === "superadmin") && (
 <div style={{marginTop:"40px"}}>
 <h2>Leave Applications</h2>
