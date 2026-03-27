@@ -14,14 +14,16 @@ const [description,setDescription] = useState("");
 const [employeeEmail,setEmployeeEmail] = useState("");
 const [showTaskModal,setShowTaskModal] = useState(false);
 
-// LEAVE STATES
+// LEAVE
 const [leaveDate,setLeaveDate] = useState("");
 const [leaveReason,setLeaveReason] = useState("");
 const [leaves,setLeaves] = useState([]);
 const [showLeaveModal,setShowLeaveModal] = useState(false);
 
 const token = localStorage.getItem("token");
-const userRole = localStorage.getItem("role");
+
+// ✅ FIXED ROLE CHECK
+const userRole = (localStorage.getItem("role") || "").toLowerCase();
 
 const headers = {
 headers:{ Authorization:`Bearer ${token}` }
@@ -68,7 +70,6 @@ return;
 }
 
 try{
-
 await api.post("/tasks",{
 Title:title,
 Description:description,
@@ -85,7 +86,6 @@ loadTasks();
 }catch(err){
 console.log(err);
 }
-
 }
 
 // APPLY LEAVE
@@ -96,7 +96,6 @@ alert("Fill all fields!");
 return;
 }
 
-// 🔥 FRONTEND VALIDATION (extra safety)
 const today = new Date().toISOString().split("T")[0];
 if(leaveDate < today){
 alert("Cannot select past date");
@@ -104,7 +103,6 @@ return;
 }
 
 try{
-
 await api.post("/leaves",{
 Date:leaveDate,
 Reason:leaveReason
@@ -119,7 +117,6 @@ loadLeaves();
 }catch(err){
 console.log(err);
 }
-
 }
 
 async function uploadFile(taskId,file){
@@ -129,13 +126,7 @@ alert("Please select a file!");
 return;
 }
 
-if(file.size === 0){
-alert("File is empty!");
-return;
-}
-
 try{
-
 const form = new FormData();
 form.append("file",file);
 
@@ -153,12 +144,9 @@ loadTasks();
 console.log(err);
 alert("Upload failed!");
 }
-
 }
 
 function viewFile(taskId){
-const token = localStorage.getItem("token");
-
 window.open(
 `https://mywebsite-im3c.onrender.com/api/tasks/file/${taskId}?token=${token}`,
 "_blank"
@@ -167,8 +155,6 @@ window.open(
 
 async function downloadFile(taskId){
 try{
-const token = localStorage.getItem("token");
-
 const res = await axios.get(
 `https://mywebsite-im3c.onrender.com/api/tasks/file/${taskId}?download=true&token=${token}`,
 { responseType:"blob" }
@@ -188,7 +174,6 @@ if(match) filename = match[1];
 }
 
 a.download = filename;
-
 document.body.appendChild(a);
 a.click();
 a.remove();
@@ -225,7 +210,6 @@ onClick={()=>setShowTaskModal(true)}
 ➕ Create Task
 </button>
 
-{/* APPLY LEAVE BUTTON */}
 <button
 className="create-task-btn"
 onClick={()=>setShowLeaveModal(true)}
@@ -260,7 +244,7 @@ onChange={e=>setEmployeeEmail(e.target.value)}
 >
 <option value="">Select Employee</option>
 
-{Array.isArray(employees) && employees.map(emp=>(
+{employees.map(emp=>(
 <option key={emp._id} value={emp.Email}>
 {emp.Name}
 </option>
@@ -268,11 +252,9 @@ onChange={e=>setEmployeeEmail(e.target.value)}
 
 </select>
 
-<button onClick={createTask}>
-Send Task
-</button>
+<button onClick={createTask}>Send Task</button>
 
-</div> 
+</div>
 </div>
 )}
 
@@ -286,7 +268,7 @@ Send Task
 <input
 type="date"
 value={leaveDate}
-min={new Date().toISOString().split("T")[0]} // 🔥 FUTURE ONLY
+min={new Date().toISOString().split("T")[0]}
 onChange={e=>setLeaveDate(e.target.value)}
 />
 
@@ -296,16 +278,14 @@ value={leaveReason}
 onChange={e=>setLeaveReason(e.target.value)}
 />
 
-<button onClick={applyLeave}>
-Submit Leave
-</button>
+<button onClick={applyLeave}>Submit Leave</button>
 
 </div>
 </div>
 )}
 
+{/* TASK TABLE */}
 <table className="excel-table">
-
 <thead>
 <tr>
 <th>Title</th>
@@ -317,8 +297,7 @@ Submit Leave
 </thead>
 
 <tbody>
-
-{Array.isArray(tasks) && tasks.map(task=>(
+{tasks.map(task=>(
 
 <tr key={task._id}>
 
@@ -357,20 +336,17 @@ Complete
 </tr>
 
 ))}
-
 </tbody>
-
 </table>
 
-{/* ADMIN ONLY LEAVE SECTION */}
-{(userRole === "Admin" || userRole === "SuperAdmin") && (
+{/* ✅ ADMIN ONLY LEAVES */}
+{(userRole === "admin" || userRole === "superadmin") && (
 
 <div style={{marginTop:"40px"}}>
 
 <h2>Leave Applications</h2>
 
 <table className="excel-table">
-
 <thead>
 <tr>
 <th>Date</th>
@@ -380,17 +356,14 @@ Complete
 
 <tbody>
 
-{Array.isArray(leaves) && leaves.map((leave,i)=>(
-
-<tr key={i}>
+{leaves.map((leave)=>(
+<tr key={leave._id}>
 <td>{leave.Date}</td>
 <td>{leave.Reason}</td>
 </tr>
-
 ))}
 
 </tbody>
-
 </table>
 
 </div>
@@ -398,9 +371,7 @@ Complete
 )}
 
 </div>
-
 );
-
 }
 
 export default TasksWorkspace;
