@@ -11,14 +11,15 @@ import "./CRM.css";
 function CRM({ setMode }) {
   const [backendData, setBackendData] = useState(null);
   const [showTableEditor, setShowTableEditor] = useState(false);
-  const [headers, setHeaders] = useState(["Header 1", "Header 2", "Header 3"]);
-  const [tableData, setTableData] = useState([
-    ["10", "20", "30"],
-    ["15", "25", "35"],
-    ["12", "22", "32"],
-  ]);
-  const [selectedStats, setSelectedStats] = useState([]);
-  const [selectedColumnName, setSelectedColumnName] = useState("No Column Selected");
+  
+  // These states are now managed within ExcelTable for persistence, 
+  // but we keep them here if TableEditor needs them.
+  const [headers, setHeaders] = useState([]);
+  const [tableData, setTableData] = useState([]);
+
+  // --- MULTIVARIATE STATES ---
+  const [selectedChartData, setSelectedChartData] = useState([]); // Array of objects: [{name: 'John', Salary: 5000}, ...]
+  const [activeLabels, setActiveLabels] = useState([]); // Array of strings: ["Salary", "Experience"]
   const [expandedChart, setExpandedChart] = useState(null);
 
   // Authentication Check
@@ -38,13 +39,11 @@ function CRM({ setMode }) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  const handleColumnSelect = (columnValues, colIndex) => {
-    const columnName = headers[colIndex] || `Column ${colIndex + 1}`;
-    const numericValues = columnValues
-      .map((v) => parseFloat(v))
-      .filter((v) => !isNaN(v));
-    setSelectedColumnName(columnName);
-    setSelectedStats(numericValues.length > 0 ? numericValues : []);
+  // --- UPDATED HANDLER ---
+  // This now matches the (data, labels) signature from the new ExcelTable
+  const handleMultivariateUpdate = (data, labels) => {
+    setSelectedChartData(data);
+    setActiveLabels(labels);
   };
 
   const storedName = localStorage.getItem("loggedInName");
@@ -61,7 +60,6 @@ function CRM({ setMode }) {
 
   return (
     <div className="crm-module">
-      {/* 1. HORIZONTAL BAR - Moved to top of CRM content */}
       <div className="horizontalbar">
         <div className="title">Data Analysis & CRM Systems</div>
         <div className="user-info">
@@ -70,29 +68,41 @@ function CRM({ setMode }) {
         </div>
       </div>
 
-      {/* 2. CHARTS SECTION */}
+      {/* CHARTS SECTION */}
       <div className="charts-container">
         <div className="chart" onClick={() => setExpandedChart("bar")}>
-          <MyBarChart chartData={selectedStats} headers={headers} title={selectedColumnName} />
+          <MyBarChart 
+            chartData={selectedChartData} 
+            labels={activeLabels} 
+            title={activeLabels.join(" vs ")} 
+          />
         </div>
 
         <div className="chart" onClick={() => setExpandedChart("pie")}>
-          <MyPieChart chartData={selectedStats} headers={headers} title={selectedColumnName} />
+          <MyPieChart 
+            chartData={selectedChartData} 
+            labels={activeLabels} 
+            title={activeLabels[0] || "No Data"} 
+          />
         </div>
 
         <div className="chart" onClick={() => setExpandedChart("line")}>
-          <LineChart chartData={selectedStats} headers={headers} title={selectedColumnName} />
+          <LineChart 
+            chartData={selectedChartData} 
+            labels={activeLabels} 
+            title="Trend Analysis" 
+          />
         </div>
 
         <div className="chart" onClick={() => setExpandedChart("scatter")}>
           <ScatterChart
-            chartDataX={selectedStats.slice(0, selectedStats.length - 1)}
-            chartDataY={selectedStats.slice(1)}
-            title={selectedColumnName}
+            chartData={selectedChartData}
+            labels={activeLabels}
+            title="Correlation Map"
           />
         </div>
 
-        {/* 3. EXPANDED MODAL */}
+        {/* EXPANDED MODAL */}
         {expandedChart && (
           <div className="chart-modal" onClick={() => setExpandedChart(null)}>
             <div className="chart-modal-content" onClick={(e) => e.stopPropagation()}>
@@ -100,33 +110,37 @@ function CRM({ setMode }) {
                 ✖ Close
               </button>
 
-              {expandedChart === "bar" && (
-                <MyBarChart chartData={selectedStats} headers={headers} title={selectedColumnName} />
-              )}
-              {expandedChart === "pie" && (
-                <MyPieChart chartData={selectedStats} headers={headers} title={selectedColumnName} />
-              )}
-              {expandedChart === "line" && (
-                <LineChart chartData={selectedStats} headers={headers} title={selectedColumnName} />
-              )}
-              {expandedChart === "scatter" && (
-                <ScatterChart
-                  chartDataX={selectedStats.slice(0, selectedStats.length - 1)}
-                  chartDataY={selectedStats.slice(1)}
-                  title={selectedColumnName}
-                />
-              )}
+              <div className="modal-main-chart">
+                {expandedChart === "bar" && (
+                  <MyBarChart chartData={selectedChartData} labels={activeLabels} />
+                )}
+                {expandedChart === "pie" && (
+                  <MyPieChart chartData={selectedChartData} labels={activeLabels} />
+                )}
+                {expandedChart === "line" && (
+                  <LineChart chartData={selectedChartData} labels={activeLabels} />
+                )}
+                {expandedChart === "scatter" && (
+                  <ScatterChart chartData={selectedChartData} labels={activeLabels} />
+                )}
+              </div>
 
               <div className="chart-stats">
-                {selectedStats.length > 0 ? (
-                  <>
-                    <p><strong>Count:</strong> {selectedStats.length}</p>
-                    <p><strong>Min:</strong> {Math.min(...selectedStats).toFixed(2)}</p>
-                    <p><strong>Max:</strong> {Math.max(...selectedStats).toFixed(2)}</p>
-                    <p><strong>Avg:</strong> {(selectedStats.reduce((a, b) => a + b, 0) / selectedStats.length).toFixed(2)}</p>
-                  </>
+                {activeLabels.length > 0 ? (
+                  <div className="multivariate-stats-grid">
+                    {activeLabels.map(label => {
+                        const values = selectedChartData.map(d => d[label]).filter(v => !isNaN(v));
+                        if (values.length === 0) return null;
+                        const avg = values.reduce((a, b) => a + b, 0) / values.length;
+                        return (
+                          <div key={label} className="stat-pill">
+                            <strong>{label}:</strong> Avg: {avg.toFixed(2)} | Max: {Math.max(...values)}
+                          </div>
+                        );
+                    })}
+                  </div>
                 ) : (
-                  <p>No numeric statistics found</p>
+                  <p>Select columns in the table below to see detailed analytics.</p>
                 )}
               </div>
             </div>
@@ -134,12 +148,17 @@ function CRM({ setMode }) {
         )}
       </div>
 
-      {/* 4. TABLE SECTION */}
+      {/* TABLE SECTION */}
       <div className="table-section">
         <div className="table-toolbar">
-          <button onClick={() => setShowTableEditor(false)}>📑 Excel Table</button>
-          <button onClick={() => setShowTableEditor(true)}>🧮 Table Editor</button>
+          <button className={!showTableEditor ? "active" : ""} onClick={() => setShowTableEditor(false)}>
+            📑 Excel Table
+          </button>
+          <button className={showTableEditor ? "active" : ""} onClick={() => setShowTableEditor(true)}>
+            🧮 Table Editor
+          </button>
         </div>
+        
         <div className="excel-container">
           {showTableEditor ? (
             <TableEditor
@@ -150,22 +169,11 @@ function CRM({ setMode }) {
             />
           ) : (
             <ExcelTable
-              tableData={tableData}
-              setTableData={setTableData}
-              headers={headers}
-              setHeaders={setHeaders}
-              onColumnSelect={handleColumnSelect}
+              onColumnSelect={handleMultivariateUpdate}
             />
           )}
         </div>
       </div>
-
-      {backendData && (
-        <div className="backend-response">
-          <h3>Response from backend:</h3>
-          <pre>{JSON.stringify(backendData, null, 2)}</pre>
-        </div>
-      )}
     </div>
   );
 }
