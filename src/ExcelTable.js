@@ -53,6 +53,30 @@ export default function ExcelTable({ onColumnSelect }) {
   }, [tableData, colHeaders, colWidths]);
 
   // --- 3. AI RESUME UPLOAD (FIXED) ---
+// --- NEW: GENERIC EXCEL/CSV IMPORT ---
+  const handleImportExcel = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const bstr = evt.target.result;
+      const wb = XLSX.read(bstr, { type: "binary" });
+      const wsname = wb.SheetNames[0];
+      const ws = wb.Sheets[wsname];
+      const data = XLSX.utils.sheet_to_json(ws, { header: 1 });
+
+      if (data.length > 0) {
+        // First row becomes headers, the rest becomes the table data
+        setColHeaders(data[0]);
+        setTableData(data.slice(1));
+      }
+    };
+    reader.readAsBinaryString(file);
+    e.target.value = null; // Clear input so you can upload the same file twice
+  };
+
+  // --- UPDATED: AI RESUME UPLOAD (CRASH-PROOF) ---
   const handleAiResumeUpload = async (e) => {
     const files = e.target.files;
     if (!files.length) return;
@@ -68,7 +92,7 @@ export default function ExcelTable({ onColumnSelect }) {
       });
 
       if (res.data.success) {
-        // ✅ THE FIX: Filter out resumes that failed (where success is false)
+        // We only map files that actually succeeded
         const successfulResumes = res.data.resumes.filter(r => r.success === true);
 
         const newRows = successfulResumes.map(r => [
@@ -84,44 +108,19 @@ export default function ExcelTable({ onColumnSelect }) {
         if (newRows.length > 0) {
           setTableData(prev => [...newRows, ...prev]);
         }
-
-        // Optional alert if some failed
-        const failCount = res.data.resumes.length - successfulResumes.length;
-        if (failCount > 0) {
-          alert(`${failCount} file(s) failed to parse. Check the server console.`);
+        
+        const failed = res.data.resumes.filter(r => !r.success);
+        if (failed.length > 0) {
+          alert(`Failed to parse ${failed.length} file(s). Make sure they aren't images/scans.`);
         }
       }
     } catch (err) {
       console.error("AI Error:", err);
-      alert("AI Parsing failed. Check server connection.");
+      alert("Server Error. Check your Gemini API key in the .env file.");
     } finally {
       setIsParsing(false);
       e.target.value = null; 
     }
-  };
-
-  // --- 4. MULTIVARIATE CHART BRIDGE ---
-  const handleColumnHeaderClick = (colIndex) => {
-    const nextSelected = selectedCols.includes(colIndex)
-      ? selectedCols.filter(i => i !== colIndex)
-      : [...selectedCols, colIndex];
-
-    setSelectedCols(nextSelected);
-
-    const chartData = tableData.map((row, rIdx) => {
-      const dataPoint = { name: row[0] || `Row ${rIdx + 1}` };
-      nextSelected.forEach(idx => {
-        const key = colHeaders[idx] || `Field ${idx + 1}`;
-        const val = parseFloat(row[idx]);
-        dataPoint[key] = isNaN(val) ? 0 : val;
-      });
-      return dataPoint;
-    }).filter(point => {
-        return nextSelected.some(idx => point[colHeaders[idx] || `Field ${idx + 1}`] > 0);
-    });
-
-    const activeLabels = nextSelected.map(idx => colHeaders[idx] || `Field ${idx + 1}`);
-    if (onColumnSelect) onColumnSelect(chartData, activeLabels);
   };
 
   // --- 5. CORE ACTIONS ---
