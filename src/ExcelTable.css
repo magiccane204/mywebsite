@@ -1,128 +1,153 @@
-/* === TOOLBAR LAYOUT === */
-.table-toolbar {
+:root {
+  --primary-green: #107c41;
+  --border-color: #e2e8f0;
+  --header-bg: #f8fafc;
+  --text-main: #334155;
+}
+
+.crm-app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #fff;
+  color: var(--text-main);
+  font-family: 'Inter', sans-serif;
+}
+
+/* TOOLBAR */
+.crm-toolbar {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  background: #ffffff;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.toolbar-left, .toolbar-right { display: flex; align-items: center; gap: 12px; }
+
+.brand { display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--primary-green); }
+.v-divider { width: 1px; height: 24px; background: var(--border-color); }
+
+.tool-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  background: white;
+  font-size: 13px;
+  cursor: pointer;
+}
+.tool-btn:hover { background: #f1f5f9; }
+.tool-btn.primary { background: var(--primary-green); color: white; border: none; }
+.tool-btn.danger { color: #ef4444; border: none; }
+
+/* FORMULA BAR */
+.formula-bar {
+  display: flex;
+  align-items: center;
+  height: 36px;
+  border-bottom: 1px solid var(--border-color);
+  background: #fff;
+}
+
+.cell-id { width: 60px; text-align: center; font-weight: 600; border-right: 1px solid var(--border-color); font-size: 13px; }
+.fx-label { width: 40px; text-align: center; font-style: italic; color: #94a3b8; font-family: serif; }
+.formula-input { flex: 1; border: none; outline: none; padding: 0 10px; font-size: 13px; }
+
+/* TABLE GRID */
+.grid-viewport { flex: 1; overflow: auto; background: #f1f5f9; padding: 8px; }
+
+.excel-table { border-collapse: separate; border-spacing: 0; background: white; table-layout: fixed; }
+
+.excel-table th, .excel-table td {
+  border-right: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+  padding: 0;
+  position: relative;
+}
+
+/* HEADER STYLING */
+.header-cell {
+  background: var(--header-bg);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+}
+
+.header-edit-input {
+  background: transparent;
+  border: none;
+  font-weight: 600;
+  font-size: 12px;
+  text-align: center;
+  text-transform: uppercase;
+  outline: none;
+}
+
+.header-actions {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-  padding: 10px 12px;
+  opacity: 0;
+  margin-top: 4px;
 }
 
-/* === GROUPING === */
-.toolbar-left,
-.toolbar-right {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
+th:hover .header-actions { opacity: 1; }
 
-/* === BASE BUTTON STYLE (USED EVERYWHERE) === */
-button,
-.upload-label {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-
-  padding: 8px 14px;
-  font-size: 13px;
-  font-weight: 500;
-
-  border-radius: 8px;
-  border: 1px solid transparent;
-
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-/* === PRIMARY (MAIN ACTIONS) === */
-.table-toolbar button {
-  background: #2563eb;
-  color: white;
-}
-
-.table-toolbar button:hover {
-  background: #1d4ed8;
-  transform: translateY(-1px);
-}
-
-/* === UPLOAD BUTTONS (MATCH STYLE NOW) === */
-.upload-label {
-  background: #2563eb;
-  color: white;
-}
-
-.upload-label:hover {
-  background: #1d4ed8;
-}
-
-/* === DARK BUTTON (Parse Resume) === */
-.resume-btn {
-  background: #1f2937;
-}
-
-.resume-btn:hover {
-  background: #111827;
-}
-
-/* === DANGER BUTTON (RESET) === */
-.danger-btn {
-  background: #ef4444 !important;
-}
-
-.danger-btn:hover {
-  background: #dc2626 !important;
-}
-
-/* === MINI COLUMN BUTTONS === */
-.square-btn {
-  width: 24px;
-  height: 24px;
-  font-size: 12px;
-
-  border-radius: 6px;
+.header-actions button {
+  background: #cbd5e1;
   border: none;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  transition: 0.2s;
+  border-radius: 2px;
+  font-size: 10px;
+  cursor: pointer;
 }
 
-/* ADD */
-.square-btn.add {
-  background: #22c55e;
-  color: white;
-}
-
-.square-btn.add:hover {
-  background: #16a34a;
-}
-
-/* DELETE */
-.square-btn.delete {
-  background: #ef4444;
-  color: white;
-}
-
-.square-btn.delete:hover {
-  background: #dc2626;
-}
-
-/* === ROW DELETE BUTTON === */
-.delete-row-btn {
-  background: #ef4444;
-  color: white;
-  border-radius: 6px;
-  padding: 6px 10px;
-}
-
-.delete-row-btn:hover {
-  background: #dc2626;
-}
-
-/* === STATUS TEXT === */
-.status-indicator {
+/* CELL STYLING */
+.cell-editor {
+  width: 100%;
+  height: 32px;
+  border: none;
+  padding: 0 8px;
+  outline: none;
+  background: transparent;
   font-size: 13px;
-  color: #374151;
 }
+
+.active-cell { box-shadow: inset 0 0 0 2px var(--primary-green); z-index: 10; }
+
+.row-number-cell, .row-number-header {
+  width: 40px;
+  background: var(--header-bg);
+  text-align: center;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+/* RESIZE HANDLE */
+.react-resizable-handle {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  cursor: col-resize;
+  z-index: 20;
+}
+.react-resizable-handle:hover { background: var(--primary-green); }
+
+/* STATUS & MODAL */
+.status-tag { display: flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; padding: 4px 8px; border-radius: 12px; }
+.status-tag.saved { background: #dcfce7; color: #166534; }
+.status-tag.saving { background: #fef9c3; color: #854d0e; }
+
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 100; }
+.modal-card { background: white; padding: 32px; border-radius: 12px; text-align: center; width: 400px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
+.modal-card input { width: 100%; margin: 16px 0; padding: 8px; border: 1px solid #ef4444; border-radius: 4px; text-align: center; }
+.modal-btns { display: flex; gap: 12px; justify-content: center; }
+.confirm-btn { background: #ef4444; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; }
