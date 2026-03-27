@@ -1,128 +1,406 @@
-import React, { useState, useEffect } from "react";
-import CRM from "./CRM";
-import Employee from "./Employee";
-import Reports from "./Reports";
-import Settings from "./Settings";
-import TasksWorkspace from "./TasksWorkspace";
-import MyBarChart from "./chart"; // Assuming this is your Bar Chart
-import MyPieChart from "./pchart";
-import LineChart from "./LineChart";
-import api from "./api";
-import "./CRM.css";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 
-function Dashboard({ setMode }) {
-  const [activePage, setActivePage] = useState("dashboard");
-  const [currentTime, setCurrentTime] = useState("");
-  
-  // --- MULTIVARIATE STATE ---
-  const [multivariateData, setMultivariateData] = useState([]); 
-  const [activeLabels, setActiveLabels] = useState([]); // Column names like ["Salary", "Experience"]
+const api = axios.create({
+  baseURL: "https://mywebsite-im3c.onrender.com/api"
+});
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTime(new Date().toLocaleTimeString());
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
+function TasksWorkspace(){
 
-  useEffect(() => {
-    loadDashboard();
-  }, []);
+const [tasks,setTasks] = useState([]);
+const [employees,setEmployees] = useState([]);
+const [title,setTitle] = useState("");
+const [description,setDescription] = useState("");
+const [employeeEmail,setEmployeeEmail] = useState("");
+const [showTaskModal,setShowTaskModal] = useState(false);
 
-  const loadDashboard = async () => {
-    try {
-      const res = await api.get("/api/reports");
-      // For the initial "Home" view, we can still use default report data
-      // but once you start clicking in the CRM, multivariateData will take over.
-      if (res.data.roles) {
-        setMultivariateData(res.data.roles); 
-        setActiveLabels(["value"]); 
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
+// LEAVE STATES
+const [leaveDate,setLeaveDate] = useState("");
+const [leaveReason,setLeaveReason] = useState("");
+const [leaves,setLeaves] = useState([]);
+const [showLeaveModal,setShowLeaveModal] = useState(false);
 
-  // This handler will be passed to the CRM component
-  const handleCrmDataUpdate = (data, labels) => {
-    setMultivariateData(data);
-    setActiveLabels(labels);
-  };
+const token = localStorage.getItem("token");
+const userRole = localStorage.getItem("role");
 
-  const handleLogout = () => {
-    localStorage.clear();
-    setMode("login");
-  };
+const headers = {
+headers:{ Authorization:`Bearer ${token}` }
+};
 
-  if (activePage === "dashboard") {
-    return (
-      <div className="dashboard-home-view">
-        <div className="time-display">{currentTime}</div>
-
-        <div className="bitrix-grid">
-          {/* BAR CHART: Comparison of multiple metrics */}
-          <div className="bitrix-card">
-            <h3>Multivariate Performance</h3>
-            <MyBarChart 
-              chartData={multivariateData} 
-              labels={activeLabels} 
-              title="Metric Comparison" 
-            />
-          </div>
-
-          {/* LINE CHART: Trends across multiple metrics */}
-          <div className="bitrix-card">
-            <h3>Pipeline Analysis</h3>
-            <LineChart 
-              chartData={multivariateData} 
-              labels={activeLabels} 
-              title="Multivariate Trends" 
-            />
-          </div>
-
-          <div className="bitrix-card">
-            <h3>Distribution</h3>
-            <MyPieChart chartData={multivariateData} title="Activities" />
-          </div>
-        </div>
-
-        <div className="crm-enter-container">
-          <button className="enter-crm-btn" onClick={() => setActivePage("crm")}>
-            Enter CRM →
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="app">
-      <div className="sidebar">
-        <div className="logo"><img src="D&T.png" alt="logo" /></div>
-        <button onClick={() => setActivePage("dashboard")}><span>🏠</span><span>Home</span></button>
-        <button onClick={() => setActivePage("crm")}><span>📊</span><span>Analytics</span></button>
-        <button onClick={() => setActivePage("employees")}><span>👥</span><span>Employees</span></button>
-        <button onClick={() => setActivePage("workspace")}><span>💼</span><span>Workspace</span></button>
-        <button onClick={() => setActivePage("reports")}><span>📈</span><span>Reports</span></button>
-        <button onClick={() => setActivePage("settings")}><span>⚙️</span><span>Settings</span></button>
-        <button onClick={handleLogout}><span>⏻</span><span>Logout</span></button>
-      </div>
-
-      <div className="content">
-        <div className="time-display">{currentTime}</div>
-
-        {/* Passing the handler to CRM so it can update the Dashboard charts */}
-        {activePage === "crm" && (
-          <CRM onDataUpdate={handleCrmDataUpdate} />
-        )}
-        
-        {activePage === "employees" && <Employee />}
-        {activePage === "workspace" && <TasksWorkspace />}
-        {activePage === "reports" && <Reports />}
-        {activePage === "settings" && <Settings />}
-      </div>
-    </div>
-  );
+async function loadTasks(){
+try{
+const res = await api.get("/tasks",headers);
+setTasks(res.data);
+}catch(err){
+console.log(err);
+}
 }
 
-export default Dashboard;
+async function loadEmployees(){
+try{
+const res = await api.get("/Employees",headers);
+setEmployees(res.data);
+}catch(err){
+console.log(err);
+}
+}
+
+async function loadLeaves(){
+try{
+const res = await api.get("/leaves",headers);
+setLeaves(res.data);
+}catch(err){
+console.log(err);
+}
+}
+
+useEffect(()=>{
+loadTasks();
+loadEmployees();
+loadLeaves();
+},[]);
+
+async function createTask(){
+
+if(!title || !description || !employeeEmail){
+alert("Please fill all fields!");
+return;
+}
+
+try{
+
+await api.post("/tasks",{
+Title:title,
+Description:description,
+EmployeeEmail:employeeEmail
+},headers);
+
+setTitle("");
+setDescription("");
+setEmployeeEmail("");
+setShowTaskModal(false);
+
+loadTasks();
+
+}catch(err){
+console.log(err);
+}
+
+}
+
+// APPLY LEAVE
+async function applyLeave(){
+
+if(!leaveDate || !leaveReason){
+alert("Fill all fields!");
+return;
+}
+
+// 🔥 FRONTEND VALIDATION (extra safety)
+const today = new Date().toISOString().split("T")[0];
+if(leaveDate < today){
+alert("Cannot select past date");
+return;
+}
+
+try{
+
+await api.post("/leaves",{
+Date:leaveDate,
+Reason:leaveReason
+},headers);
+
+setLeaveDate("");
+setLeaveReason("");
+setShowLeaveModal(false);
+
+loadLeaves();
+
+}catch(err){
+console.log(err);
+}
+
+}
+
+async function uploadFile(taskId,file){
+
+if(!file){
+alert("Please select a file!");
+return;
+}
+
+if(file.size === 0){
+alert("File is empty!");
+return;
+}
+
+try{
+
+const form = new FormData();
+form.append("file",file);
+
+await api.post(`/tasks/upload/${taskId}`,form,{
+headers:{
+Authorization:`Bearer ${token}`,
+"Content-Type":"multipart/form-data"
+}
+});
+
+alert("File uploaded successfully!");
+loadTasks();
+
+}catch(err){
+console.log(err);
+alert("Upload failed!");
+}
+
+}
+
+function viewFile(taskId){
+const token = localStorage.getItem("token");
+
+window.open(
+`https://mywebsite-im3c.onrender.com/api/tasks/file/${taskId}?token=${token}`,
+"_blank"
+);
+}
+
+async function downloadFile(taskId){
+try{
+const token = localStorage.getItem("token");
+
+const res = await axios.get(
+`https://mywebsite-im3c.onrender.com/api/tasks/file/${taskId}?download=true&token=${token}`,
+{ responseType:"blob" }
+);
+
+const url = window.URL.createObjectURL(new Blob([res.data]));
+
+const a = document.createElement("a");
+a.href = url;
+
+let filename = "taskfile";
+const contentDisposition = res.headers["content-disposition"];
+
+if(contentDisposition){
+const match = contentDisposition.match(/filename="(.+)"/);
+if(match) filename = match[1];
+}
+
+a.download = filename;
+
+document.body.appendChild(a);
+a.click();
+a.remove();
+
+}catch(err){
+console.log(err);
+alert("Download failed!");
+}
+}
+
+async function markComplete(taskId){
+try{
+await api.put(`/tasks/status/${taskId}`,{
+Status:"Completed"
+},headers);
+
+loadTasks();
+
+}catch(err){
+console.log(err);
+}
+}
+
+return(
+
+<div>
+
+<h2>Task Board</h2>
+
+<button
+className="create-task-btn"
+onClick={()=>setShowTaskModal(true)}
+>
+➕ Create Task
+</button>
+
+{/* APPLY LEAVE BUTTON */}
+<button
+className="create-task-btn"
+onClick={()=>setShowLeaveModal(true)}
+style={{marginLeft:"10px"}}
+>
+📅 Apply Leave
+</button>
+
+{/* TASK MODAL */}
+{showTaskModal && (
+<div className="chart-modal" onClick={()=>setShowTaskModal(false)}>
+<div className="chart-modal-content" onClick={(e)=>e.stopPropagation()}>
+
+<h3>Create Task</h3>
+
+<input
+type="text"
+placeholder="Task Title"
+value={title}
+onChange={e=>setTitle(e.target.value)}
+/>
+
+<textarea
+placeholder="Task Description"
+value={description}
+onChange={e=>setDescription(e.target.value)}
+/>
+
+<select
+value={employeeEmail}
+onChange={e=>setEmployeeEmail(e.target.value)}
+>
+<option value="">Select Employee</option>
+
+{Array.isArray(employees) && employees.map(emp=>(
+<option key={emp._id} value={emp.Email}>
+{emp.Name}
+</option>
+))}
+
+</select>
+
+<button onClick={createTask}>
+Send Task
+</button>
+
+</div> 
+</div>
+)}
+
+{/* LEAVE MODAL */}
+{showLeaveModal && (
+<div className="chart-modal" onClick={()=>setShowLeaveModal(false)}>
+<div className="chart-modal-content" onClick={(e)=>e.stopPropagation()}>
+
+<h3>Apply Leave</h3>
+
+<input
+type="date"
+value={leaveDate}
+min={new Date().toISOString().split("T")[0]} // 🔥 FUTURE ONLY
+onChange={e=>setLeaveDate(e.target.value)}
+/>
+
+<textarea
+placeholder="Reason"
+value={leaveReason}
+onChange={e=>setLeaveReason(e.target.value)}
+/>
+
+<button onClick={applyLeave}>
+Submit Leave
+</button>
+
+</div>
+</div>
+)}
+
+<table className="excel-table">
+
+<thead>
+<tr>
+<th>Title</th>
+<th>Description</th>
+<th>Status</th>
+<th>Upload</th>
+<th>Actions</th>
+</tr>
+</thead>
+
+<tbody>
+
+{Array.isArray(tasks) && tasks.map(task=>(
+
+<tr key={task._id}>
+
+<td>{task.Title}</td>
+<td>{task.Description}</td>
+<td>{task.Status}</td>
+
+<td>
+<input
+type="file"
+onChange={(e)=>{
+const file = e.target.files[0];
+if(file) uploadFile(task._id,file);
+}}
+/>
+</td>
+
+<td>
+
+{task.FileId && (
+<>
+<button onClick={()=>viewFile(task._id)}>View</button>
+<button onClick={()=>downloadFile(task._id)}>Download</button>
+</>
+)}
+
+<button
+disabled={!task.FileId || task.Status === "Completed"}
+onClick={()=>markComplete(task._id)}
+>
+Complete
+</button>
+
+</td>
+
+</tr>
+
+))}
+
+</tbody>
+
+</table>
+
+{/* ADMIN ONLY LEAVE SECTION */}
+{(userRole === "Admin" || userRole === "SuperAdmin") && (
+
+<div style={{marginTop:"40px"}}>
+
+<h2>Leave Applications</h2>
+
+<table className="excel-table">
+
+<thead>
+<tr>
+<th>Date</th>
+<th>Reason</th>
+</tr>
+</thead>
+
+<tbody>
+
+{Array.isArray(leaves) && leaves.map((leave,i)=>(
+
+<tr key={i}>
+<td>{leave.Date}</td>
+<td>{leave.Reason}</td>
+</tr>
+
+))}
+
+</tbody>
+
+</table>
+
+</div>
+
+)}
+
+</div>
+
+);
+
+}
+
+export default TasksWorkspace;
