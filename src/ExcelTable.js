@@ -52,8 +52,7 @@ export default function ExcelTable({ onColumnSelect }) {
     return () => clearTimeout(timer);
   }, [tableData, colHeaders, colWidths]);
 
-  // --- 3. AI RESUME UPLOAD (FIXED) ---
-// --- NEW: GENERIC EXCEL/CSV IMPORT ---
+  // --- 3. EXCEL/CSV IMPORT ---
   const handleImportExcel = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -67,16 +66,15 @@ export default function ExcelTable({ onColumnSelect }) {
       const data = XLSX.utils.sheet_to_json(ws, { header: 1 });
 
       if (data.length > 0) {
-        // First row becomes headers, the rest becomes the table data
         setColHeaders(data[0]);
         setTableData(data.slice(1));
       }
     };
     reader.readAsBinaryString(file);
-    e.target.value = null; // Clear input so you can upload the same file twice
+    e.target.value = null; 
   };
 
-  // --- UPDATED: AI RESUME UPLOAD (CRASH-PROOF) ---
+  // --- 4. AI RESUME UPLOAD (RESTORED & FIXED) ---
   const handleAiResumeUpload = async (e) => {
     const files = e.target.files;
     if (!files.length) return;
@@ -92,7 +90,6 @@ export default function ExcelTable({ onColumnSelect }) {
       });
 
       if (res.data.success) {
-        // We only map files that actually succeeded
         const successfulResumes = res.data.resumes.filter(r => r.success === true);
 
         const newRows = successfulResumes.map(r => [
@@ -111,19 +108,44 @@ export default function ExcelTable({ onColumnSelect }) {
         
         const failed = res.data.resumes.filter(r => !r.success);
         if (failed.length > 0) {
-          alert(`Failed to parse ${failed.length} file(s). Make sure they aren't images/scans.`);
+          alert(`AI could not read ${failed.length} file(s). Ensure they are text-based PDFs.`);
         }
       }
     } catch (err) {
       console.error("AI Error:", err);
-      alert("Server Error. Check your Gemini API key in the .env file.");
+      alert("Server connection failed. Check your Render logs.");
     } finally {
       setIsParsing(false);
       e.target.value = null; 
     }
   };
 
-  // --- 5. CORE ACTIONS ---
+  // --- 5. THE MISSING FUNCTION (The Fix for your Error) ---
+  const handleColumnHeaderClick = (colIndex) => {
+    const nextSelected = selectedCols.includes(colIndex)
+      ? selectedCols.filter(i => i !== colIndex)
+      : [...selectedCols, colIndex];
+
+    setSelectedCols(nextSelected);
+
+    // Prepare data for the multivariate charts
+    const chartData = tableData.map((row, rIdx) => {
+      const dataPoint = { name: row[0] || `Row ${rIdx + 1}` };
+      nextSelected.forEach(idx => {
+        const key = colHeaders[idx] || `Field ${idx + 1}`;
+        const val = parseFloat(row[idx]);
+        dataPoint[key] = isNaN(val) ? 0 : val;
+      });
+      return dataPoint;
+    }).filter(point => {
+        return nextSelected.some(idx => point[colHeaders[idx] || `Field ${idx + 1}`] > 0);
+    });
+
+    const activeLabels = nextSelected.map(idx => colHeaders[idx] || `Field ${idx + 1}`);
+    if (onColumnSelect) onColumnSelect(chartData, activeLabels);
+  };
+
+  // --- 6. CORE ACTIONS ---
   const handleCellChange = (r, c, value) => {
     const newData = [...tableData];
     newData[r][c] = value;
@@ -202,11 +224,13 @@ export default function ExcelTable({ onColumnSelect }) {
           <div className="v-divider"></div>
           <button className="tool-btn primary" onClick={addRow}><Plus size={16}/> Add Row</button>
           <button className="tool-btn" onClick={exportToExcel}><Download size={16}/> Export</button>
+          
           <label className="tool-btn">
-          <Upload size={16}/> 
-          <span>Import Data</span>
-          <input type="file" hidden accept=".xlsx,.xls,.csv" onChange={handleImportExcel} />
+            <Upload size={16}/> 
+            <span>Import</span>
+            <input type="file" hidden accept=".xlsx,.xls,.csv" onChange={handleImportExcel} />
           </label>
+
           <label className={`tool-btn ${isParsing ? 'loading' : ''}`}>
             {isParsing ? <Loader2 size={16} className="spin"/> : <FileText size={16}/>}
             <span>{isParsing ? "AI Parsing..." : "Parse Resumes"}</span>
