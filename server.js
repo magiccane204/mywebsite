@@ -33,27 +33,7 @@ app.use(express.urlencoded({ extended: true }));
 
 let db, users, otps, sessions, auditLogs, bucket;
 
-async function connectDB() {
 
- await mongoose.connect();
-
-db = mongoose.connection.db;
-
-  users = db.collection("user");
-  otps = db.collection("OTPs");
-  sessions = db.collection("Sessions");
-  auditLogs = db.collection("AuditLogs");
-
-  await otps.createIndex({ createdAt: 1 }, { expireAfterSeconds: 300 });
-  await sessions.createIndex({ token: 1 });
-
-await mongoose.connect(MONGO_URI);
-
-mongoose.connection.once("open", () => {
-
-  bucket = new GridFSBucket(mongoose.connection.db, {
-    bucketName: "taskFiles"
-  });
 
   console.log("✅ GridFS bucket initialized");
 
@@ -205,11 +185,8 @@ app.post("/api/signup", async (req, res) => {
 
 });
 
-
 app.post("/api/login", rateLimit, async (req, res) => {
-
   try {
-
     const email = String(req.body.email || "").trim().toLowerCase();
     const password = String(req.body.password || "").trim();
 
@@ -220,173 +197,138 @@ app.post("/api/login", rateLimit, async (req, res) => {
       });
     }
 
-    const user = await users.findOne({ Email: email.toLowerCase() });
+    const user = await users.findOne({ Email: email });
 
     if (!user) {
-
-   
       const employee = await EmployeesModel.findOne({ Email: email });
 
       if (employee) {
-
         return res.status(403).json({
           success: false,
           notVerified: true,
-          message: "Account not activated. Please create your password."
+          message: "Account not activated"
         });
-
       }
 
       return res.status(401).json({
         success: false,
         message: "User not found"
       });
-
     }
 
+    let match = false;
 
+    if (user.Role === "SuperAdmin") {
+      const hashedInput = crypto
+        .createHash("sha256")
+        .update(password)
+        .digest("hex");
 
-let match = false;
+      if (hashedInput === user.Password) match = true;
+    } else {
+      match = await bcrypt.compare(password, user.Password);
+    }
 
+    if (!match) {
+      return res.status(401).json({
+        success: false,
+        message: "Wrong password"
+      });
+    }
 
-if (user.Role === "SuperAdmin") {
+    // ✅ OTP GENERATION
+    const otp = generate();
 
-  const hashedInput = crypto
-    .createHash("sha256")
-    .update(password)
-    .digest("hex");
+    await otps.deleteMany({ Email: email });
 
-  if (hashedInput === user.Password) {
-    match = true;
-  }
-
-}
-
-
-else {
-
-  match = await bcrypt.compare(password, user.Password);
-
-}
-
-if (!match) {
-  return res.status(401).json({
-    success: false,
-    message: "Wrong password"
-  });
-}
-
-   
-    const  = generate();
-
-    await s.deleteMany({ Email: email });
-
-    await s.insertOne({
+    await otps.insertOne({
       Email: email,
-      : ,
+      OTP: otp,
       attempts: 0,
       createdAt: new Date(),
     });
 
+    // ✅ SEND EMAIL
     await resend.emails.send({
       from: "CRM <noreply@dntcrm.work.gd>",
       to: email,
-      subject: "Your ",
-      html: `<h2>Your  is <b>${}</b></h2>`
+      subject: "Your OTP",
+      html: `<h2>Your OTP is <b>${otp}</b></h2>`
     });
 
     return res.json({
       success: true,
-      message: " sent"
+      message: "OTP sent"
     });
 
   } catch (err) {
-
     console.error("LOGIN_ERROR", err);
-
     return res.status(500).json({
       message: "Internal server error"
     });
-
   }
-
 });
-
-
-
-
-app.post("/api/verify-", async (req, res) => {
-
+app.post("/api/verify-otp", async (req, res) => {
   try {
-
     const email = String(req.body.email || "").trim().toLowerCase();
-    const  = String(req.body. || "").trim();
+    const otp = String(req.body.otp || "").trim();
 
-    if (!email || !) {
-
+    if (!email || !otp) {
       return res.status(400).json({
         success: false,
         message: "Email and OTP required",
       });
-
     }
 
     const record = await otps.findOne({ Email: email });
 
     if (!record) {
-
-      logAudit("OTP_FAIL", email);
-
       return res.status(401).json({
         success: false,
-        message: "OTP expired or not found",
+        message: "OTP expired",
       });
-
     }
 
     if (record.attempts >= 5) {
-
       return res.status(403).json({
         success: false,
-        message: "Too many OTP attempts",
+        message: "Too many attempts",
       });
-
     }
 
     if (record.OTP !== otp) {
-
       await otps.updateOne(
         { Email: email },
         { $inc: { attempts: 1 } }
       );
 
-      logAudit("OTP_FAIL", email);
-
       return res.status(401).json({
         success: false,
         message: "Invalid OTP",
       });
-
     }
 
     const user = await users.findOne({ Email: email });
 
-    if (!user)
+    if (!user) {
       return res.status(401).json({
         success: false,
         message: "User not found",
       });
+    }
 
-const token = jwt.sign(
-{
-  id: user._id,
-  email: user.Email,
-  role: user.Role,
-  company: user.Company
-},
-JWT_SECRET,
-{ expiresIn: "1h" }
-);
+    // ✅ TOKEN
+    const token = jwt.sign(
+      {
+        id: user._id,
+        email: user.Email,
+        role: user.Role,
+        company: user.Company
+      },
+      JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
     await sessions.insertOne({
       email,
       token: hashToken(token),
@@ -395,26 +337,19 @@ JWT_SECRET,
 
     await otps.deleteMany({ Email: email });
 
-    logAudit("LOGIN_SUCCESS", email);
-
-return res.json({
-  success: true,
-  token,
-  role: user.Role
-});
+    return res.json({
+      success: true,
+      token,
+      role: user.Role   // ⭐ IMPORTANT
+    });
 
   } catch (err) {
-
     console.error("VERIFY_OTP_ERROR", err);
-
     return res.status(500).json({
       message: "Internal server error",
     });
-
   }
-
 });
-
 
 const employeeSchema = new mongoose.Schema({
 
