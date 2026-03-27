@@ -136,6 +136,22 @@ th:hover .header-actions { opacity: 1; }
   cursor: col-resize;
   z-index: 20;
 }
+/* Multivariate Selected Header */
+.selected-column-header {
+  background-color: #f0fdf4 !important; /* Light green */
+  border-bottom: 3px solid #107c41 !important; /* Strong Excel Green */
+}
+
+.selected-column-header .header-edit-input {
+  color: #107c41;
+  font-weight: bold;
+}
+
+/* Stop input clicking from toggling the graph */
+.header-edit-input:focus {
+  background: white;
+  outline: none;
+}
 .react-resizable-handle:hover { background: var(--primary-green); }
 
 /* STATUS & MODAL */
