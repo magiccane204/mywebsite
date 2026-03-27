@@ -351,11 +351,6 @@ background: #020617;
 }
 
 
-
-
-
-
-
 body.dark .chart,
 body.dark .settings-card,
 body.dark .excel-table {
@@ -509,28 +504,26 @@ z-index: 9999;
 
 
 .chart-modal-content {
-position: relative;
-width: 100vw;
-height: 70vh;
-max-width: 1100px;
+  position: relative;
 
-padding: 30px;
+  width: 420px;
+  max-width: 90%;
+  height: auto;
 
-border-radius: 14px;
+  padding: 25px;
 
-background: white;
-color: black;
+  border-radius: 12px;
 
-display: flex;
-justify-content: center;
-align-items: center;
+  background: white;
+  color: black;
 
-box-shadow:
-0 20px 60px rgba(0,0,0,0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
 
-overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
 }
-
 
 
 body.dark .chart-modal-content {
@@ -984,4 +977,30 @@ body.dark .editor-container th:focus {
   font-size: 13px;
   color: #64748b;
   font-weight: 500;
+}
+.leave-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+}
+
+.leave-form input,
+.leave-form textarea {
+  width: 100%;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+}
+
+.leave-form textarea {
+  height: 100px;
+  resize: none;
+}
+
+.leave-form button {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
 }
