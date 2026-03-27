@@ -16,7 +16,7 @@ export default function ExcelTable({ onColumnSelect }) {
   const [colWidths, setColWidths] = useState({});
   const [selectedCell, setSelectedCell] = useState({ r: 0, c: 0 });
   const [selectedCols, setSelectedCols] = useState([]);
-  const [isParsing, setIsParsing] = useState(false); // Added for AI
+  const [isParsing, setIsParsing] = useState(false);
   const [isFormatModalOpen, setIsFormatModalOpen] = useState(false);
   const [formatConfirmText, setFormatConfirmText] = useState("");
   const [isAutoSaving, setIsAutoSaving] = useState(false);
@@ -52,7 +52,7 @@ export default function ExcelTable({ onColumnSelect }) {
     return () => clearTimeout(timer);
   }, [tableData, colHeaders, colWidths]);
 
-  // --- 3. AI RESUME UPLOAD (The Missing Piece) ---
+  // --- 3. AI RESUME UPLOAD (FIXED) ---
   const handleAiResumeUpload = async (e) => {
     const files = e.target.files;
     if (!files.length) return;
@@ -62,15 +62,16 @@ export default function ExcelTable({ onColumnSelect }) {
     for (const file of files) formData.append("resumes", file);
 
     try {
-      // Get token from storage if your API requires auth
       const token = localStorage.getItem("token");
       const res = await axios.post("/api/resume/extract", formData, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
       if (res.data.success) {
-        // Map the AI response (JSON objects) into table rows (Arrays)
-        const newRows = res.data.resumes.map(r => [
+        // ✅ THE FIX: Filter out resumes that failed (where success is false)
+        const successfulResumes = res.data.resumes.filter(r => r.success === true);
+
+        const newRows = successfulResumes.map(r => [
           r.data.name || "N/A",
           r.data.email || "N/A",
           r.data.phone || "N/A",
@@ -79,11 +80,20 @@ export default function ExcelTable({ onColumnSelect }) {
           r.data.experience || "N/A",
           r.data.education || "N/A"
         ]);
-        setTableData(prev => [...newRows, ...prev]);
+
+        if (newRows.length > 0) {
+          setTableData(prev => [...newRows, ...prev]);
+        }
+
+        // Optional alert if some failed
+        const failCount = res.data.resumes.length - successfulResumes.length;
+        if (failCount > 0) {
+          alert(`${failCount} file(s) failed to parse. Check the server console.`);
+        }
       }
     } catch (err) {
       console.error("AI Error:", err);
-      alert("AI Parsing failed. Check server console.");
+      alert("AI Parsing failed. Check server connection.");
     } finally {
       setIsParsing(false);
       e.target.value = null; 
@@ -194,7 +204,6 @@ export default function ExcelTable({ onColumnSelect }) {
           <button className="tool-btn primary" onClick={addRow}><Plus size={16}/> Add Row</button>
           <button className="tool-btn" onClick={exportToExcel}><Download size={16}/> Export</button>
           
-          {/* AI RESUME PARSE BUTTON */}
           <label className={`tool-btn ${isParsing ? 'loading' : ''}`}>
             {isParsing ? <Loader2 size={16} className="spin"/> : <FileText size={16}/>}
             <span>{isParsing ? "AI Parsing..." : "Parse Resumes"}</span>
