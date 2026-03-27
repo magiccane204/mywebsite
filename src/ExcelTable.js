@@ -202,7 +202,11 @@ export default function ExcelTable({ onColumnSelect }) {
           <div className="v-divider"></div>
           <button className="tool-btn primary" onClick={addRow}><Plus size={16}/> Add Row</button>
           <button className="tool-btn" onClick={exportToExcel}><Download size={16}/> Export</button>
-          
+          <label className="tool-btn">
+          <Upload size={16}/> 
+          <span>Import Data</span>
+          <input type="file" hidden accept=".xlsx,.xls,.csv" onChange={handleImportExcel} />
+          </label>
           <label className={`tool-btn ${isParsing ? 'loading' : ''}`}>
             {isParsing ? <Loader2 size={16} className="spin"/> : <FileText size={16}/>}
             <span>{isParsing ? "AI Parsing..." : "Parse Resumes"}</span>
