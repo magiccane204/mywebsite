@@ -681,9 +681,7 @@ app.put("/api/Employees/lock/:id", auth, async (req, res) => {
 });
 
 
-
-// --- AI RESUME EXTRACTION (FIXED & CLEANED) ---
-// --- AI RESUME EXTRACTION (FIXED & CLEANED) ---
+// --- AI RESUME EXTRACTION (STABLE & SECURE) ---
 app.post("/api/resume/extract", auth, upload.array("resumes", 20), async (req, res) => {
   try {
     if (!req.files || req.files.length === 0)
@@ -693,36 +691,42 @@ app.post("/api/resume/extract", auth, upload.array("resumes", 20), async (req, r
     const results = [];
 
     for (const file of req.files) {
-      const buffer = fs.readFileSync(file.path);
-      let text = "";
-
-      // 1. Convert File to Text
-      if (file.mimetype === "application/pdf") {
-        const parsed = await pdfParse(buffer);
-        text = parsed.text || "";
-      } else if (file.mimetype === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
-        const out = await mammoth.extractRawText({ buffer });
-        text = out.value || "";
-      } else {
-        if (fs.existsSync(file.path)) fs.unlinkSync(file.path); 
-        results.push({ filename: file.originalname, success: false, error: "Unsupported type" });
-        continue;
-      }
-
-      // 2. AI Parsing Intelligence
       try {
-        const prompt = `Extract info from this resume and return ONLY a valid JSON object.
-        Use these EXACT keys: "name", "email", "phone", "linkedIn", "skills", "experience", "education".
-        Return skills as a comma-separated string. If info is missing, use "N/A".
+        const buffer = fs.readFileSync(file.path);
+        let text = "";
+
+        // 1. Text Extraction
+        if (file.mimetype === "application/pdf") {
+          const parsed = await pdfParse(buffer);
+          text = (parsed.text || "").replace(/\n/g, " ").trim();
+        } else if (file.mimetype === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+          const out = await mammoth.extractRawText({ buffer });
+          text = (out.value || "").replace(/\n/g, " ").trim();
+        } else {
+          results.push({ filename: file.originalname, success: false, error: "Unsupported type" });
+          continue;
+        }
+
+        // 2. Scanned File Check
+        if (!text || text.length < 20) {
+          results.push({ filename: file.originalname, success: false, error: "No readable text (likely a scan)" });
+          continue;
+        }
+
+        // 3. AI Parsing
+        const prompt = `Extract info from this resume and return ONLY a valid JSON object. 
+        Keys: "name", "email", "phone", "linkedIn", "skills", "experience", "education". 
         Resume Text: ${text}`;
 
         const aiResult = await model.generateContent(prompt);
         const aiResponse = await aiResult.response;
         const rawText = aiResponse.text();
 
-        // 🔥 BULLETPROOF JSON CLEANING
+        // 4. JSON Sanitization
         const jsonStart = rawText.indexOf('{');
         const jsonEnd = rawText.lastIndexOf('}') + 1;
+        if (jsonStart === -1) throw new Error("AI failed to format JSON");
+        
         const cleanJson = rawText.substring(jsonStart, jsonEnd);
 
         results.push({
@@ -730,59 +734,39 @@ app.post("/api/resume/extract", auth, upload.array("resumes", 20), async (req, r
           success: true,
           data: JSON.parse(cleanJson)
         });
-        
-        console.log(`✅ AI successfully parsed: ${file.originalname}`);
 
-      } catch (aiErr) {
-        console.error("❌ AI ERROR for " + file.originalname + ":", aiErr.message);
+      } catch (fileErr) {
+        console.error(`Error processing ${file.originalname}:`, fileErr.message);
         results.push({ filename: file.originalname, success: false, error: "AI Parsing Failed" });
+      } finally {
+        // ✅ DELETES TEMPORARY FILE NO MATTER WHAT
+        if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
       }
+    }
 
-      // 3. STORAGE CLEANUP (Inside the for loop)
-      if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
-    } // <--- THIS WAS THE MISSING BRACKET IN YOUR PREVIOUS CODE
-
-    return res.json({
-      success: true,
-      count: results.length,
-      resumes: results
-    });
+    return res.json({ success: true, resumes: results });
 
   } catch (err) {
-    console.error("SERVER_RESUME_ERROR", err);
-    return res.status(500).json({ success: false, message: "Server error during parsing" });
+    console.error("SERVER_ERROR:", err);
+    return res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
 
+// --- DATA ANALYSIS (CLEAN & FAST) ---
 app.get("/api/dataanalysis", auth, async (req, res) => {
-
   try {
-
-    const employees = await EmployeesModel.find({
-      Company: req.user.company,
-    })
+    const employees = await EmployeesModel.find({ Company: req.user.company })
       .sort({ createdAt: -1 })
       .lean();
 
+    // Filters out locked/terminated profiles for the analysis view
     const visibleEmployees = employees.filter(emp => !emp.locked);
 
-    return res.json({
-      success: true,
-      employees: visibleEmployees,
-    });
-
+    return res.json({ success: true, employees: visibleEmployees });
+  } catch (err) {
+    console.error("ANALYSIS_ERROR:", err);
+    return res.status(500).json({ message: "Failed to load analysis data" });
   }
-
-  catch (err) {
-
-    console.error("ANALYSIS_ERROR", err);
-
-    return res.status(500).json({
-      message: "Failed to load Data",
-    });
-
-  }
-
 });
 
 app.get("/api/reports", auth, async (req, res) => {
