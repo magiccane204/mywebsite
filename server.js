@@ -754,13 +754,13 @@ app.put("/api/Employees/lock/:id", auth, async (req, res) => {
 
 
 
-// --- AI RESUME EXTRACTION (GEMINI) ---
+// --- AI RESUME EXTRACTION (FIXED & CLEANED) ---
+// --- AI RESUME EXTRACTION (FIXED & CLEANED) ---
 app.post("/api/resume/extract", auth, upload.array("resumes", 20), async (req, res) => {
   try {
     if (!req.files || req.files.length === 0)
       return res.status(400).json({ success: false, message: "No files uploaded" });
 
-    // Initialize the Gemini model
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     const results = [];
 
@@ -776,38 +776,43 @@ app.post("/api/resume/extract", auth, upload.array("resumes", 20), async (req, r
         const out = await mammoth.extractRawText({ buffer });
         text = out.value || "";
       } else {
-        fs.unlinkSync(file.path);
+        if (fs.existsSync(file.path)) fs.unlinkSync(file.path); 
         results.push({ filename: file.originalname, success: false, error: "Unsupported type" });
         continue;
       }
 
-      // 2. AI Parsing Prompt
+      // 2. AI Parsing Intelligence
       try {
         const prompt = `Extract info from this resume and return ONLY a valid JSON object.
         Use these EXACT keys: "name", "email", "phone", "linkedIn", "skills", "experience", "education".
-        The "skills" field should be a comma-separated string. If info is missing, use "N/A".
+        Return skills as a comma-separated string. If info is missing, use "N/A".
         Resume Text: ${text}`;
 
         const aiResult = await model.generateContent(prompt);
         const aiResponse = await aiResult.response;
-        
-        // Clean the AI response (removes markdown backticks)
-        let aiJsonText = aiResponse.text().replace(/```json|```/g, "").trim();
-        const data = JSON.parse(aiJsonText);
+        const rawText = aiResponse.text();
+
+        // 🔥 BULLETPROOF JSON CLEANING
+        const jsonStart = rawText.indexOf('{');
+        const jsonEnd = rawText.lastIndexOf('}') + 1;
+        const cleanJson = rawText.substring(jsonStart, jsonEnd);
 
         results.push({
           filename: file.originalname,
           success: true,
-          data: data
+          data: JSON.parse(cleanJson)
         });
+        
+        console.log(`✅ AI successfully parsed: ${file.originalname}`);
+
       } catch (aiErr) {
-        console.error("Gemini Parse Error:", aiErr);
-        results.push({ filename: file.originalname, success: false, error: "AI failed to parse" });
+        console.error("❌ AI ERROR for " + file.originalname + ":", aiErr.message);
+        results.push({ filename: file.originalname, success: false, error: "AI Parsing Failed" });
       }
 
-      // Cleanup local temp file
+      // 3. STORAGE CLEANUP (Inside the for loop)
       if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
-    }
+    } // <--- THIS WAS THE MISSING BRACKET IN YOUR PREVIOUS CODE
 
     return res.json({
       success: true,
