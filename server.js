@@ -33,14 +33,6 @@ app.use(express.urlencoded({ extended: true }));
 
 let db, users, otps, sessions, auditLogs, bucket;
 
-
-
-  console.log("✅ GridFS bucket initialized");
-
-});
-
-  console.log("MongoDB connected");
-}
 const resend = new Resend(RESEND_API_KEY);
 function generate() {
   return Math.floor(100000 + Math.random() * 900000).toString();
