@@ -62,7 +62,7 @@ mongoose.connection.once("open", () => {
   console.log("MongoDB connected");
 }
 const resend = new Resend(RESEND_API_KEY);
-function generateOTP() {
+function generate() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
@@ -277,13 +277,13 @@ if (!match) {
 }
 
    
-    const otp = generateOTP();
+    const  = generate();
 
-    await otps.deleteMany({ Email: email });
+    await s.deleteMany({ Email: email });
 
-    await otps.insertOne({
+    await s.insertOne({
       Email: email,
-      OTP: otp,
+      : ,
       attempts: 0,
       createdAt: new Date(),
     });
@@ -291,13 +291,13 @@ if (!match) {
     await resend.emails.send({
       from: "CRM <noreply@dntcrm.work.gd>",
       to: email,
-      subject: "Your OTP",
-      html: `<h2>Your OTP is <b>${otp}</b></h2>`
+      subject: "Your ",
+      html: `<h2>Your  is <b>${}</b></h2>`
     });
 
     return res.json({
       success: true,
-      message: "OTP sent"
+      message: " sent"
     });
 
   } catch (err) {
@@ -315,14 +315,14 @@ if (!match) {
 
 
 
-app.post("/api/verify-otp", async (req, res) => {
+app.post("/api/verify-", async (req, res) => {
 
   try {
 
     const email = String(req.body.email || "").trim().toLowerCase();
-    const otp = String(req.body.otp || "").trim();
+    const  = String(req.body. || "").trim();
 
-    if (!email || !otp) {
+    if (!email || !) {
 
       return res.status(400).json({
         success: false,
@@ -397,10 +397,11 @@ JWT_SECRET,
 
     logAudit("LOGIN_SUCCESS", email);
 
-    return res.json({
-      success: true,
-      token,
-    });
+return res.json({
+  success: true,
+  token,
+  role: user.Role
+});
 
   } catch (err) {
 
