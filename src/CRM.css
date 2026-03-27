@@ -118,7 +118,7 @@ color: #1e293b;
   position: relative;
 
   margin-left: 70px;
-  padding-left: 10px; /* 👈 THIS FIXES ALIGNMENT */
+  padding-left: 0px; /* 👈 THIS FIXES ALIGNMENT */
 
   width: calc(100% - 70px);
 
@@ -136,13 +136,24 @@ color: #1e293b;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 20px;
+  padding: 15px 25px; /* Slightly more padding for a "premium" feel */
+  
   position: sticky;
   top: 0;
+  z-index: 100;
+  
   background: white;
-  z-index: 10;
-  box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-  box-sizing: border-box; /* Ensures padding doesn't push it out */
+  border-bottom: 1px solid #e5e7eb; /* Subtle line instead of just shadow */
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  
+  margin: 0; /* Ensure no accidental spacing */
+  border-radius: 0; /* 👈 Critical: make corners square */
+}
+
+/* Dark mode specific for the bar */
+body.dark .horizontalbar {
+  background: #020617;
+  border-bottom: 1px solid #1e293b;
 }
 
 
@@ -341,14 +352,7 @@ background: #020617;
 
 
 
-body.dark .horizontalbar {
-background: #020617;
-color: #e5e7eb;
-border-bottom: 1px solid #4c1d95;
 
-box-shadow:
-0 0 25px rgba(168,85,247,0.25);
-}
 
 
 
@@ -471,9 +475,10 @@ body.dark .content > div {
 background: #111827 !important;   
 color: #e5e7eb !important;
 
-border-radius: 12px;
-border: 1px solid #4c1d95;
 
+border-radius: 0 !important; 
+  border: none !important;
+  padding: 0 !important;
 box-shadow:
 0 10px 30px rgba(0,0,0,0.7),
 0 0 20px rgba(168,85,247,0.25);
