@@ -7,7 +7,6 @@ const api = axios.create({
 
 function TasksWorkspace(){
 
-// ================= STATES =================
 const [tasks,setTasks] = useState([]);
 const [employees,setEmployees] = useState([]);
 const [leaves,setLeaves] = useState([]);
@@ -22,10 +21,9 @@ const [leaveReason,setLeaveReason] = useState("");
 const [showTaskModal,setShowTaskModal] = useState(false);
 const [showLeaveModal,setShowLeaveModal] = useState(false);
 
-// ================= AUTH =================
-const token = localStorage.getItem("token");
+// ✅ GET TOKEN LIVE (important)
+const [token,setToken] = useState(localStorage.getItem("token"));
 
-// ✅ SAFE ROLE HANDLING
 const rawRole = localStorage.getItem("role");
 
 const userRole =
@@ -36,15 +34,17 @@ const userRole =
     : "employee";
 
 const headers = {
-headers:{ Authorization:`Bearer ${token}` }
+  headers:{ Authorization:`Bearer ${token}` }
 };
 
-// ================= LOAD DATA =================
+// ✅ ONLY LOAD WHEN TOKEN EXISTS
 useEffect(()=>{
-loadTasks();
-loadEmployees();
-loadLeaves();
-},[]);
+  if(token){
+    loadTasks();
+    loadEmployees();
+    loadLeaves();
+  }
+},[token]);
 
 async function loadTasks(){
 try{
@@ -73,7 +73,6 @@ console.log(err);
 }
 }
 
-// ================= CREATE TASK =================
 async function createTask(){
 
 if(!title || !description || !employeeEmail){
@@ -100,7 +99,6 @@ console.log(err);
 }
 }
 
-// ================= APPLY LEAVE =================
 async function applyLeave(){
 
 if(!leaveDate || !leaveReason){
@@ -108,7 +106,6 @@ alert("Fill all fields");
 return;
 }
 
-// ✅ FUTURE ONLY VALIDATION
 const today = new Date().toISOString().split("T")[0];
 if(leaveDate < today){
 alert("Cannot select past date");
@@ -132,7 +129,6 @@ console.log(err);
 }
 }
 
-// ================= RENDER =================
 return(
 
 <div style={{padding:"20px"}}>
@@ -146,7 +142,6 @@ return(
 </button>
 </div>
 
-{/* ================= TASK MODAL ================= */}
 {showTaskModal && (
 <div className="chart-modal" onClick={()=>setShowTaskModal(false)}>
 <div className="chart-modal-content" onClick={(e)=>e.stopPropagation()}>
@@ -183,7 +178,6 @@ onChange={e=>setEmployeeEmail(e.target.value)}
 </div>
 )}
 
-{/* ================= LEAVE MODAL ================= */}
 {showLeaveModal && (
 <div className="chart-modal" onClick={()=>setShowLeaveModal(false)}>
 <div className="chart-modal-content" onClick={(e)=>e.stopPropagation()}>
@@ -209,9 +203,7 @@ onChange={e=>setLeaveReason(e.target.value)}
 </div>
 )}
 
-{/* ================= TASK TABLE ================= */}
 <table className="excel-table">
-
 <thead>
 <tr>
 <th>Title</th>
@@ -221,7 +213,6 @@ onChange={e=>setLeaveReason(e.target.value)}
 </thead>
 
 <tbody>
-
 {tasks.map(task=>(
 <tr key={task._id}>
 <td>{task.Title}</td>
@@ -229,20 +220,14 @@ onChange={e=>setLeaveReason(e.target.value)}
 <td>{task.Status}</td>
 </tr>
 ))}
-
 </tbody>
-
 </table>
 
-{/* ================= LEAVE SECTION (ADMIN ONLY) ================= */}
 {(userRole === "admin" || userRole === "superadmin") && (
-
 <div style={{marginTop:"40px"}}>
-
 <h2>Leave Applications</h2>
 
 <table className="excel-table">
-
 <thead>
 <tr>
 <th>Date</th>
@@ -251,20 +236,16 @@ onChange={e=>setLeaveReason(e.target.value)}
 </thead>
 
 <tbody>
-
 {leaves.map(leave=>(
 <tr key={leave._id}>
 <td>{leave.Date}</td>
 <td>{leave.Reason}</td>
 </tr>
 ))}
-
 </tbody>
 
 </table>
-
 </div>
-
 )}
 
 </div>
