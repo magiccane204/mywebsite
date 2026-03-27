@@ -9,12 +9,14 @@ import {
 } from "lucide-react";
 import "./ExcelTable.css";
 
-export default function ExcelTable() {
+// Added onColumnSelect to props
+export default function ExcelTable({ onColumnSelect }) {
   // --- STATE MANAGEMENT ---
   const [tableData, setTableData] = useState([Array(10).fill("")]);
   const [colHeaders, setColHeaders] = useState([]);
   const [colWidths, setColWidths] = useState({});
   const [selectedCell, setSelectedCell] = useState({ r: 0, c: 0 });
+  const [selectedCols, setSelectedCols] = useState([]); // Array for Multivariate selection
   const [isFormatModalOpen, setIsFormatModalOpen] = useState(false);
   const [formatConfirmText, setFormatConfirmText] = useState("");
   const [isAutoSaving, setIsAutoSaving] = useState(false);
@@ -31,7 +33,6 @@ export default function ExcelTable() {
         if (parsed.length > 0) setTableData(parsed);
       } catch (e) { console.error("Data corruption detected."); }
     } else {
-      // Default: 15 rows, 10 columns
       setTableData(Array(15).fill(null).map(() => Array(10).fill("")));
     }
 
@@ -51,7 +52,38 @@ export default function ExcelTable() {
     return () => clearTimeout(timer);
   }, [tableData, colHeaders, colWidths]);
 
-  // --- 3. CELL & HEADER EDITING ---
+  // --- 3. MULTIVARIATE SELECTION LOGIC ---
+  const handleColumnHeaderClick = (colIndex) => {
+    // Toggle Logic: Add if not present, remove if it is
+    const nextSelected = selectedCols.includes(colIndex)
+      ? selectedCols.filter(i => i !== colIndex)
+      : [...selectedCols, colIndex];
+
+    setSelectedCols(nextSelected);
+
+    // Prepare Multivariate data for the Dashboard
+    const chartData = tableData.map((row, rIdx) => {
+      // Use first column (Name) as the label, or "Row #" if empty
+      const dataPoint = { name: row[0] || `Row ${rIdx + 1}` };
+      
+      nextSelected.forEach(idx => {
+        const key = colHeaders[idx] || `Field ${idx + 1}`;
+        const val = parseFloat(row[idx]);
+        dataPoint[key] = isNaN(val) ? 0 : val; // Convert to number for graph
+      });
+      return dataPoint;
+    }).filter(point => {
+        // Filter out rows that have 0 for all selected variables to keep graph clean
+        return nextSelected.some(idx => point[colHeaders[idx] || `Field ${idx + 1}`] > 0);
+    });
+
+    const activeLabels = nextSelected.map(idx => colHeaders[idx] || `Field ${idx + 1}`);
+    
+    // Send to Dashboard
+    if (onColumnSelect) onColumnSelect(chartData, activeLabels);
+  };
+
+  // --- 4. CELL & HEADER EDITING ---
   const handleCellChange = (r, c, value) => {
     const newData = [...tableData];
     newData[r][c] = value;
@@ -65,7 +97,7 @@ export default function ExcelTable() {
     setColHeaders(newHeaders);
   };
 
-  // --- 4. ROW/COLUMN MANIPULATION ---
+  // --- 5. ROW/COLUMN MANIPULATION ---
   const addRow = () => {
     const numCols = tableData[0]?.length || 10;
     setTableData([...tableData, Array(numCols).fill("")]);
@@ -94,16 +126,17 @@ export default function ExcelTable() {
     const newHeaders = colHeaders.filter((_, i) => i !== cIndex);
     setColHeaders(newHeaders);
     setTableData(newData);
+    setSelectedCols(prev => prev.filter(i => i !== cIndex)); // Clean selection
   };
 
-  // --- 5. RESIZING & EXPORT ---
+  // --- 6. RESIZING & EXPORT ---
   const onResize = (index) => (e, { size }) => {
     setColWidths(prev => ({ ...prev, [index]: size.width }));
   };
 
   const exportToExcel = () => {
     const exportData = [
-      colHeaders.map((h, i) => h || `Field ${i + 1}`), // Headers
+      colHeaders.map((h, i) => h || `Field ${i + 1}`),
       ...tableData
     ];
     const ws = XLSX.utils.aoa_to_sheet(exportData);
@@ -117,6 +150,7 @@ export default function ExcelTable() {
       setTableData(Array(15).fill(null).map(() => Array(10).fill("")));
       setColHeaders([]);
       setColWidths({});
+      setSelectedCols([]);
       setIsFormatModalOpen(false);
       setFormatConfirmText("");
     }
@@ -124,7 +158,6 @@ export default function ExcelTable() {
 
   return (
     <div className="crm-app-container">
-      {/* TOOLBAR */}
       <header className="crm-toolbar">
         <div className="toolbar-left">
           <div className="brand">
@@ -151,7 +184,6 @@ export default function ExcelTable() {
         </div>
       </header>
 
-      {/* FORMULA BAR */}
       <div className="formula-bar">
         <div className="cell-id">
           {String.fromCharCode(65 + selectedCell.c)}{selectedCell.r + 1}
@@ -164,7 +196,6 @@ export default function ExcelTable() {
         />
       </div>
 
-      {/* GRID AREA */}
       <div className="grid-viewport">
         <table className="excel-table">
           <thead>
@@ -178,17 +209,22 @@ export default function ExcelTable() {
                   onResize={onResize(c)}
                   minConstraints={[80, 0]}
                 >
-                  <th style={{ width: colWidths[c] || 150 }}>
+                  <th 
+                    style={{ width: colWidths[c] || 150 }}
+                    onClick={() => handleColumnHeaderClick(c)}
+                    className={selectedCols.includes(c) ? "selected-column-header" : ""}
+                  >
                     <div className="header-cell">
                       <input 
                         className="header-edit-input"
                         value={colHeaders[c] || ""}
                         placeholder={`Field ${c + 1}`}
+                        onClick={(e) => e.stopPropagation()} // Stop chart trigger when typing
                         onChange={(e) => handleHeaderChange(c, e.target.value)}
                       />
                       <div className="header-actions">
-                        <button onClick={() => insertColumn(c)}>+</button>
-                        <button onClick={() => deleteColumn(c)}><X size={10}/></button>
+                        <button onClick={(e) => { e.stopPropagation(); insertColumn(c); }}>+</button>
+                        <button onClick={(e) => { e.stopPropagation(); deleteColumn(c); }}><X size={10}/></button>
                       </div>
                     </div>
                   </th>
@@ -225,7 +261,6 @@ export default function ExcelTable() {
         </table>
       </div>
 
-      {/* MODAL */}
       {isFormatModalOpen && (
         <div className="modal-overlay">
           <div className="modal-card">
