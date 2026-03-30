@@ -45,7 +45,7 @@ color: #1e293b;
   flex-direction: column;
   height: 100vh;
   overflow-y: auto;
-  background: #f9fafb;
+  background: #779bbf;
 }
 /* When sidebar is hovered, push the content and bar */
 .sidebar:hover + .content {
