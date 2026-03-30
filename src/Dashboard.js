@@ -64,7 +64,7 @@ function Dashboard({ setMode }) {
   if (activePage === "dashboard") {
     return (
       <div style={{
-        width: "100vw", height: "100vh", background: "#f9fafb",
+        width: "100vw", height: "100vh", background: "#6990b8",
         position: "relative", padding: "40px"
       }}>
         <div className="time-display">{currentTime}</div>
