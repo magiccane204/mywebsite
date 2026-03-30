@@ -30,7 +30,7 @@ color: #1e293b;
   position: fixed;
   transition: width 0.3s ease;
   z-index: 1000;
-  background-color:"#375069";
+  background:"#375069";
 }
 
 .sidebar:hover {
