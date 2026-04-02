@@ -7,7 +7,6 @@ import TasksWorkspace from "./TasksWorkspace";
 import api from "./api";
 import "./CRM.css";
 import ChatWidget from "./ChatWidget";
-
 import GoogleMapReact from "google-map-react";
 
 function Dashboard({ setMode }) {
@@ -20,7 +19,6 @@ function Dashboard({ setMode }) {
   const [coords, setCoords] = useState(null);
   const [totalEmployees, setTotalEmployees] = useState(0);
 
-  // ⏰ TIME
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(new Date().toLocaleTimeString());
@@ -28,7 +26,6 @@ function Dashboard({ setMode }) {
     return () => clearInterval(interval);
   }, []);
 
-  // 📡 LOAD DATA
   useEffect(() => {
     loadDashboard();
     getWeather();
@@ -46,7 +43,6 @@ function Dashboard({ setMode }) {
     }
   };
 
-  // 🌦 WEATHER
   const getWeather = async () => {
     try {
       const res = await fetch(
@@ -59,7 +55,6 @@ function Dashboard({ setMode }) {
     }
   };
 
-  // 📈 STOCKS
   const getStocks = async () => {
     const symbols = ["RELIANCE.BSE", "TCS.BSE", "INFY.BSE"];
     const results = [];
@@ -81,7 +76,6 @@ function Dashboard({ setMode }) {
     setStocks(results);
   };
 
-  // 📰 NEWS
   const getNews = async () => {
     try {
       const res = await fetch(
@@ -94,7 +88,6 @@ function Dashboard({ setMode }) {
     }
   };
 
-  // 📍 LOCATION
   const getLocation = () => {
     navigator.geolocation.getCurrentPosition((pos) => {
       setCoords({
@@ -104,12 +97,11 @@ function Dashboard({ setMode }) {
     });
   };
 
-  // 🗺 MAP COMPONENT
   const Map = ({ lat, lng }) => {
     return (
       <div style={{ height: "220px", width: "100%" }}>
         <GoogleMapReact
-          bootstrapURLKeys={{}}
+          bootstrapURLKeys={{ key: "YOUR_GOOGLE_MAPS_API_KEY" }}
           defaultCenter={{ lat, lng }}
           defaultZoom={13}
         >
@@ -124,6 +116,85 @@ function Dashboard({ setMode }) {
     setMode("login");
   };
 
+  if (activePage === "dashboard") {
+    return (
+      <div
+        style={{
+          width: "100vw",
+          height: "100vh",
+          background: "#f9fafb",
+          position: "relative",
+          padding: "40px",
+        }}
+      >
+        <div className="time-display">{currentTime}</div>
+
+        <div className="bitrix-grid">
+
+          <div className="bitrix-card">
+            <h3>Weather</h3>
+            {weather && weather.main ? (
+              <>
+                <h2>{weather.main.temp}°C</h2>
+                <p>{weather.weather[0].description}</p>
+              </>
+            ) : <p>Loading...</p>}
+          </div>
+
+          <div className="bitrix-card">
+            <h3>Stock Market</h3>
+            {stocks.length > 0 ? (
+              stocks.map((s, i) => (
+                <div key={i}>
+                  <strong>{s.name}</strong>
+                  <p>{s.price}</p>
+                </div>
+              ))
+            ) : <p>Loading...</p>}
+          </div>
+
+          <div className="bitrix-card">
+            <h3>Global News</h3>
+            {news.length > 0 ? (
+              news.slice(0,5).map((n,i)=><p key={i}>{n.title}</p>)
+            ) : <p>Loading...</p>}
+          </div>
+
+          <div className="bitrix-card">
+            <h3>Location</h3>
+            {coords ? (
+              <Map lat={coords.lat} lng={coords.lon} />
+            ) : (
+              <p>Fetching location...</p>
+            )}
+          </div>
+
+          <div className="bitrix-card">
+            <h3>Total Employees</h3>
+            <h1>{totalEmployees}</h1>
+          </div>
+
+        </div>
+
+        <div style={{ position: "absolute", bottom: "40px", right: "40px" }}>
+          <button
+            style={{
+              padding: "12px 20px",
+              borderRadius: "8px",
+              border: "none",
+              background: "#7c3aed",
+              color: "white",
+              cursor: "pointer",
+            }}
+            onClick={() => setActivePage("crm")}
+          >
+            Enter CRM →
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="app">
       <div className="sidebar">
@@ -131,112 +202,17 @@ function Dashboard({ setMode }) {
           <img src="D&T.png" alt="logo" />
         </div>
 
-        <button onClick={() => setActivePage("dashboard")}>
-          <span>🏠</span>
-          <span>Home</span>
-        </button>
-
-        <button onClick={() => setActivePage("crm")}>
-          <span>📊</span>
-          <span>Analytics</span>
-        </button>
-
-        <button onClick={() => setActivePage("employees")}>
-          <span>👥</span>
-          <span>Employees</span>
-        </button>
-
-        <button onClick={() => setActivePage("workspace")}>
-          <span>💼</span>
-          <span>Workspace</span>
-        </button>
-
-        <button onClick={() => setActivePage("reports")}>
-          <span>📈</span>
-          <span>Reports</span>
-        </button>
-
-        <button onClick={() => setActivePage("settings")}>
-          <span>⚙️</span>
-          <span>Settings</span>
-        </button>
-
-        <button onClick={handleLogout}>
-          <span>⏻</span>
-          <span>Logout</span>
-        </button>
+        <button onClick={() => setActivePage("dashboard")}>🏠 Home</button>
+        <button onClick={() => setActivePage("crm")}>📊 Analytics</button>
+        <button onClick={() => setActivePage("employees")}>👥 Employees</button>
+        <button onClick={() => setActivePage("workspace")}>💼 Workspace</button>
+        <button onClick={() => setActivePage("reports")}>📈 Reports</button>
+        <button onClick={() => setActivePage("settings")}>⚙️ Settings</button>
+        <button onClick={handleLogout}>⏻ Logout</button>
       </div>
 
       <div className="content">
         <div className="time-display">{currentTime}</div>
-
-        {activePage === "dashboard" && (
-          <div style={{ padding: "40px" }}>
-            <div className="bitrix-grid">
-
-              <div className="bitrix-card">
-                <h3>Weather</h3>
-                {weather && weather.main ? (
-                  <>
-                    <h1>{weather.main.temp}°C</h1>
-                    <img
-                      src={`https://openweathermap.org/img/wn/${weather.weather[0].icon}@2x.png`}
-                      alt=""
-                    />
-                    <p>{weather.weather[0].description}</p>
-                    <p>Humidity: {weather.main.humidity}%</p>
-                    <p>Wind: {weather.wind.speed} m/s</p>
-                  </>
-                ) : (
-                  <p>Loading...</p>
-                )}
-              </div>
-
-              <div className="bitrix-card">
-                <h3>Top Stocks</h3>
-                {stocks.length > 0 ? (
-                  stocks.map((s, i) => (
-                    <div key={i}>
-                      <strong>{s.name}</strong>
-                      <p>₹ {s.price || "N/A"}</p>
-                    </div>
-                  ))
-                ) : (
-                  <p>Loading...</p>
-                )}
-              </div>
-
-              <div className="bitrix-card" style={{ overflowY: "auto", maxHeight: "250px" }}>
-                <h3>Live News</h3>
-                {news.length > 0 ? (
-                  news.slice(0, 5).map((n, i) => (
-                    <a key={i} href={n.url} target="_blank" rel="noreferrer">
-                      <img src={n.image_url} style={{ width: "100%" }} />
-                      <p>{n.title}</p>
-                    </a>
-                  ))
-                ) : (
-                  <p>Loading...</p>
-                )}
-              </div>
-
-              <div className="bitrix-card">
-                <h3>Location</h3>
-                {coords ? (
-                  <Map lat={coords.lat} lng={coords.lon} />
-                ) : (
-                  <p>Fetching location...</p>
-                )}
-              </div>
-
-              <div className="bitrix-card">
-                <h3>Total Employees</h3>
-                <h1>{totalEmployees}</h1>
-              </div>
-
-            </div>
-          </div>
-        )}
 
         {activePage === "crm" && <CRM />}
         {activePage === "employees" && <Employee />}
