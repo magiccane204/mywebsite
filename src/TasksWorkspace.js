@@ -21,21 +21,18 @@ const [leaveReason,setLeaveReason] = useState("");
 const [showTaskModal,setShowTaskModal] = useState(false);
 const [showLeaveModal,setShowLeaveModal] = useState(false);
 
-// ✅ ALWAYS GET FRESH TOKEN
-const token = localStorage.getItem("token");
-
-const rawRole = localStorage.getItem("role");
-
-// ✅ Fix: Normalize the role so "SuperAdmin" always works
+// ✅ FIX 1: Normalize the role so SuperAdmin/Admin/admin all work properly
 const rawRole = (localStorage.getItem("role") || "").trim().toLowerCase();
 const userRole = (rawRole === "admin" || rawRole === "superadmin") ? "admin" : "employee";
-const headers = {
-  headers:{ Authorization:`Bearer ${token}` }
-};
+
+// ✅ FIX 2: Helper to ensure we always use the latest token from storage
+const getHeaders = () => ({
+  headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+});
 
 // ✅ LOAD DATA AFTER PAGE LOAD
 useEffect(()=>{
-
+  const token = localStorage.getItem("token");
   if(!token){
     console.log("NO TOKEN FOUND");
     return;
@@ -44,14 +41,13 @@ useEffect(()=>{
   loadTasks();
   loadEmployees();
   loadLeaves();
-
 },[]);
 
 // ================= LOAD =================
 
 async function loadTasks(){
 try{
-const res = await api.get("/tasks",headers);
+const res = await api.get("/tasks", getHeaders());
 setTasks(res.data);
 }catch(err){
 console.log(err);
@@ -60,7 +56,7 @@ console.log(err);
 
 async function loadEmployees(){
 try{
-const res = await api.get("/Employees",headers);
+const res = await api.get("/Employees", getHeaders());
 setEmployees(res.data);
 }catch(err){
 console.log(err);
@@ -69,7 +65,7 @@ console.log(err);
 
 async function loadLeaves(){
 try{
-const res = await api.get("/leaves",headers);
+const res = await api.get("/leaves", getHeaders());
 setLeaves(res.data);
 }catch(err){
 console.log(err);
@@ -90,7 +86,7 @@ await api.post("/tasks",{
 Title:title,
 Description:description,
 EmployeeEmail:employeeEmail
-},headers);
+}, getHeaders());
 
 setTitle("");
 setDescription("");
@@ -123,7 +119,7 @@ try{
 await api.post("/leaves",{
 Date:leaveDate,
 Reason:leaveReason
-},headers);
+}, getHeaders());
 
 setLeaveDate("");
 setLeaveReason("");
@@ -242,7 +238,8 @@ onChange={e=>setLeaveReason(e.target.value)}
 </table>
 
 {/* LEAVE SECTION */}
-{(userRole === "admin" || userRole === "superadmin") && (
+{/* ✅ userRole is now normalized so "superadmin" passes this check */}
+{userRole === "admin" && (
 <div style={{marginTop:"40px"}}>
 <h2>Leave Applications</h2>
 
