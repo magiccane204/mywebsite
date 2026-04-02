@@ -8,12 +8,15 @@ import api from "./api";
 import "./CRM.css";
 import ChatWidget from "./ChatWidget";
 
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+
 function Dashboard({ setMode }) {
   const [activePage, setActivePage] = useState("dashboard");
   const [currentTime, setCurrentTime] = useState("");
 
   const [weather, setWeather] = useState(null);
-  const [stocks, setStocks] = useState(null);
+  const [stocks, setStocks] = useState([]);
   const [news, setNews] = useState([]);
   const [coords, setCoords] = useState(null);
   const [totalEmployees, setTotalEmployees] = useState(0);
@@ -48,7 +51,7 @@ function Dashboard({ setMode }) {
   const getWeather = async () => {
     try {
       const res = await fetch(
-        "https://api.openweathermap.org/data/2.5/weather?q=Mumbai&appid=YOUR_WEATHER_KEY&units=metric"
+        "https://api.openweathermap.org/data/2.5/weather?q=Mumbai&appid=3de55583c5dce6d3730d5e7629577229&units=metric"
       );
       const data = await res.json();
       if (data.main) setWeather(data);
@@ -57,27 +60,36 @@ function Dashboard({ setMode }) {
     }
   };
 
-  // 📈 STOCK
+  // 📈 STOCKS (YOUR KEY ADDED)
   const getStocks = async () => {
-    try {
-      const res = await fetch(
-        "https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=RELIANCE.BSE&apikey=YOUR_STOCK_KEY"
-      );
-      const data = await res.json();
-      setStocks(data["Global Quote"] || null);
-    } catch (err) {
-      console.error(err);
+    const symbols = ["RELIANCE.BSE", "TCS.BSE", "INFY.BSE"];
+    const results = [];
+
+    for (let s of symbols) {
+      try {
+        const res = await fetch(
+          `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${s}&apikey=G8ZS20Q0VEL14JQ7`
+        );
+        const data = await res.json();
+
+        results.push({
+          name: s,
+          price: data["Global Quote"]?.["05. price"],
+        });
+      } catch {}
     }
+
+    setStocks(results);
   };
 
-  // 📰 NEWS
+  // 📰 NEWS (FIXED — NO API KEY)
   const getNews = async () => {
     try {
       const res = await fetch(
-        "https://newsapi.org/v2/top-headlines?country=in&apiKey=YOUR_NEWS_KEY"
+        "https://api.spaceflightnewsapi.net/v4/articles/"
       );
       const data = await res.json();
-      setNews(data.articles || []);
+      setNews(data.results || []);
     } catch (err) {
       console.error(err);
     }
@@ -100,7 +112,7 @@ function Dashboard({ setMode }) {
 
   return (
     <div className="app">
-      {/* SIDEBAR (UNCHANGED) */}
+      {/* SIDEBAR */}
       <div className="sidebar">
         <div className="logo">
           <img src="D&T.png" alt="logo" />
@@ -157,43 +169,64 @@ function Dashboard({ setMode }) {
                 {weather && weather.main ? (
                   <>
                     <h1>{weather.main.temp}°C</h1>
+
                     <img
                       src={`https://openweathermap.org/img/wn/${weather.weather[0].icon}@2x.png`}
                       alt=""
                     />
+
                     <p>{weather.weather[0].description}</p>
+                    <p>Humidity: {weather.main.humidity}%</p>
+                    <p>Wind: {weather.wind.speed} m/s</p>
                   </>
                 ) : (
                   <p>Loading...</p>
                 )}
               </div>
 
-              {/* STOCK */}
+              {/* STOCKS */}
               <div className="bitrix-card">
-                <h3>Stock Market</h3>
-                {stocks && stocks["05. price"] ? (
-                  <>
-                    <h2>₹ {stocks["05. price"]}</h2>
-                    <p>{stocks["10. change percent"]}</p>
-                  </>
+                <h3>Top Stocks</h3>
+
+                {stocks.length > 0 ? (
+                  stocks.map((s, i) => (
+                    <div key={i} style={{ marginBottom: "10px" }}>
+                      <strong>{s.name}</strong>
+                      <p>₹ {s.price || "N/A"}</p>
+                    </div>
+                  ))
                 ) : (
                   <p>Loading...</p>
                 )}
               </div>
 
               {/* NEWS */}
-              <div className="bitrix-card" style={{ overflowY: "auto", maxHeight: "250px" }}>
+              <div
+                className="bitrix-card"
+                style={{ overflowY: "auto", maxHeight: "250px" }}
+              >
                 <h3>Live News</h3>
+
                 {news.length > 0 ? (
                   news.slice(0, 5).map((n, i) => (
-                    <div key={i} style={{ marginBottom: "12px" }}>
-                      <img
-                        src={n.urlToImage || "https://via.placeholder.com/150"}
-                        alt=""
-                        style={{ width: "100%", borderRadius: "8px" }}
-                      />
-                      <p style={{ fontSize: "13px" }}>{n.title}</p>
-                    </div>
+                    <a
+                      key={i}
+                      href={n.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ textDecoration: "none", color: "black" }}
+                    >
+                      <div style={{ marginBottom: "12px" }}>
+                        <img
+                          src={n.image_url}
+                          style={{
+                            width: "100%",
+                            borderRadius: "8px",
+                          }}
+                        />
+                        <p style={{ fontSize: "13px" }}>{n.title}</p>
+                      </div>
+                    </a>
                   ))
                 ) : (
                   <p>Loading...</p>
@@ -203,12 +236,19 @@ function Dashboard({ setMode }) {
               {/* MAP */}
               <div className="bitrix-card">
                 <h3>Location</h3>
+
                 {coords ? (
-                  <iframe
-                    width="100%"
-                    height="220"
-                    src={`https://maps.google.com/maps?q=${coords.lat},${coords.lon}&z=15&output=embed`}
-                  ></iframe>
+                  <MapContainer
+                    center={[coords.lat, coords.lon]}
+                    zoom={13}
+                    style={{ height: "220px", borderRadius: "10px" }}
+                  >
+                    <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+
+                    <Marker position={[coords.lat, coords.lon]}>
+                      <Popup>You are here 📍</Popup>
+                    </Marker>
+                  </MapContainer>
                 ) : (
                   <p>Fetching location...</p>
                 )}
