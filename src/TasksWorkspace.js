@@ -21,9 +21,9 @@ const [leaveReason,setLeaveReason] = useState("");
 const [showTaskModal,setShowTaskModal] = useState(false);
 const [showLeaveModal,setShowLeaveModal] = useState(false);
 
-// ✅ FIX 1: Normalize and compare correctly (all lowercase)
-const rawRole = (localStorage.getItem("role") || "").trim().toLowerCase();
-const isAdmin = rawRole === "admin" || rawRole === "superadmin";
+// ✅ FIX 1: Matching your DB PascalCase ("Admin" / "SuperAdmin") 
+const rawRole = (localStorage.getItem("role") || "").trim();
+const isAdmin = rawRole === "Admin" || rawRole === "SuperAdmin";
 
 // ✅ FIX 2: Helper to ensure we always use the latest token from storage
 const getHeaders = () => ({
@@ -41,6 +41,7 @@ useEffect(()=>{
   loadTasks();
   loadEmployees();
   loadLeaves();
+
 },[]);
 
 // ================= LOAD =================
@@ -141,7 +142,7 @@ return(
 <h2>Task Board</h2>
 
 <div style={{marginBottom:"20px"}}>
-{/* ✅ Only show Create Task to Admins */}
+{/* ✅ Only show Create Task button to Admins */}
 {isAdmin && <button onClick={()=>setShowTaskModal(true)}>➕ Create Task</button>}
 <button onClick={()=>setShowLeaveModal(true)} style={{marginLeft:"10px"}}>
 📅 Apply Leave
@@ -228,18 +229,22 @@ onChange={e=>setLeaveReason(e.target.value)}
 </thead>
 
 <tbody>
-{tasks.map(task=>(
-<tr key={task._id}>
-<td>{task.Title}</td>
-<td>{task.Description}</td>
-<td>{task.Status}</td>
-</tr>
-))}
+{tasks.length === 0 ? (
+  <tr><td colSpan="3" style={{textAlign:'center'}}>No tasks assigned.</td></tr>
+) : (
+  tasks.map(task=>(
+    <tr key={task._id}>
+    <td>{task.Title}</td>
+    <td>{task.Description}</td>
+    <td>{task.Status}</td>
+    </tr>
+  ))
+)}
 </tbody>
 </table>
 
 {/* LEAVE SECTION */}
-{/* ✅ FIX 3: Using the isAdmin check so it finally shows for SuperAdmin */}
+{/* ✅ FIXED: Now using the isAdmin check so it displays for SuperAdmin/Admin */}
 {isAdmin && (
 <div style={{marginTop:"40px"}}>
 <h2>Leave Applications</h2>
@@ -253,12 +258,16 @@ onChange={e=>setLeaveReason(e.target.value)}
 </thead>
 
 <tbody>
-{leaves.map(leave=>(
-<tr key={leave._id}>
-<td>{leave.Date}</td>
-<td>{leave.Reason}</td>
-</tr>
-))}
+{leaves.length === 0 ? (
+  <tr><td colSpan="2" style={{textAlign:'center'}}>No leave applications found.</td></tr>
+) : (
+  leaves.map(leave=>(
+    <tr key={leave._id}>
+    <td>{leave.Date}</td>
+    <td>{leave.Reason}</td>
+    </tr>
+  ))
+)}
 </tbody>
 
 </table>
