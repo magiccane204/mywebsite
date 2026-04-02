@@ -45,7 +45,7 @@ function Dashboard({ setMode }) {
   const getWeather = async () => {
     try {
       const res = await fetch(
-        "https://api.openweathermap.org/data/2.5/weather?q=Mumbai&appid=YOUR_WEATHER_KEY&units=metric"
+        "https://api.openweathermap.org/data/2.5/weather?q=Mumbai&appid=3de55583c5dce6d3730d5e7629577229&units=metric"
       );
       const data = await res.json();
       if (data.main) setWeather(data);
@@ -57,7 +57,7 @@ function Dashboard({ setMode }) {
   const getStocks = async () => {
     try {
       const res = await fetch(
-        "https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=RELIANCE.BSE&apikey=YOUR_STOCK_KEY"
+        "https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=RELIANCE.BSE&apikey=G8ZS20Q0VEL14JQ7"
       );
       const data = await res.json();
       setStocks(data["Global Quote"] || null);
@@ -69,7 +69,7 @@ function Dashboard({ setMode }) {
   const getNews = async () => {
     try {
       const res = await fetch(
-        "https://newsapi.org/v2/top-headlines?country=in&apiKey=YOUR_NEWS_KEY"
+        "https://newsapi.org/v2/top-headlines?country=in&apiKey=bea34d85f82744eca921baeab7bce4ce"
       );
       const data = await res.json();
       setNews(data.articles || []);
