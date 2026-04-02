@@ -635,7 +635,48 @@ app.delete("/api/Employees/:id", auth, async (req, res) => {
 
 });
 
+// 1. Message Schema
+const messageSchema = new mongoose.Schema({
+  SenderEmail: { type: String, required: true },
+  SenderName: { type: String, required: true },
+  Content: { type: String, required: true },
+  Company: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now }
+});
 
+const Message = mongoose.model("Message", messageSchema);
+
+// 2. GET Messages (Filtered by Company)
+app.get("/api/messages", auth, async (req, res) => {
+  try {
+    const messages = await Message.find({ Company: req.user.company })
+      .sort({ createdAt: -1 })
+      .limit(50); // Security: Limit fetch size to prevent lag/abuse
+    res.json(messages.reverse());
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching messages" });
+  }
+});
+
+// 3. POST Message
+app.post("/api/messages", auth, async (req, res) => {
+  try {
+    const { Content } = req.body;
+    if (!Content || Content.trim() === "") return res.status(400).send();
+
+    // Security: We get Company and Email from the TOKEN, not the body
+    const newMessage = await Message.create({
+      SenderEmail: req.user.email,
+      SenderName: req.user.email.split('@')[0], // Basic name from email
+      Content: Content.trim(),
+      Company: req.user.company
+    });
+
+    res.json(newMessage);
+  } catch (err) {
+    res.status(500).json({ message: "Message failed" });
+  }
+});
 
 app.put("/api/Employees/lock/:id", auth, async (req, res) => {
 
