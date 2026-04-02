@@ -6,7 +6,7 @@ const api = axios.create({
 });
 
 function TasksWorkspace() {
-  // --- STATE ---
+  // --- STATE MANAGEMENT ---
   const [tasks, setTasks] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [leaves, setLeaves] = useState([]);
@@ -23,12 +23,12 @@ function TasksWorkspace() {
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [uploadingId, setUploadingId] = useState(null);
 
-  // ✅ ROLE LOGIC: Case-insensitive so "SuperAdmin" always works
-  const rawRole = (localStorage.getItem("role") || "").trim().toLowerCase();
-  const isAdmin = rawRole === "admin" || rawRole === "superadmin";
+  // ✅ FIX: Matching your MongoDB screenshot exactly ("Admin" / "SuperAdmin")
+  const rawRole = (localStorage.getItem("role") || "").trim();
+  const isAdmin = rawRole === "Admin" || rawRole === "SuperAdmin";
   const userEmail = localStorage.getItem("email");
 
-  // ✅ HELPER: Always get fresh token
+  // ✅ HELPER: Always get fresh token from storage
   const getHeaders = () => ({
     headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
   });
@@ -36,39 +36,40 @@ function TasksWorkspace() {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) return;
+
     loadTasks();
     loadEmployees();
     loadLeaves();
   }, []);
 
-  // ================= LOAD DATA =================
+  // ================= DATA FETCHING =================
 
   async function loadTasks() {
     try {
       const res = await api.get("/tasks", getHeaders());
       setTasks(res.data);
-    } catch (err) { console.log("Tasks error:", err); }
+    } catch (err) { console.log("Task fetch error:", err); }
   }
 
   async function loadEmployees() {
     try {
       const res = await api.get("/Employees", getHeaders());
       setEmployees(res.data);
-    } catch (err) { console.log("Employees error:", err); }
+    } catch (err) { console.log("Employee fetch error:", err); }
   }
 
   async function loadLeaves() {
     try {
       const res = await api.get("/leaves", getHeaders());
       setLeaves(res.data);
-    } catch (err) { console.log("Leaves error:", err); }
+    } catch (err) { console.log("Leave fetch error:", err); }
   }
 
-  // ================= CREATE TASK =================
+  // ================= TASK ACTIONS =================
 
   async function createTask() {
     if (!title || !description || !employeeEmail) {
-      alert("Please fill all fields for the task");
+      alert("Please fill all task fields");
       return;
     }
     try {
@@ -77,7 +78,7 @@ function TasksWorkspace() {
         Description: description,
         EmployeeEmail: employeeEmail
       }, getHeaders());
-      
+
       setTitle("");
       setDescription("");
       setEmployeeEmail("");
@@ -95,7 +96,7 @@ function TasksWorkspace() {
 
   // ================= FILE HANDLING =================
 
-  async function handleUpload(id, file) {
+  async function handleFileUpload(id, file) {
     if (!file) return;
     setUploadingId(id);
     const formData = new FormData();
@@ -107,7 +108,7 @@ function TasksWorkspace() {
           "Content-Type": "multipart/form-data" 
         }
       });
-      alert("File uploaded!");
+      alert("File uploaded successfully");
       loadTasks();
     } catch (err) { alert("Upload failed"); } finally { setUploadingId(null); }
   }
@@ -120,107 +121,100 @@ function TasksWorkspace() {
   // ================= LEAVE ACTIONS =================
 
   async function applyLeave() {
-    if (!leaveDate || !leaveReason) { alert("Fill all leave fields"); return; }
+    if (!leaveDate || !leaveReason) { alert("Fill all fields"); return; }
     try {
       await api.post("/leaves", { Date: leaveDate, Reason: leaveReason }, getHeaders());
       setLeaveDate(""); setLeaveReason(""); setShowLeaveModal(false);
       loadLeaves();
-    } catch (err) { console.log(err); }
+    } catch (err) { console.log("Leave application failed", err); }
   }
 
   // ✅ NEW: Accept/Reject Leaves
-  async function handleLeaveDecision(id, status) {
+  async function updateLeaveStatus(id, status) {
     try {
-      // NOTE: Ensure your backend has a PUT route for /api/leaves/status/:id
+      // NOTE: Requires app.put("/api/leaves/status/:id") on your backend
       await api.put(`/leaves/status/${id}`, { Status: status }, getHeaders());
       loadLeaves();
-    } catch (err) { alert("Decision failed"); }
+    } catch (err) { alert("Failed to update leave status"); }
   }
 
-  // ================= UI =================
+  // ================= UI RENDER =================
 
   return (
     <div style={{ padding: "20px" }}>
+      
+      {/* HEADER: Keeping Buttons Grouped */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-        <h2>Task Workspace</h2>
-        {/* ✅ FIXED: Button now shows correctly for SuperAdmin */}
-        <div>
+        <h2 style={{ margin: 0 }}>Task Workspace</h2>
+        <div style={{ display: "flex", gap: "10px" }}>
           {isAdmin && (
             <button 
               onClick={() => setShowTaskModal(true)} 
-              style={{ background: "#7c3aed", color: "white", padding: "10px 15px", border: "none", borderRadius: "5px", cursor: "pointer" }}
+              style={{ background: "#7c3aed", color: "white", padding: "10px 20px", border: "none", borderRadius: "6px", cursor: "pointer" }}
             >
               ➕ Create Task
             </button>
           )}
           <button 
             onClick={() => setShowLeaveModal(true)} 
-            style={{ marginLeft: "10px", padding: "10px 15px", border: "1px solid #ddd", borderRadius: "5px", cursor: "pointer" }}
+            style={{ padding: "10px 20px", borderRadius: "6px", border: "1px solid #ddd", cursor: "pointer" }}
           >
             📅 Apply Leave
           </button>
         </div>
       </div>
 
-      {/* --- TASK MODAL --- */}
+      {/* CREATE TASK MODAL */}
       {showTaskModal && (
         <div className="chart-modal" onClick={() => setShowTaskModal(false)}>
-          <div className="chart-modal-content" onClick={(e) => e.stopPropagation()} style={{ background: "#fff", padding: "25px", borderRadius: "10px" }}>
-            <h3>Create New Task</h3>
+          <div className="chart-modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3>Assign New Task</h3>
             <input 
               placeholder="Task Title" 
               value={title} 
               onChange={e => setTitle(e.target.value)} 
-              style={{ width: "100%", marginBottom: "10px", padding: "8px" }} 
             />
             <textarea 
               placeholder="Description" 
               value={description} 
               onChange={e => setDescription(e.target.value)} 
-              style={{ width: "100%", marginBottom: "10px", padding: "8px", minHeight: "60px" }} 
             />
             <select 
               value={employeeEmail} 
               onChange={e => setEmployeeEmail(e.target.value)}
-              style={{ width: "100%", marginBottom: "20px", padding: "8px" }}
             >
-              <option value="">Assign To Employee...</option>
+              <option value="">Select Employee</option>
               {employees.map(emp => (
                 <option key={emp._id} value={emp.Email}>{emp.Name} ({emp.Email})</option>
               ))}
             </select>
-            <button onClick={createTask} style={{ width: "100%", padding: "10px", background: "#7c3aed", color: "white", border: "none", borderRadius: "5px" }}>
-              Send Task
-            </button>
+            <button onClick={createTask}>Send Task</button>
           </div>
         </div>
       )}
 
-      {/* --- LEAVE MODAL --- */}
+      {/* APPLY LEAVE MODAL */}
       {showLeaveModal && (
         <div className="chart-modal" onClick={() => setShowLeaveModal(false)}>
-          <div className="chart-modal-content" onClick={(e) => e.stopPropagation()} style={{ background: "#fff", padding: "25px", borderRadius: "10px" }}>
-            <h3>Apply for Leave</h3>
+          <div className="chart-modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3>Request Leave</h3>
             <input 
               type="date" 
               value={leaveDate} 
+              min={new Date().toISOString().split("T")[0]}
               onChange={e => setLeaveDate(e.target.value)} 
-              style={{ width: "100%", marginBottom: "10px", padding: "8px" }} 
             />
             <textarea 
               placeholder="Reason" 
               value={leaveReason} 
               onChange={e => setLeaveReason(e.target.value)} 
-              style={{ width: "100%", marginBottom: "20px", padding: "8px", minHeight: "60px" }} 
             />
-            <button onClick={applyLeave} style={{ width: "100%", padding: "10px", background: "#7c3aed", color: "white", border: "none", borderRadius: "5px" }}>
-              Submit Application
-            </button>
+            <button onClick={applyLeave}>Submit Application</button>
           </div>
         </div>
       )}
 
-      {/* --- TASK TABLE --- */}
+      {/* TASK TABLE */}
       <table className="excel-table">
         <thead>
           <tr>
@@ -232,45 +226,47 @@ function TasksWorkspace() {
           </tr>
         </thead>
         <tbody>
-          {tasks.map(task => (
-            <tr key={task._id}>
-              <td><strong>{task.Title}</strong></td>
-              <td>{task.Description}</td>
-              <td>
-                <select 
-                  value={task.Status} 
-                  onChange={(e) => updateTaskStatus(task._id, e.target.value)}
-                  style={{ padding: "4px" }}
-                >
-                  <option value="Pending">Pending</option>
-                  <option value="In Progress">In Progress</option>
-                  <option value="Completed">Completed</option>
-                </select>
-              </td>
-              <td>
-                {task.FileId ? (
-                  <button onClick={() => downloadFile(task._id)} style={{ background: "#10b981", color: "white", border: "none", borderRadius: "3px", padding: "4px 8px" }}>
-                    Download
-                  </button>
-                ) : <span style={{ color: "#999" }}>None</span>}
-              </td>
-              <td>
-                <input 
-                  type="file" 
-                  style={{ fontSize: "11px" }} 
-                  onChange={(e) => handleUpload(task._id, e.target.files[0])} 
-                />
-                {uploadingId === task._id && "..."}
-              </td>
-            </tr>
-          ))}
+          {tasks.length === 0 ? (
+            <tr><td colSpan="5" style={{ textAlign: 'center', padding: '20px' }}>No tasks found.</td></tr>
+          ) : (
+            tasks.map(task => (
+              <tr key={task._id}>
+                <td><strong>{task.Title}</strong></td>
+                <td>{task.Description}</td>
+                <td>
+                  <select 
+                    value={task.Status} 
+                    onChange={(e) => updateTaskStatus(task._id, e.target.value)}
+                  >
+                    <option value="Pending">Pending</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Completed">Completed</option>
+                  </select>
+                </td>
+                <td>
+                  {task.FileId ? (
+                    <button onClick={() => downloadFile(task._id)} style={{ background: "#10b981", color: "white", border: "none", borderRadius: "4px", padding: "5px 10px" }}>
+                      Download
+                    </button>
+                  ) : <span style={{ color: "#888" }}>None</span>}
+                </td>
+                <td>
+                  <input 
+                    type="file" 
+                    onChange={(e) => handleFileUpload(task._id, e.target.files[0])} 
+                  />
+                  {uploadingId === task._id && " ..."}
+                </td>
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
 
-      {/* --- LEAVE SECTION --- */}
-      {/* ✅ FIXED: Now checks isAdmin boolean correctly */}
+      {/* LEAVE SECTION */}
+      {/* ✅ FIXED: Now using isAdmin check for SuperAdmin/Admin visibility */}
       {isAdmin && (
-        <div style={{ marginTop: "40px" }}>
+        <div style={{ marginTop: "50px" }}>
           <h2>Leave Applications</h2>
           <table className="excel-table">
             <thead>
@@ -282,33 +278,38 @@ function TasksWorkspace() {
               </tr>
             </thead>
             <tbody>
-              {leaves.map(leave => (
-                <tr key={leave._id}>
-                  <td>{leave.Date}</td>
-                  <td>{leave.Reason}</td>
-                  <td style={{ color: leave.Status === "Accepted" ? "#10b981" : leave.Status === "Rejected" ? "#ef4444" : "#f59e0b" }}>
-                    {leave.Status || "Pending"}
-                  </td>
-                  <td>
-                    <button 
-                      onClick={() => handleLeaveDecision(leave._id, "Accepted")}
-                      style={{ background: "#10b981", color: "white", border: "none", padding: "5px 8px", cursor: "pointer", borderRadius: "3px" }}
-                    >
-                      Accept
-                    </button>
-                    <button 
-                      onClick={() => handleLeaveDecision(leave._id, "Rejected")}
-                      style={{ background: "#ef4444", color: "white", border: "none", padding: "5px 8px", marginLeft: "5px", cursor: "pointer", borderRadius: "3px" }}
-                    >
-                      Reject
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {leaves.length === 0 ? (
+                <tr><td colSpan="4" style={{ textAlign: 'center', padding: '20px' }}>No leave records found.</td></tr>
+              ) : (
+                leaves.map(leave => (
+                  <tr key={leave._id}>
+                    <td>{leave.Date}</td>
+                    <td>{leave.Reason}</td>
+                    <td style={{ fontWeight: 'bold', color: leave.Status === "Accepted" ? "#10b981" : leave.Status === "Rejected" ? "#ef4444" : "#f59e0b" }}>
+                      {leave.Status || "Pending"}
+                    </td>
+                    <td>
+                      <button 
+                        onClick={() => updateLeaveStatus(leave._id, "Accepted")}
+                        style={{ background: "#10b981", color: "white", border: "none", padding: "6px 12px", borderRadius: "4px", cursor: "pointer" }}
+                      >
+                        Accept
+                      </button>
+                      <button 
+                        onClick={() => updateLeaveStatus(leave._id, "Rejected")}
+                        style={{ background: "#ef4444", color: "white", border: "none", padding: "6px 12px", borderRadius: "4px", cursor: "pointer", marginLeft: "8px" }}
+                      >
+                        Reject
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
       )}
+
     </div>
   );
 }
