@@ -26,13 +26,9 @@ const token = localStorage.getItem("token");
 
 const rawRole = localStorage.getItem("role");
 
-const userRole =
-  rawRole === "Admin" || rawRole === "admin"
-    ? "admin"
-    : rawRole === "SuperAdmin" || rawRole === "superadmin"
-    ? "superadmin"
-    : "employee";
-
+// ✅ Fix: Normalize the role so "SuperAdmin" always works
+const rawRole = (localStorage.getItem("role") || "").trim().toLowerCase();
+const userRole = (rawRole === "admin" || rawRole === "superadmin") ? "admin" : "employee";
 const headers = {
   headers:{ Authorization:`Bearer ${token}` }
 };
