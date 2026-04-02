@@ -9,6 +9,7 @@ import MyPieChart from "./pchart";
 import LineChart from "./LineChart";
 import api from "./api";
 import "./CRM.css";
+import ChatWidget from "./ChatWidget";
 
 function Dashboard({ setMode }) {
   const [activePage, setActivePage] = useState("dashboard");
@@ -139,6 +140,7 @@ function Dashboard({ setMode }) {
         {activePage === "workspace" && <TasksWorkspace />}
         {activePage === "reports" && <Reports />}
         {activePage === "settings" && <Settings />}
+        <ChatWidget />
       </div>
     </div>
   );
