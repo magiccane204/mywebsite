@@ -12,14 +12,12 @@ function Dashboard({ setMode }) {
   const [activePage, setActivePage] = useState("dashboard");
   const [currentTime, setCurrentTime] = useState("");
 
-  // 🔥 NEW STATES
   const [weather, setWeather] = useState(null);
   const [stocks, setStocks] = useState(null);
   const [news, setNews] = useState([]);
   const [location, setLocation] = useState("");
   const [totalEmployees, setTotalEmployees] = useState(0);
 
-  // ⏰ TIME
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(new Date().toLocaleTimeString());
@@ -27,7 +25,6 @@ function Dashboard({ setMode }) {
     return () => clearInterval(interval);
   }, []);
 
-  // 📡 LOAD ALL DATA
   useEffect(() => {
     loadDashboard();
     getWeather();
@@ -45,46 +42,42 @@ function Dashboard({ setMode }) {
     }
   };
 
-  // 🌦 WEATHER API (OpenWeather)
   const getWeather = async () => {
     try {
       const res = await fetch(
-        "https://api.openweathermap.org/data/2.5/weather?q=Mumbai&appid=bea34d85f82744eca921baeab7bce4ce&units=metric"
+        "https://api.openweathermap.org/data/2.5/weather?q=Mumbai&appid=YOUR_WEATHER_KEY&units=metric"
       );
       const data = await res.json();
-      setWeather(data);
+      if (data.main) setWeather(data);
     } catch (err) {
       console.error(err);
     }
   };
 
-  // 📈 STOCK API (Alpha Vantage)
   const getStocks = async () => {
     try {
       const res = await fetch(
-        "https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=RELIANCE.BSE&apikey=YOUR_API_KEY"
+        "https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=RELIANCE.BSE&apikey=YOUR_STOCK_KEY"
       );
       const data = await res.json();
-      setStocks(data["Global Quote"]);
+      setStocks(data["Global Quote"] || null);
     } catch (err) {
       console.error(err);
     }
   };
 
-  // 🌍 NEWS API
   const getNews = async () => {
     try {
       const res = await fetch(
-        "https://newsapi.org/v2/top-headlines?country=in&apiKey=YOUR_API_KEY"
+        "https://newsapi.org/v2/top-headlines?country=in&apiKey=YOUR_NEWS_KEY"
       );
       const data = await res.json();
-      setNews(data.articles.slice(0, 5));
+      setNews(data.articles || []);
     } catch (err) {
       console.error(err);
     }
   };
 
-  // 📍 LOCATION
   const getLocation = () => {
     navigator.geolocation.getCurrentPosition((pos) => {
       setLocation(`Lat: ${pos.coords.latitude}, Lon: ${pos.coords.longitude}`);
@@ -96,7 +89,6 @@ function Dashboard({ setMode }) {
     setMode("login");
   };
 
-  // 🏠 DASHBOARD
   if (activePage === "dashboard") {
     return (
       <div
@@ -111,10 +103,10 @@ function Dashboard({ setMode }) {
         <div className="time-display">{currentTime}</div>
 
         <div className="bitrix-grid">
-          {/* 🌦 WEATHER */}
+
           <div className="bitrix-card">
             <h3>Weather</h3>
-            {weather ? (
+            {weather && weather.main ? (
               <>
                 <h2>{weather.main.temp}°C</h2>
                 <p>{weather.weather[0].description}</p>
@@ -124,10 +116,9 @@ function Dashboard({ setMode }) {
             )}
           </div>
 
-          {/* 📈 STOCK */}
           <div className="bitrix-card">
             <h3>Stock Market</h3>
-            {stocks ? (
+            {stocks && stocks["05. price"] ? (
               <>
                 <h2>{stocks["05. price"]}</h2>
                 <p>Change: {stocks["10. change percent"]}</p>
@@ -137,23 +128,20 @@ function Dashboard({ setMode }) {
             )}
           </div>
 
-          {/* 🌍 NEWS */}
           <div className="bitrix-card">
             <h3>Global News</h3>
             {news.length > 0 ? (
-              news.map((n, i) => <p key={i}>• {n.title}</p>)
+              news.slice(0,5).map((n, i) => <p key={i}>• {n.title}</p>)
             ) : (
               <p>Loading...</p>
             )}
           </div>
 
-          {/* 📍 LOCATION */}
           <div className="bitrix-card">
             <h3>Location</h3>
             <p>{location || "Fetching location..."}</p>
           </div>
 
-          {/* 👥 EMPLOYEES */}
           <div className="bitrix-card">
             <h3>Total Employees</h3>
             <h1>{totalEmployees}</h1>
