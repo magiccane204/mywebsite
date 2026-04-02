@@ -49,7 +49,7 @@ function Dashboard({ setMode }) {
   const getWeather = async () => {
     try {
       const res = await fetch(
-        "https://api.openweathermap.org/data/2.5/weather?q=Mumbai&appid=YOUR_API_KEY&units=metric"
+        "https://api.openweathermap.org/data/2.5/weather?q=Mumbai&appid=bea34d85f82744eca921baeab7bce4ce&units=metric"
       );
       const data = await res.json();
       setWeather(data);
