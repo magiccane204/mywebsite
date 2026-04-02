@@ -21,9 +21,9 @@ const [leaveReason,setLeaveReason] = useState("");
 const [showTaskModal,setShowTaskModal] = useState(false);
 const [showLeaveModal,setShowLeaveModal] = useState(false);
 
-// ✅ FIX 1: Normalize the role so SuperAdmin/Admin/admin all work properly
+// ✅ FIX 1: Normalize and compare correctly (all lowercase)
 const rawRole = (localStorage.getItem("role") || "").trim().toLowerCase();
-const userRole = (rawRole === "Admin" || rawRole === "SuperAdmin") ? "Admin" : "employee";
+const isAdmin = rawRole === "admin" || rawRole === "superadmin";
 
 // ✅ FIX 2: Helper to ensure we always use the latest token from storage
 const getHeaders = () => ({
@@ -141,7 +141,8 @@ return(
 <h2>Task Board</h2>
 
 <div style={{marginBottom:"20px"}}>
-<button onClick={()=>setShowTaskModal(true)}>➕ Create Task</button>
+{/* ✅ Only show Create Task to Admins */}
+{isAdmin && <button onClick={()=>setShowTaskModal(true)}>➕ Create Task</button>}
 <button onClick={()=>setShowLeaveModal(true)} style={{marginLeft:"10px"}}>
 📅 Apply Leave
 </button>
@@ -238,8 +239,8 @@ onChange={e=>setLeaveReason(e.target.value)}
 </table>
 
 {/* LEAVE SECTION */}
-{/* ✅ userRole is now normalized so "super" passes this check */}
-{userRole === "" && (
+{/* ✅ FIX 3: Using the isAdmin check so it finally shows for SuperAdmin */}
+{isAdmin && (
 <div style={{marginTop:"40px"}}>
 <h2>Leave Applications</h2>
 
