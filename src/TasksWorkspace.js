@@ -23,7 +23,7 @@ const [showLeaveModal,setShowLeaveModal] = useState(false);
 
 // ✅ FIX 1: Normalize the role so SuperAdmin/Admin/admin all work properly
 const rawRole = (localStorage.getItem("role") || "").trim().toLowerCase();
-const userRole = (rawRole === "admin" || rawRole === "superadmin") ? "admin" : "employee";
+const userRole = (rawRole === "Admin" || rawRole === "SuperAdmin") ? "Admin" : "employee";
 
 // ✅ FIX 2: Helper to ensure we always use the latest token from storage
 const getHeaders = () => ({
@@ -238,8 +238,8 @@ onChange={e=>setLeaveReason(e.target.value)}
 </table>
 
 {/* LEAVE SECTION */}
-{/* ✅ userRole is now normalized so "superadmin" passes this check */}
-{userRole === "admin" && (
+{/* ✅ userRole is now normalized so "super" passes this check */}
+{userRole === "" && (
 <div style={{marginTop:"40px"}}>
 <h2>Leave Applications</h2>
 
