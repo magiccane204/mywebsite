@@ -8,8 +8,7 @@ import api from "./api";
 import "./CRM.css";
 import ChatWidget from "./ChatWidget";
 
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-import "leaflet/dist/leaflet.css";
+import GoogleMapReact from "google-map-react";
 
 function Dashboard({ setMode }) {
   const [activePage, setActivePage] = useState("dashboard");
@@ -60,7 +59,7 @@ function Dashboard({ setMode }) {
     }
   };
 
-  // 📈 STOCKS (YOUR KEY ADDED)
+  // 📈 STOCKS
   const getStocks = async () => {
     const symbols = ["RELIANCE.BSE", "TCS.BSE", "INFY.BSE"];
     const results = [];
@@ -82,7 +81,7 @@ function Dashboard({ setMode }) {
     setStocks(results);
   };
 
-  // 📰 NEWS (FIXED — NO API KEY)
+  // 📰 NEWS
   const getNews = async () => {
     try {
       const res = await fetch(
@@ -105,6 +104,21 @@ function Dashboard({ setMode }) {
     });
   };
 
+  // 🗺 MAP COMPONENT
+  const Map = ({ lat, lng }) => {
+    return (
+      <div style={{ height: "220px", width: "100%" }}>
+        <GoogleMapReact
+          bootstrapURLKeys={{}}
+          defaultCenter={{ lat, lng }}
+          defaultZoom={13}
+        >
+          <div lat={lat} lng={lng}>📍</div>
+        </GoogleMapReact>
+      </div>
+    );
+  };
+
   const handleLogout = () => {
     localStorage.clear();
     setMode("login");
@@ -112,7 +126,6 @@ function Dashboard({ setMode }) {
 
   return (
     <div className="app">
-      {/* SIDEBAR */}
       <div className="sidebar">
         <div className="logo">
           <img src="D&T.png" alt="logo" />
@@ -154,27 +167,22 @@ function Dashboard({ setMode }) {
         </button>
       </div>
 
-      {/* CONTENT */}
       <div className="content">
         <div className="time-display">{currentTime}</div>
 
-        {/* DASHBOARD */}
         {activePage === "dashboard" && (
           <div style={{ padding: "40px" }}>
             <div className="bitrix-grid">
 
-              {/* WEATHER */}
               <div className="bitrix-card">
                 <h3>Weather</h3>
                 {weather && weather.main ? (
                   <>
                     <h1>{weather.main.temp}°C</h1>
-
                     <img
                       src={`https://openweathermap.org/img/wn/${weather.weather[0].icon}@2x.png`}
                       alt=""
                     />
-
                     <p>{weather.weather[0].description}</p>
                     <p>Humidity: {weather.main.humidity}%</p>
                     <p>Wind: {weather.wind.speed} m/s</p>
@@ -184,13 +192,11 @@ function Dashboard({ setMode }) {
                 )}
               </div>
 
-              {/* STOCKS */}
               <div className="bitrix-card">
                 <h3>Top Stocks</h3>
-
                 {stocks.length > 0 ? (
                   stocks.map((s, i) => (
-                    <div key={i} style={{ marginBottom: "10px" }}>
+                    <div key={i}>
                       <strong>{s.name}</strong>
                       <p>₹ {s.price || "N/A"}</p>
                     </div>
@@ -200,32 +206,13 @@ function Dashboard({ setMode }) {
                 )}
               </div>
 
-              {/* NEWS */}
-              <div
-                className="bitrix-card"
-                style={{ overflowY: "auto", maxHeight: "250px" }}
-              >
+              <div className="bitrix-card" style={{ overflowY: "auto", maxHeight: "250px" }}>
                 <h3>Live News</h3>
-
                 {news.length > 0 ? (
                   news.slice(0, 5).map((n, i) => (
-                    <a
-                      key={i}
-                      href={n.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      style={{ textDecoration: "none", color: "black" }}
-                    >
-                      <div style={{ marginBottom: "12px" }}>
-                        <img
-                          src={n.image_url}
-                          style={{
-                            width: "100%",
-                            borderRadius: "8px",
-                          }}
-                        />
-                        <p style={{ fontSize: "13px" }}>{n.title}</p>
-                      </div>
+                    <a key={i} href={n.url} target="_blank" rel="noreferrer">
+                      <img src={n.image_url} style={{ width: "100%" }} />
+                      <p>{n.title}</p>
                     </a>
                   ))
                 ) : (
@@ -233,28 +220,15 @@ function Dashboard({ setMode }) {
                 )}
               </div>
 
-              {/* MAP */}
               <div className="bitrix-card">
                 <h3>Location</h3>
-
                 {coords ? (
-                  <MapContainer
-                    center={[coords.lat, coords.lon]}
-                    zoom={13}
-                    style={{ height: "220px", borderRadius: "10px" }}
-                  >
-                    <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-
-                    <Marker position={[coords.lat, coords.lon]}>
-                      <Popup>You are here 📍</Popup>
-                    </Marker>
-                  </MapContainer>
+                  <Map lat={coords.lat} lng={coords.lon} />
                 ) : (
                   <p>Fetching location...</p>
                 )}
               </div>
 
-              {/* EMPLOYEES */}
               <div className="bitrix-card">
                 <h3>Total Employees</h3>
                 <h1>{totalEmployees}</h1>
