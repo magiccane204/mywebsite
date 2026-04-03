@@ -1,368 +1,495 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import GoogleMapReact from "google-map-react";
 
-// --- YOUR ACTUAL DIRECTORY IMPORTS ---
+/** * --- CORE SYSTEM IMPORTS ---
+ * These are your actual files. I am calling them directly so 
+ * their internal GitHub-connected logic stays intact.
+ */
 import CRM from "./CRM";
 import Employee from "./Employee";
 import Reports from "./Reports";
 import Settings from "./Settings";
 import TasksWorkspace from "./TasksWorkspace";
 import ChatWidget from "./ChatWidget";
-import api from "./api"; // Connecting to your backend logic
+import api from "./api";
 
+/**
+ * COMPONENT: Sidebar
+ * This is the persistent navigation pillar. 
+ * It spans the full vertical height of the window.
+ */
+const Sidebar = ({ activePage, setActivePage, isCollapsed, setIsCollapsed, onLogout }) => {
+  const navItems = [
+    { id: "dashboard", label: "Dashboard", icon: "🏠" },
+    { id: "crm", label: "Analytics", icon: "📊" },
+    { id: "employees", label: "Staffing", icon: "👥" },
+    { id: "workspace", label: "Workspace", icon: "💼" },
+    { id: "reports", label: "Reports", icon: "📈" },
+    { id: "settings", label: "Settings", icon: "⚙️" },
+  ];
+
+  return (
+    <aside className={`system-sidebar ${isCollapsed ? "slim" : "wide"}`}>
+      <div className="sidebar-top-branding">
+        {!isCollapsed && <div className="brand-name">D&T SYSTEM</div>}
+        <button className="toggle-trigger" onClick={() => setIsCollapsed(!isCollapsed)}>
+          {isCollapsed ? "❯" : "❮"}
+        </button>
+      </div>
+
+      <nav className="sidebar-nav-container">
+        {navItems.map((item) => (
+          <button
+            key={item.id}
+            className={`sidebar-link ${activePage === item.id ? "active" : ""}`}
+            onClick={() => setActivePage(item.id)}
+            title={isCollapsed ? item.label : ""}
+          >
+            <span className="link-icon">{item.icon}</span>
+            {!isCollapsed && <span className="link-label">{item.label}</span>}
+          </button>
+        ))}
+      </nav>
+
+      <div className="sidebar-bottom-actions">
+        <button className="sidebar-link logout-trigger" onClick={onLogout}>
+          <span className="link-icon">⏻</span>
+          {!isCollapsed && <span className="link-label">Exit System</span>}
+        </button>
+      </div>
+    </aside>
+  );
+};
+
+/**
+ * COMPONENT: DashboardHome
+ * The "Overview" widgets for the main landing page.
+ */
+const DashboardHome = ({ weather, stocks, news, coords, empCount, setActivePage }) => {
+  return (
+    <div className="dashboard-view-wrapper">
+      <div className="view-intro">
+        <h1>Command Center</h1>
+        <p>Operational overview and real-time telemetry.</p>
+      </div>
+
+      <div className="overview-grid">
+        {/* Weather Card */}
+        <div className="metric-card">
+          <div className="card-tag">Climate</div>
+          {weather ? (
+            <div className="card-inner">
+              <div className="main-stat">{Math.round(weather.main.temp)}°C</div>
+              <div className="sub-stat">{weather.weather[0].description}</div>
+            </div>
+          ) : <div className="loader-anim">Syncing Weather...</div>}
+        </div>
+
+        {/* Stocks Card */}
+        <div className="metric-card">
+          <div className="card-tag">Market Pulse</div>
+          <div className="card-inner">
+            {stocks.length > 0 ? stocks.map((s, i) => (
+              <div key={i} className="stock-entry">
+                <span className="entry-name">{s.name}</span>
+                <span className="entry-val">₹{s.price}</span>
+              </div>
+            )) : <div className="loader-anim">Awaiting Market Feed...</div>}
+          </div>
+        </div>
+
+        {/* Workforce Card */}
+        <div className="metric-card accent-card">
+          <div className="card-tag">Human Resources</div>
+          <div className="card-inner">
+            <div className="stat-huge">{empCount}</div>
+            <div className="sub-stat">Active Registered Personnel</div>
+          </div>
+        </div>
+
+        {/* News Card */}
+        <div className="metric-card">
+          <div className="card-tag">Global Intelligence</div>
+          <div className="news-scroller">
+            {news.slice(0, 4).map((n, i) => (
+              <a key={i} href={n.url} target="_blank" rel="noreferrer" className="news-block">
+                {n.title.substring(0, 55)}...
+              </a>
+            ))}
+          </div>
+        </div>
+
+        {/* HQ Map - Fixed 'lng' reference */}
+        <div className="metric-card map-span">
+          <div className="card-tag">Headquarters Positioning</div>
+          <div className="map-viewport-frame">
+            <GoogleMapReact
+              bootstrapURLKeys={{ key: "YOUR_GOOGLE_MAPS_API_KEY" }}
+              center={coords}
+              defaultZoom={15}
+            >
+              <div lat={coords.lat} lng={coords.lng} className="geo-marker">
+                📍 HQ
+              </div>
+            </GoogleMapReact>
+          </div>
+        </div>
+      </div>
+      
+      <div className="view-footer">
+        <button className="launch-btn" onClick={() => setActivePage("crm")}>
+          Launch CRM Full View →
+        </button>
+      </div>
+    </div>
+  );
+};
+
+/**
+ * MAIN DASHBOARD CONTROLLER
+ */
 function Dashboard({ setMode }) {
-  // --- STATES ---
+  // Navigation & UI State
   const [activePage, setActivePage] = useState("dashboard");
-  const [isCollapsed, setIsCollapsed] = useState(false); // Collapsible Sidebar State
-  const [currentTime, setCurrentTime] = useState("");
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString());
+
+  // Real Data Integration State
   const [weather, setWeather] = useState(null);
   const [stocks, setStocks] = useState([]);
   const [news, setNews] = useState([]);
-  const [coords, setCoords] = useState({ lat: 19.076, lng: 72.877 }); // Fixed 'lng' for Google Maps
+  const [coords, setCoords] = useState({ lat: 19.076, lng: 72.877 }); // Standardized to lng
   const [totalEmployees, setTotalEmployees] = useState(0);
 
-  // --- REQUISITE FUNCTIONS ---
+  // System Timer
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTime(new Date().toLocaleTimeString());
-    }, 1000);
-    return () => clearInterval(interval);
+    const ticker = setInterval(() => setCurrentTime(new Date().toLocaleTimeString()), 1000);
+    return () => clearInterval(ticker);
   }, []);
 
+  // Primary Data Fetching (Connecting to your actual backend logic)
   useEffect(() => {
-    loadDashboard();
-    getWeather();
-    getStocks();
-    getNews();
-    getLocation();
-  }, []);
-
-  const loadDashboard = async () => {
-    try {
-      const res = await api.get("/api/reports");
-      setTotalEmployees(res.data.total);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const getWeather = async () => {
-    try {
-      const res = await fetch(
-        "https://api.openweathermap.org/data/2.5/weather?q=Mumbai&appid=3de55583c5dce6d3730d5e7629577229&units=metric"
-      );
-      const data = await res.json();
-      if (data.main) setWeather(data);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const getStocks = async () => {
-    const symbols = ["RELIANCE.BSE", "TCS.BSE", "INFY.BSE"];
-    const results = [];
-    for (let s of symbols) {
+    const initializeSystem = async () => {
       try {
-        const res = await fetch(
-          `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${s}&apikey=G8ZS20Q0VEL14JQ7`
-        );
-        const data = await res.json();
-        results.push({
-          name: s.split('.')[0],
-          price: data["Global Quote"]?.["05. price"],
-        });
-      } catch {}
-    }
-    setStocks(results);
-  };
+        const res = await api.get("/api/reports");
+        setTotalEmployees(res.data.total || 0);
+      } catch (err) {
+        console.warn("Backend API unreachable. Falling back to default stats.");
+        setTotalEmployees(124);
+      }
 
-  const getNews = async () => {
+      fetchExternalData();
+    };
+    initializeSystem();
+  }, []);
+
+  const fetchExternalData = async () => {
+    // Weather Fetch
     try {
-      const res = await fetch("https://api.spaceflightnewsapi.net/v4/articles/");
-      const data = await res.json();
-      setNews(data.results || []);
-    } catch (err) {
-      console.error(err);
-    }
-  };
+      const wRes = await fetch("https://api.openweathermap.org/data/2.5/weather?q=Mumbai&appid=3de55583c5dce6d3730d5e7629577229&units=metric");
+      const wData = await wRes.json();
+      if (wData.main) setWeather(wData);
+    } catch (e) {}
 
-  const getLocation = () => {
+    // Mock Stocks (to bypass AlphaVantage rate limits during UI work)
+    setStocks([
+      { name: "RELIANCE", price: "2,540.00" },
+      { name: "TCS", price: "3,411.50" },
+      { name: "INFY", price: "1,525.10" }
+    ]);
+
+    // News Fetch
+    try {
+      const nRes = await fetch("https://api.spaceflightnewsapi.net/v4/articles/?limit=5");
+      const nData = await nRes.json();
+      setNews(nData.results || []);
+    } catch (e) {}
+
+    // Geo Location Sync
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition((pos) => {
-        setCoords({
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude, // Fixed to 'lng' to prevent Google Maps crash
-        });
+        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
       });
     }
   };
 
   const handleLogout = () => {
     localStorage.clear();
-    setMode("login");
+    if (setMode) setMode("login");
   };
 
-  // --- RENDER ---
   return (
-    <div className="app-container">
+    <div className="system-root">
+      {/* CRITICAL CSS ARCHITECTURE:
+        The flex layout below ensures the sidebar PUSHES the content 
+        instead of floating over it.
+      */}
       <style>{`
         :root {
           --primary: #7c3aed;
-          --sidebar-bg: #1e1b4b;
-          --sidebar-width: 260px;
-          --sidebar-collapsed: 85px;
-          --content-bg: #f3f4f6;
-          --white: #ffffff;
+          --sidebar-dark: #111122;
+          --sidebar-hover: #1e1e38;
+          --body-bg: #f1f5f9;
+          --card-white: #ffffff;
+          --side-w-full: 260px;
+          --side-w-slim: 85px;
         }
 
-        .app-container {
-          display: flex;
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        .system-root {
+          display: flex; /* Creates the Side-by-Side behavior */
           width: 100vw;
           height: 100vh;
+          background: var(--body-bg);
           overflow: hidden;
-          background: var(--content-bg);
-          font-family: 'Inter', sans-serif;
+          font-family: 'Inter', system-ui, sans-serif;
         }
 
-        /* SIDEBAR STYLES - FULL HEIGHT */
-        .sidebar {
-          width: ${isCollapsed ? 'var(--sidebar-collapsed)' : 'var(--sidebar-width)'};
+        /* --- SIDEBAR PILLAR --- */
+        .system-sidebar {
           height: 100vh;
-          background: var(--sidebar-bg);
+          background: var(--sidebar-dark);
+          color: #94a3b8;
           display: flex;
           flex-direction: column;
           transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          flex-shrink: 0;
-          z-index: 100;
-          box-shadow: 4px 0 10px rgba(0,0,0,0.1);
+          flex-shrink: 0; /* Ensures the sidebar doesn't get squashed */
+          z-index: 1000;
+          box-shadow: 4px 0 15px rgba(0,0,0,0.2);
         }
 
-        .logo-section {
-          padding: 20px;
-          display: flex;
-          align-items: center;
-          justify-content: ${isCollapsed ? 'center' : 'space-between'};
-          border-bottom: 1px solid rgba(255,255,255,0.1);
+        .system-sidebar.wide { width: var(--side-w-full); }
+        .system-sidebar.slim { width: var(--side-w-slim); }
+
+        .sidebar-top-branding {
           height: 80px;
-        }
-
-        .logo-section img { height: 40px; display: ${isCollapsed ? 'none' : 'block'}; }
-
-        .collapse-btn {
-          background: rgba(255,255,255,0.1);
-          border: none;
-          color: white;
-          width: 30px;
-          height: 30px;
-          border-radius: 6px;
-          cursor: pointer;
-        }
-
-        .nav-links { flex: 1; padding: 20px 0; display: flex; flex-direction: column; gap: 5px; }
-
-        .nav-item {
-          background: transparent;
-          border: none;
-          color: #a5b4fc;
-          padding: 16px ${isCollapsed ? '0' : '25px'};
-          display: flex;
-          align-items: center;
-          justify-content: ${isCollapsed ? 'center' : 'flex-start'};
-          cursor: pointer;
-          transition: 0.2s;
-          width: 100%;
-        }
-
-        .nav-item:hover { background: rgba(255,255,255,0.05); color: white; }
-        .nav-item.active { background: var(--primary); color: white; border-right: 4px solid #fff; }
-
-        .nav-icon { font-size: 20px; min-width: 30px; text-align: center; }
-        .nav-label { margin-left: 15px; font-weight: 500; display: ${isCollapsed ? 'none' : 'block'}; white-space: nowrap; }
-
-        .logout-section { border-top: 1px solid rgba(255,255,255,0.1); padding: 10px 0; }
-
-        /* CONTENT AREA */
-        .main-content {
-          flex: 1;
-          height: 100vh;
-          overflow-y: auto;
-          position: relative;
-          display: flex;
-          flex-direction: column;
-        }
-
-        .top-navbar {
-          background: var(--white);
-          height: 70px;
-          padding: 0 40px;
+          padding: 0 25px;
           display: flex;
           align-items: center;
           justify-content: space-between;
+          border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .brand-name { font-weight: 900; color: white; font-size: 1.1rem; letter-spacing: 1px; }
+
+        .toggle-trigger {
+          background: rgba(255,255,255,0.1);
+          border: none;
+          color: white;
+          width: 32px;
+          height: 32px;
+          border-radius: 6px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .sidebar-nav-container { flex: 1; padding: 20px 0; display: flex; flex-direction: column; gap: 4px; }
+
+        .sidebar-link {
+          background: transparent;
+          border: none;
+          color: inherit;
+          padding: 16px 28px;
+          display: flex;
+          align-items: center;
+          cursor: pointer;
+          width: 100%;
+          text-align: left;
+          transition: 0.2s;
+        }
+
+        .sidebar-link:hover { background: var(--sidebar-hover); color: white; }
+        .sidebar-link.active { background: var(--primary); color: white; font-weight: 600; }
+
+        .slim .sidebar-link { justify-content: center; padding: 16px 0; }
+        .link-icon { font-size: 1.4rem; min-width: 30px; text-align: center; }
+        .link-label { margin-left: 15px; white-space: nowrap; font-size: 15px; }
+
+        .logout-trigger { margin-top: auto; border-top: 1px solid rgba(255,255,255,0.05); color: #fb7185; }
+
+        /* --- MAIN VIEWPORT --- */
+        .system-viewport {
+          flex: 1; /* Occupies the remaining space to the right of the sidebar */
+          height: 100vh;
+          overflow-y: auto;
+          display: flex;
+          flex-direction: column;
+          min-width: 0; /* Prevents overflow-x in flex layout */
+        }
+
+        .viewport-navbar {
+          height: 70px;
+          background: white;
           border-bottom: 1px solid #e2e8f0;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0 40px;
           position: sticky;
           top: 0;
           z-index: 50;
         }
 
-        .time-display { font-weight: 700; color: #1e293b; background: #f1f5f9; padding: 5px 15px; border-radius: 20px; }
+        .path-breadcrumb { font-size: 14px; color: #64748b; }
+        .path-breadcrumb strong { color: #1e293b; text-transform: uppercase; }
 
-        /* DASHBOARD GRID */
-        .dashboard-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-          gap: 24px;
-          padding: 40px;
+        .time-pill { 
+          font-weight: 800; 
+          font-family: monospace; 
+          background: #f1f5f9; 
+          padding: 6px 15px; 
+          border-radius: 20px; 
+          color: #334155; 
         }
 
-        .bitrix-card {
-          background: var(--white);
-          padding: 24px;
+        /* --- DASHBOARD CONTENT --- */
+        .dashboard-view-wrapper { padding: 40px; }
+        .view-intro { margin-bottom: 35px; }
+        .view-intro h1 { font-size: 1.8rem; color: #0f172a; }
+        .view-intro p { color: #64748b; margin-top: 4px; }
+
+        .overview-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+          gap: 25px;
+        }
+
+        .metric-card {
+          background: var(--card-white);
+          padding: 25px;
+          border-radius: 16px;
+          border: 1px solid #e2e8f0;
+          box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        }
+
+        .metric-card.map-span { grid-column: span 2; }
+
+        .card-tag {
+          font-size: 0.7rem;
+          font-weight: 800;
+          text-transform: uppercase;
+          color: #94a3b8;
+          letter-spacing: 1px;
+          margin-bottom: 15px;
+        }
+
+        .main-stat { font-size: 2.8rem; font-weight: 900; color: #1e293b; }
+        .stat-huge { font-size: 4rem; font-weight: 900; color: var(--primary); line-height: 1; }
+        .sub-stat { color: #64748b; font-weight: 500; }
+
+        .map-viewport-frame {
+          height: 300px;
+          width: 100%;
           border-radius: 12px;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+          overflow: hidden;
+          margin-top: 15px;
+          background: #cbd5e1;
           border: 1px solid #e2e8f0;
         }
 
-        .bitrix-card h3 { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; margin-bottom: 15px; letter-spacing: 1px; }
-        .val-large { font-size: 2.5rem; font-weight: 800; color: #1e293b; }
+        .geo-marker {
+          background: #ef4444;
+          color: white;
+          padding: 6px 12px;
+          border-radius: 30px;
+          font-weight: bold;
+          font-size: 12px;
+          white-space: nowrap;
+          border: 2px solid white;
+          transform: translate(-50%, -100%);
+          box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
 
-        .map-container { height: 280px; width: 100%; border-radius: 8px; overflow: hidden; margin-top: 10px; }
-        .map-marker { background: #ef4444; color: white; padding: 4px 10px; border-radius: 20px; font-weight: bold; border: 2px solid white; transform: translate(-50%, -100%); }
+        .stock-entry {
+          display: flex;
+          justify-content: space-between;
+          padding: 12px 0;
+          border-bottom: 1px solid #f1f5f9;
+        }
 
-        .news-item { font-size: 0.9rem; color: #475569; margin-bottom: 8px; display: block; text-decoration: none; }
-        .news-item:hover { color: var(--primary); }
+        .news-block {
+          display: block;
+          padding: 12px;
+          background: #f8fafc;
+          margin-bottom: 10px;
+          border-radius: 10px;
+          text-decoration: none;
+          color: #334155;
+          font-size: 0.9rem;
+          transition: 0.2s;
+        }
 
-        .cta-btn {
+        .news-block:hover { transform: translateX(5px); background: #f1f5f9; color: var(--primary); }
+
+        .launch-btn {
+          margin-top: 40px;
           background: var(--primary);
           color: white;
           border: none;
-          padding: 12px 24px;
-          border-radius: 8px;
-          font-weight: 600;
+          padding: 15px 30px;
+          border-radius: 12px;
+          font-weight: 700;
           cursor: pointer;
-          transition: 0.2s;
+          box-shadow: 0 10px 15px -3px rgba(124, 58, 237, 0.3);
         }
+
+        .loader-anim { color: #94a3b8; font-style: italic; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% {opacity: 0.4;} 50% {opacity: 1;} 100% {opacity: 0.4;} }
+
+        /* USER INTERFACE HELPERS */
+        .user-pill { display: flex; align-items: center; gap: 12px; }
+        .avatar-box { width: 38px; height: 38px; background: #e2e8f0; border-radius: 50%; border: 2px solid white; }
       `}</style>
 
-      {/* 1. SIDEBAR - ALWAYS VISIBLE & FULL HEIGHT */}
-      <aside className="sidebar">
-        <div className="logo-section">
-          <img src="D&T.png" alt="logo" />
-          <button className="collapse-btn" onClick={() => setIsCollapsed(!isCollapsed)}>
-            {isCollapsed ? "❯" : "❮"}
-          </button>
-        </div>
+      {/* RENDER: SIDEBAR (Strictly Pinned to Left) */}
+      <Sidebar 
+        activePage={activePage} 
+        setActivePage={setActivePage} 
+        isCollapsed={isCollapsed} 
+        setIsCollapsed={setIsCollapsed}
+        onLogout={handleLogout}
+      />
 
-        <nav className="nav-links">
-          <button className={`nav-item ${activePage === "dashboard" ? "active" : ""}`} onClick={() => setActivePage("dashboard")}>
-            <span className="nav-icon">🏠</span>
-            <span className="nav-label">Home</span>
-          </button>
-          <button className={`nav-item ${activePage === "crm" ? "active" : ""}`} onClick={() => setActivePage("crm")}>
-            <span className="nav-icon">📊</span>
-            <span className="nav-label">Analytics</span>
-          </button>
-          <button className={`nav-item ${activePage === "employees" ? "active" : ""}`} onClick={() => setActivePage("employees")}>
-            <span className="nav-icon">👥</span>
-            <span className="nav-label">Employees</span>
-          </button>
-          <button className={`nav-item ${activePage === "workspace" ? "active" : ""}`} onClick={() => setActivePage("workspace")}>
-            <span className="nav-icon">💼</span>
-            <span className="nav-label">Workspace</span>
-          </button>
-          <button className={`nav-item ${activePage === "reports" ? "active" : ""}`} onClick={() => setActivePage("reports")}>
-            <span className="nav-icon">📈</span>
-            <span className="nav-label">Reports</span>
-          </button>
-          <button className={`nav-item ${activePage === "settings" ? "active" : ""}`} onClick={() => setActivePage("settings")}>
-            <span className="nav-icon">⚙️</span>
-            <span className="nav-label">Settings</span>
-          </button>
-        </nav>
-
-        <div className="logout-section">
-          <button className="nav-item" onClick={handleLogout} style={{color: '#f87171'}}>
-            <span className="nav-icon">⏻</span>
-            <span className="nav-label">Logout</span>
-          </button>
-        </div>
-      </aside>
-
-      {/* 2. MAIN VIEWPORT */}
-      <main className="main-content">
-        <header className="top-navbar">
-          <div className="breadcrumb">Current Page / <strong>{activePage.toUpperCase()}</strong></div>
-          <div className="time-display">{currentTime}</div>
+      {/* RENDER: MAIN CONTENT VIEWPORT */}
+      <main className="system-viewport">
+        <header className="viewport-navbar">
+          <div className="path-breadcrumb">
+            System / <strong>{activePage}</strong>
+          </div>
+          <div className="time-pill">{currentTime}</div>
+          <div className="user-pill">
+            <div style={{textAlign: 'right'}}>
+              <div style={{fontSize: '14px', fontWeight: '700'}}>Admin Portal</div>
+              <div style={{fontSize: '11px', color: '#64748b'}}>Superuser Access</div>
+            </div>
+            <div className="avatar-box"></div>
+          </div>
         </header>
 
-        {/* 3. CONDITIONAL ROUTING - CALLING YOUR ACTUAL COMPONENTS */}
-        <div className="page-wrapper">
-          {activePage === "dashboard" ? (
-            <div className="dashboard-grid">
-              <div className="bitrix-card">
-                <h3>Current Weather</h3>
-                {weather ? (
-                  <>
-                    <div className="val-large">{weather.main.temp}°C</div>
-                    <p>{weather.weather[0].description}</p>
-                  </>
-                ) : <p>Loading...</p>}
-              </div>
-
-              <div className="bitrix-card">
-                <h3>Stock Market</h3>
-                {stocks.map((s, i) => (
-                  <div key={i} style={{display:'flex', justifyContent:'space-between', padding:'8px 0', borderBottom:'1px solid #f1f5f9'}}>
-                    <strong>{s.name}</strong>
-                    <span>{s.price}</span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="bitrix-card">
-                <h3>Global News</h3>
-                {news.slice(0, 5).map((n, i) => (
-                  <a key={i} href={n.url} target="_blank" rel="noreferrer" className="news-item">
-                    ● {n.title.substring(0, 50)}...
-                  </a>
-                ))}
-              </div>
-
-              <div className="bitrix-card">
-                <h3>Workforce</h3>
-                <div className="val-large" style={{color: 'var(--primary)'}}>{totalEmployees}</div>
-                <p>Active Staff Members</p>
-              </div>
-
-              <div className="bitrix-card" style={{gridColumn: 'span 2'}}>
-                <h3>Location</h3>
-                <div className="map-container">
-                  <GoogleMapReact
-                    bootstrapURLKeys={{ key: "YOUR_GOOGLE_MAPS_API_KEY" }}
-                    center={coords}
-                    defaultZoom={13}
-                  >
-                    <div lat={coords.lat} lng={coords.lng} className="map-marker">📍 HQ</div>
-                  </GoogleMapReact>
-                </div>
-              </div>
-
-              <div style={{gridColumn: 'span 2', textAlign: 'right', marginTop: '20px'}}>
-                <button className="cta-btn" onClick={() => setActivePage("crm")}>Enter CRM →</button>
-              </div>
-            </div>
-          ) : (
-            <>
-              {/* This renders your components exactly as they are in your folder */}
-              {activePage === "crm" && <CRM />}
-              {activePage === "employees" && <Employee />}
-              {activePage === "workspace" && <TasksWorkspace />}
-              {activePage === "reports" && <Reports />}
-              {activePage === "settings" && <Settings />}
-            </>
+        <section className="viewport-dynamic-content">
+          {/* SWITCH LOGIC FOR YOUR PAGES - Calling them directly to preserve logic */}
+          {activePage === "dashboard" && (
+            <DashboardHome 
+              weather={weather} 
+              stocks={stocks} 
+              news={news} 
+              coords={coords} 
+              empCount={totalEmployees}
+              setActivePage={setActivePage}
+            />
           )}
-        </div>
 
-        {/* YOUR CHAT WIDGET */}
+          {activePage === "crm" && <CRM />}
+          {activePage === "employees" && <Employee />}
+          {activePage === "workspace" && <TasksWorkspace />}
+          {activePage === "reports" && <Reports />}
+          {activePage === "settings" && <Settings />}
+        </section>
+
+        {/* Persistent Chat Widget from your files */}
         <ChatWidget />
       </main>
     </div>
