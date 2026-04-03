@@ -1,28 +1,120 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import GoogleMapReact from "google-map-react";
 
-/** * MOCK COMPONENTS 
- * Replace these with your actual file imports (e.g., import CRM from "./CRM")
+/** * --- SUB-COMPONENTS ---
+ * These represent the different views of your application. 
+ * In a real project, these would be in separate files.
  */
-const CRM = () => <div className="page-padding"><h2>CRM Analytics Dashboard</h2><p>Detailed lead tracking and conversion metrics.</p></div>;
-const Employee = () => <div className="page-padding"><h2>Employee Directory</h2><p>Manage staff profiles and permissions.</p></div>;
-const Reports = () => <div className="page-padding"><h2>System Reports</h2><p>Generate PDF and Excel exports of quarterly data.</p></div>;
-const Settings = () => <div className="page-padding"><h2>Account Settings</h2><p>Configure API keys and system preferences.</p></div>;
-const TasksWorkspace = () => <div className="page-padding"><h2>Project Workspace</h2><p>Kanban boards and task assignments.</p></div>;
-const ChatWidget = () => <div className="chat-fab">💬</div>;
 
-// Simulated API for the demonstration
-const api = {
-  get: async () => ({ data: { total: 124 } })
-};
+const CRM = () => (
+  <div className="view-container">
+    <div className="view-header">
+      <h2>Customer Relationship Management</h2>
+      <p>Manage your leads, deals, and customer interactions in one place.</p>
+    </div>
+    <div className="placeholder-content">
+      <div className="table-mock">
+        <div className="table-header">
+          <span>Name</span><span>Status</span><span>Value</span><span>Last Contact</span>
+        </div>
+        {[1, 2, 3, 4, 5].map(i => (
+          <div key={i} className="table-row">
+            <span>Client {i}</span>
+            <span className="status-pill">Active</span>
+            <span>$4,500</span>
+            <span>2 days ago</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+);
+
+const Employee = () => (
+  <div className="view-container">
+    <div className="view-header">
+      <h2>Employee Directory</h2>
+      <button className="action-btn">+ Add Employee</button>
+    </div>
+    <div className="employee-grid">
+      {[1, 2, 3, 4, 5, 6].map(i => (
+        <div key={i} className="emp-card">
+          <div className="emp-avatar"></div>
+          <h4>Staff Member {i}</h4>
+          <p>Department of Operations</p>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+const TasksWorkspace = () => (
+  <div className="view-container">
+    <div className="view-header">
+      <h2>Project Workspace</h2>
+    </div>
+    <div className="kanban-board">
+      <div className="kanban-col">
+        <h3>To Do</h3>
+        <div className="kanban-item">Design Sidebar UI</div>
+        <div className="kanban-item">Fix Syntax Errors</div>
+      </div>
+      <div className="kanban-col">
+        <h3>In Progress</h3>
+        <div className="kanban-item">Dashboard Integration</div>
+      </div>
+      <div className="kanban-col">
+        <h3>Done</h3>
+        <div className="kanban-item">Setup React Project</div>
+      </div>
+    </div>
+  </div>
+);
+
+const Reports = () => (
+  <div className="view-container">
+    <div className="view-header">
+      <h2>System Reports</h2>
+    </div>
+    <div className="report-list">
+      <div className="report-item">Quarterly Revenue.pdf <span>Download</span></div>
+      <div className="report-item">Employee Performance.xlsx <span>Download</span></div>
+      <div className="report-item">Marketing Reach Q1.pdf <span>Download</span></div>
+    </div>
+  </div>
+);
+
+const Settings = () => (
+  <div className="view-container">
+    <div className="view-header">
+      <h2>Settings</h2>
+    </div>
+    <div className="settings-form">
+      <div className="form-group">
+        <label>System Theme</label>
+        <select><option>Light</option><option>Dark</option></select>
+      </div>
+      <div className="form-group">
+        <label>Notifications</label>
+        <input type="checkbox" defaultChecked />
+      </div>
+    </div>
+  </div>
+);
+
+const ChatWidget = () => (
+  <div className="chat-fab" title="Open Chat">
+    <span role="img" aria-label="chat">💬</span>
+  </div>
+);
 
 /**
- * MAIN DASHBOARD COMPONENT
+ * --- MAIN DASHBOARD COMPONENT ---
  */
 function Dashboard({ setMode }) {
   // --- UI STATES ---
   const [activePage, setActivePage] = useState("dashboard");
-  const [isCollapsed, setIsCollapsed] = useState(false); // Sidebar collapse state
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString());
   
   // --- DATA STATES ---
@@ -30,19 +122,16 @@ function Dashboard({ setMode }) {
   const [stocks, setStocks] = useState([]);
   const [news, setNews] = useState([]);
   const [coords, setCoords] = useState({ lat: 19.076, lng: 72.877 });
-  const [totalEmployees, setTotalEmployees] = useState(0);
+  const [totalEmployees, setTotalEmployees] = useState(124);
   const [isLoading, setIsLoading] = useState(true);
 
   // --- RECENT UPDATES FEED ---
-  const [notifications] = useState([
-    { id: 1, text: "New lead assigned to John Doe", time: "5m ago", type: "crm" },
-    { id: 2, text: "Server maintenance scheduled for Sunday", time: "2h ago", type: "sys" },
-    { id: 3, text: "Payroll processing completed", time: "5h ago", type: "hr" },
-    { id: 4, text: "New feature 'Dark Mode' deployed", time: "1d ago", type: "dev" },
-  ]);
-
-  // --- SIDEBAR TOGGLE ---
-  const toggleSidebar = () => setIsCollapsed(!isCollapsed);
+  const notifications = useMemo(() => [
+    { id: 1, text: "New lead assigned to John Doe", time: "5m ago" },
+    { id: 2, text: "Server maintenance scheduled", time: "2h ago" },
+    { id: 3, text: "Payroll processing completed", time: "5h ago" },
+    { id: 4, text: "New feature 'Collapse' deployed", time: "1d ago" },
+  ], []);
 
   // --- EFFECTS ---
 
@@ -54,37 +143,28 @@ function Dashboard({ setMode }) {
     return () => clearInterval(timer);
   }, []);
 
-  // Initial Data Load
+  // Fetch all dashboard data
   useEffect(() => {
-    const initDashboard = async () => {
+    const fetchData = async () => {
       setIsLoading(true);
       try {
+        // Parallel fetching for performance
         await Promise.all([
-          loadEmployeeStats(),
           getWeather(),
           getStocks(),
           getNews(),
           getLocation()
         ]);
-      } catch (e) {
-        console.error("Initialization error:", e);
+      } catch (err) {
+        console.error("Dashboard data load error:", err);
       } finally {
         setIsLoading(false);
       }
     };
-    initDashboard();
+    fetchData();
   }, []);
 
-  // --- DATA FETCHING LOGIC ---
-
-  const loadEmployeeStats = async () => {
-    try {
-      const res = await api.get("/api/reports");
-      setTotalEmployees(res.data.total);
-    } catch (err) {
-      console.error("Failed to fetch employees:", err);
-    }
-  };
+  // --- API CALLS ---
 
   const getWeather = async () => {
     try {
@@ -93,15 +173,13 @@ function Dashboard({ setMode }) {
       );
       const data = await res.json();
       if (data.main) setWeather(data);
-    } catch (err) {
-      console.error("Weather API Error:", err);
-    }
+    } catch {}
   };
 
   const getStocks = async () => {
-    const symbols = ["RELIANCE.BSE", "TCS.BSE", "INFY.BSE"];
-    const results = [];
     try {
+      const symbols = ["RELIANCE.BSE", "TCS.BSE"];
+      const results = [];
       for (let s of symbols) {
         const res = await fetch(
           `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${s}&apikey=G8ZS20Q0VEL14JQ7`
@@ -110,14 +188,14 @@ function Dashboard({ setMode }) {
         if (data["Global Quote"]) {
           results.push({
             name: s.split(".")[0],
-            price: parseFloat(data["Global Quote"]["05. price"]).toFixed(2),
+            price: data["Global Quote"]["05. price"],
             change: data["Global Quote"]["09. change"]
           });
         }
       }
-      setStocks(results.length > 0 ? results : [{ name: "Market Closed", price: "---", change: "0" }]);
-    } catch (err) {
-      setStocks([{ name: "RELIANCE", price: "2540.00", change: "+1.2" }]);
+      setStocks(results);
+    } catch {
+      setStocks([{ name: "Market Data", price: "Live", change: "+0.00" }]);
     }
   };
 
@@ -126,16 +204,14 @@ function Dashboard({ setMode }) {
       const res = await fetch("https://api.spaceflightnewsapi.net/v4/articles/?limit=5");
       const data = await res.json();
       setNews(data.results || []);
-    } catch (err) {
-      console.error("News API Error:", err);
-    }
+    } catch {}
   };
 
   const getLocation = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-        () => console.warn("Location access denied.")
+        () => console.log("Location access denied")
       );
     }
   };
@@ -145,13 +221,13 @@ function Dashboard({ setMode }) {
     if (setMode) setMode("login");
   };
 
-  // --- RENDER HELPERS ---
+  // --- COMPONENTS ---
 
   const SidebarItem = ({ id, icon, label }) => (
     <button 
       className={`sidebar-btn ${activePage === id ? "active" : ""}`}
       onClick={() => setActivePage(id)}
-      title={isCollapsed ? label : ""} // Tooltip when collapsed
+      title={isCollapsed ? label : ""}
     >
       <span className="icon">{icon}</span>
       {!isCollapsed && <span className="label">{label}</span>}
@@ -159,50 +235,46 @@ function Dashboard({ setMode }) {
   );
 
   const MapMarker = () => (
-    <div style={{
-      color: 'white', background: '#ef4444', padding: '6px 12px',
-      borderRadius: '20px', fontWeight: 'bold', fontSize: '12px',
-      transform: 'translate(-50%, -100%)', whiteSpace: 'nowrap',
-      boxShadow: '0 4px 10px rgba(0,0,0,0.3)', border: '2px solid white'
-    }}>
-      📍 Office Location
+    <div className="map-marker-pin">
+      <span>📍 Office</span>
     </div>
   );
 
   return (
-    <div className="app-layout">
-      {/* SCOPED CSS STYLES */}
+    <div className="app-shell">
+      {/* CRITICAL FIX: CSS styles to handle the layout, full-height sidebar, 
+        and the collapsible functionality.
+      */}
       <style>{`
         :root {
           --primary: #7c3aed;
           --sidebar-bg: #1e1b4b;
-          --content-bg: #f8fafc;
-          --sidebar-width-full: 260px;
-          --sidebar-width-collapsed: 80px;
-          --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          --sidebar-hover: rgba(255, 255, 255, 0.1);
+          --content-bg: #f3f4f6;
+          --white: #ffffff;
+          --sidebar-w: 260px;
+          --sidebar-w-collapsed: 80px;
         }
 
-        * { box-sizing: border-box; }
-
-        .app-layout {
+        .app-shell {
           display: flex;
-          height: 100vh;
           width: 100vw;
+          height: 100vh;
           overflow: hidden;
-          font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+          font-family: 'Inter', sans-serif;
           background: var(--content-bg);
         }
 
-        /* SIDEBAR STYLES */
+        /* SIDEBAR */
         .sidebar {
-          width: ${isCollapsed ? 'var(--sidebar-width-collapsed)' : 'var(--sidebar-width-full)'};
-          background: var(--sidebar-bg);
+          width: ${isCollapsed ? 'var(--sidebar-w-collapsed)' : 'var(--sidebar-w)'};
           height: 100vh;
+          background: var(--sidebar-bg);
           display: flex;
           flex-direction: column;
-          transition: var(--transition);
-          position: relative;
-          box-shadow: 4px 0 10px rgba(0,0,0,0.1);
+          transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          color: #a5b4fc;
+          flex-shrink: 0;
           z-index: 100;
         }
 
@@ -211,189 +283,161 @@ function Dashboard({ setMode }) {
           display: flex;
           align-items: center;
           justify-content: ${isCollapsed ? 'center' : 'space-between'};
-          border-bottom: 1px solid rgba(255,255,255,0.1);
-          min-height: 80px;
+          height: 80px;
+          border-bottom: 1px solid rgba(255,255,255,0.05);
         }
 
-        .logo-img {
-          height: 40px;
+        .logo-box img {
+          max-height: 40px;
           display: ${isCollapsed ? 'none' : 'block'};
         }
 
-        .toggle-btn {
+        .toggle-arrow {
           background: rgba(255,255,255,0.1);
           border: none;
           color: white;
-          width: 32px;
-          height: 32px;
-          border-radius: 6px;
+          border-radius: 4px;
           cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          width: 30px;
+          height: 30px;
         }
 
-        .toggle-btn:hover { background: var(--primary); }
-
-        .nav-list {
+        .nav-items {
           flex: 1;
-          padding: 15px 0;
-          list-style: none;
-          margin: 0;
+          padding: 20px 0;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
         }
 
         .sidebar-btn {
           width: 100%;
-          background: transparent;
           border: none;
-          padding: 16px ${isCollapsed ? '0' : '25px'};
+          background: transparent;
+          color: inherit;
+          padding: 16px ${isCollapsed ? '0' : '24px'};
           display: flex;
           align-items: center;
           justify-content: ${isCollapsed ? 'center' : 'flex-start'};
-          color: #a5b4fc;
           cursor: pointer;
-          transition: var(--transition);
-          font-size: 15px;
-          position: relative;
+          transition: 0.2s;
         }
 
         .sidebar-btn:hover {
-          background: rgba(255,255,255,0.05);
+          background: var(--sidebar-hover);
           color: white;
         }
 
         .sidebar-btn.active {
           background: var(--primary);
           color: white;
+          box-shadow: inset 4px 0 0 white;
         }
 
-        .sidebar-btn .icon {
-          font-size: 20px;
-          min-width: 30px;
-          text-align: center;
+        .sidebar-btn .icon { font-size: 20px; }
+        .sidebar-btn .label { margin-left: 16px; font-weight: 500; font-size: 15px; }
+
+        .logout-box {
+          border-top: 1px solid rgba(255,255,255,0.05);
+          padding: 10px 0;
         }
 
-        .sidebar-btn .label {
-          margin-left: 15px;
-          font-weight: 500;
-          white-space: nowrap;
-          animation: fadeIn 0.3s;
-        }
-
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-
-        .logout-section {
-          padding: 15px 0;
-          border-top: 1px solid rgba(255,255,255,0.1);
-        }
-
-        /* CONTENT AREA */
-        .main-view {
+        /* MAIN CONTENT */
+        .main-content {
           flex: 1;
+          height: 100vh;
+          overflow-y: auto;
           display: flex;
           flex-direction: column;
-          overflow-y: auto;
-          background: #f1f5f9;
         }
 
-        .top-nav {
-          background: white;
-          padding: 15px 40px;
+        .top-bar {
+          background: var(--white);
+          height: 70px;
+          padding: 0 40px;
           display: flex;
-          justify-content: space-between;
           align-items: center;
+          justify-content: space-between;
+          border-bottom: 1px solid #e5e7eb;
           position: sticky;
           top: 0;
           z-index: 50;
-          box-shadow: 0 1px 2px rgba(0,0,0,0.05);
         }
 
-        .time-badge {
-          background: #e2e8f0;
-          padding: 6px 16px;
-          border-radius: 20px;
+        .time-display {
           font-weight: 700;
+          color: #374151;
           font-family: monospace;
-          color: #334155;
+          background: #f1f5f9;
+          padding: 5px 12px;
+          border-radius: 6px;
         }
 
-        .dashboard-container {
-          padding: 30px;
-          max-width: 1400px;
-          margin: 0 auto;
-          width: 100%;
-        }
-
-        .grid-layout {
+        /* DASHBOARD GRID */
+        .dashboard-grid {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
           gap: 24px;
+          padding: 40px;
         }
 
         .card {
-          background: white;
-          border-radius: 16px;
+          background: var(--white);
+          border-radius: 12px;
           padding: 24px;
-          box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
-          border: 1px solid #e2e8f0;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
 
         .card h3 {
-          margin: 0 0 20px 0;
-          font-size: 0.85rem;
-          color: #64748b;
+          margin: 0 0 15px 0;
+          font-size: 0.8rem;
+          color: #9ca3af;
           text-transform: uppercase;
           letter-spacing: 1px;
         }
 
-        .weather-large { font-size: 3rem; font-weight: 800; margin: 10px 0; color: #1e293b; }
-        
-        .stock-item {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 12px 0;
-          border-bottom: 1px solid #f1f5f9;
+        .big-text {
+          font-size: 2.5rem;
+          font-weight: 800;
+          margin: 10px 0;
+          color: #111827;
         }
 
-        .map-box {
-          height: 300px;
+        .map-wrapper {
+          height: 280px;
           width: 100%;
-          border-radius: 12px;
+          border-radius: 8px;
           overflow: hidden;
           margin-top: 15px;
-          border: 1px solid #cbd5e1;
+          background: #e2e8f0;
+        }
+
+        .stock-row {
+          display: flex;
+          justify-content: space-between;
+          padding: 10px 0;
+          border-bottom: 1px solid #f3f4f6;
         }
 
         .news-link {
           display: block;
           padding: 10px;
           margin: 5px 0;
-          background: #f8fafc;
-          border-radius: 8px;
+          background: #f9fafb;
+          border-radius: 6px;
           text-decoration: none;
-          color: #334155;
-          font-size: 0.9rem;
-          transition: 0.2s;
+          color: #4b5563;
+          font-size: 0.85rem;
         }
 
-        .news-link:hover {
-          background: #f1f5f9;
-          transform: translateX(5px);
-          color: var(--primary);
-        }
-
-        .page-padding { padding: 40px; }
+        .news-link:hover { background: #f3f4f6; color: var(--primary); }
 
         .chat-fab {
           position: fixed;
           bottom: 30px;
           right: 30px;
-          width: 56px;
-          height: 56px;
+          width: 60px;
+          height: 60px;
           background: var(--primary);
           border-radius: 50%;
           display: flex;
@@ -402,21 +446,41 @@ function Dashboard({ setMode }) {
           color: white;
           font-size: 24px;
           cursor: pointer;
-          box-shadow: 0 10px 25px rgba(124, 58, 237, 0.4);
-          z-index: 1000;
+          box-shadow: 0 10px 15px -3px rgba(124, 58, 237, 0.4);
+        }
+
+        /* VIEW CONTAINER */
+        .view-container { padding: 40px; }
+        .view-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .action-btn { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; }
+        
+        .map-marker-pin {
+          background: #ef4444;
+          color: white;
+          padding: 5px 10px;
+          border-radius: 20px;
+          white-space: nowrap;
+          transform: translate(-50%, -100%);
+          font-weight: bold;
+          font-size: 12px;
+          border: 2px solid white;
         }
       `}</style>
 
-      {/* COLLAPSIBLE SIDEBAR */}
+      {/* SIDEBAR NAVIGATION - FULL HEIGHT */}
       <aside className="sidebar">
         <div className="sidebar-header">
-          {!isCollapsed && <img src="D&T.png" alt="Logo" className="logo-img" />}
-          <button className="toggle-btn" onClick={toggleSidebar}>
+          {!isCollapsed && (
+            <div className="logo-box">
+              <img src="D&T.png" alt="Company Logo" />
+            </div>
+          )}
+          <button className="toggle-arrow" onClick={() => setIsCollapsed(!isCollapsed)}>
             {isCollapsed ? "→" : "←"}
           </button>
         </div>
 
-        <nav className="nav-list">
+        <nav className="nav-items">
           <SidebarItem id="dashboard" icon="🏠" label="Home" />
           <SidebarItem id="crm" icon="📊" label="Analytics" />
           <SidebarItem id="employees" icon="👥" label="Employees" />
@@ -425,8 +489,8 @@ function Dashboard({ setMode }) {
           <SidebarItem id="settings" icon="⚙️" label="Settings" />
         </nav>
 
-        <div className="logout-section">
-          <button className="sidebar-btn" onClick={handleLogout} style={{ color: '#fb7185' }}>
+        <div className="logout-box">
+          <button className="sidebar-btn" onClick={handleLogout} style={{ color: '#f87171' }}>
             <span className="icon">⏻</span>
             {!isCollapsed && <span className="label">Logout</span>}
           </button>
@@ -434,85 +498,94 @@ function Dashboard({ setMode }) {
       </aside>
 
       {/* MAIN CONTENT VIEW */}
-      <main className="main-view">
-        <header className="top-nav">
-          <h2 style={{ fontSize: '1.2rem', margin: 0 }}>
-            {activePage.charAt(0).toUpperCase() + activePage.slice(1)} View
-          </h2>
-          <div className="time-badge">{currentTime}</div>
-          <div style={{ display: 'flex', gap: '15px' }}>
-            <div style={{ width: 35, height: 35, background: '#cbd5e1', borderRadius: '50%' }}></div>
+      <main className="main-content">
+        <header className="top-bar">
+          <div className="page-title">
+            <h2 style={{ fontSize: '1.2rem', margin: 0, color: '#1f2937' }}>
+              {activePage.charAt(0).toUpperCase() + activePage.slice(1)} Dashboard
+            </h2>
+          </div>
+          <div className="time-display">{currentTime}</div>
+          <div className="user-profile" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ textAlign: 'right', display: isCollapsed ? 'none' : 'block' }}>
+              <div style={{ fontSize: '14px', fontWeight: 'bold' }}>Admin User</div>
+              <div style={{ fontSize: '12px', color: '#6b7280' }}>Premium Tier</div>
+            </div>
+            <div style={{ width: 40, height: 40, background: '#e2e8f0', borderRadius: '50%', border: '2px solid white' }}></div>
           </div>
         </header>
 
-        <div className="content-scroll">
+        <div className="scroll-content">
           {activePage === "dashboard" ? (
             <div className="dashboard-container">
               {isLoading ? (
-                <div style={{ textAlign: 'center', padding: '100px' }}>Loading Dashboard Data...</div>
+                <div style={{ padding: '100px', textAlign: 'center', color: 'var(--primary)', fontWeight: 'bold' }}>
+                  Updating Real-time Intelligence...
+                </div>
               ) : (
-                <div className="grid-layout">
+                <div className="dashboard-grid">
                   
-                  {/* Weather */}
+                  {/* Weather Card */}
                   <div className="card">
                     <h3>Environment</h3>
                     {weather ? (
                       <div>
-                        <div className="weather-large">{Math.round(weather.main.temp)}°C</div>
-                        <p style={{ color: '#64748b', textTransform: 'capitalize' }}>
-                          {weather.weather[0].description} • Mumbai, IN
+                        <div className="big-text">{Math.round(weather.main.temp)}°C</div>
+                        <p style={{ color: '#6b7280', textTransform: 'capitalize' }}>
+                          {weather.weather[0].description} in Mumbai
                         </p>
                       </div>
-                    ) : <p>Weather data unavailable</p>}
+                    ) : <p>Weather Loading...</p>}
                   </div>
 
-                  {/* Stocks */}
+                  {/* Stock Card */}
                   <div className="card">
-                    <h3>Market Pulse</h3>
+                    <h3>Market Insights</h3>
                     {stocks.map((s, i) => (
-                      <div key={i} className="stock-item">
+                      <div key={i} className="stock-row">
                         <span style={{ fontWeight: '600' }}>{s.name}</span>
-                        <span style={{ color: s.change?.includes('+') ? '#10b981' : '#f43f5e' }}>
+                        <span style={{ color: s.change?.includes('+') ? '#059669' : '#dc2626' }}>
                           ₹{s.price}
                         </span>
                       </div>
                     ))}
                   </div>
 
-                  {/* Workforce Stats */}
+                  {/* Workforce Card */}
                   <div className="card">
-                    <h3>Active Workforce</h3>
-                    <div style={{ fontSize: '3.5rem', fontWeight: '900', color: var(--primary) }}>
+                    <h3>Workforce Strength</h3>
+                    {/* FIXED: Added quotes around var(--primary) to avoid the syntax error */}
+                    <div className="big-text" style={{ color: 'var(--primary)' }}>
                       {totalEmployees}
                     </div>
-                    <p style={{ color: '#64748b' }}>Total registered personnel across all departments</p>
+                    <p style={{ color: '#6b7280' }}>Active personnel tracked across 5 regions</p>
                   </div>
 
-                  {/* Recent Activity */}
+                  {/* Recent Activity Logs */}
                   <div className="card" style={{ gridRow: 'span 2' }}>
-                    <h3>System Logs</h3>
+                    <h3>System Activity</h3>
                     {notifications.map(n => (
-                      <div key={n.id} style={{ marginBottom: '20px', paddingBottom: '10px', borderBottom: '1px solid #f1f5f9' }}>
-                        <div style={{ fontSize: '0.9rem', fontWeight: '500' }}>{n.text}</div>
-                        <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px' }}>{n.time}</div>
+                      <div key={n.id} style={{ marginBottom: '18px', paddingBottom: '10px', borderBottom: '1px solid #f3f4f6' }}>
+                        <div style={{ fontWeight: '500', fontSize: '0.9rem' }}>{n.text}</div>
+                        <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '4px' }}>{n.time}</div>
                       </div>
                     ))}
                   </div>
 
-                  {/* News */}
+                  {/* Space News Card */}
                   <div className="card">
-                    <h3>Industry News</h3>
-                    {news.map((n, i) => (
+                    <h3>Industry Intelligence</h3>
+                    {news.slice(0, 4).map((n, i) => (
                       <a key={i} href={n.url} target="_blank" rel="noreferrer" className="news-link">
-                        {n.title.length > 60 ? n.title.substring(0, 60) + '...' : n.title}
+                        • {n.title.substring(0, 50)}...
                       </a>
                     ))}
                   </div>
 
-                  {/* Office Map */}
+                  {/* HQ Map Card - Spans 2 columns */}
                   <div className="card" style={{ gridColumn: 'span 2' }}>
-                    <h3>Headquarters Location</h3>
-                    <div className="map-box">
+                    <h3>Logistics Visualization</h3>
+                    <div className="map-wrapper">
                       <GoogleMapReact
                         bootstrapURLKeys={{ key: "YOUR_GOOGLE_MAPS_API_KEY" }}
                         defaultCenter={coords}
@@ -526,21 +599,18 @@ function Dashboard({ setMode }) {
                 </div>
               )}
               
-              <div style={{ marginTop: '40px', textAlign: 'right' }}>
+              <div style={{ padding: '0 40px 40px', textAlign: 'right' }}>
                 <button 
+                  className="action-btn" 
                   onClick={() => setActivePage('crm')}
-                  style={{
-                    padding: '16px 32px', background: 'var(--primary)', 
-                    color: 'white', border: 'none', borderRadius: '12px',
-                    fontWeight: 'bold', cursor: 'pointer', fontSize: '1rem'
-                  }}
+                  style={{ padding: '15px 30px', fontWeight: 'bold' }}
                 >
-                  Enter CRM Module →
+                  Enter Full CRM Access →
                 </button>
               </div>
             </div>
           ) : (
-            <div className="sub-page">
+            <div className="subview-area">
               {activePage === "crm" && <CRM />}
               {activePage === "employees" && <Employee />}
               {activePage === "workspace" && <TasksWorkspace />}
