@@ -1,100 +1,21 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import GoogleMapReact from "google-map-react";
 
-/** * SECTION 1: MOCK COMPONENTS 
- * These represent the files shown in your directory (CRM.js, Employee.js, etc.)
+// --- YOUR ACTUAL PROJECT IMPORTS ---
+// Calling your real files from the directory you shared
+import CRM from "./CRM";
+import Employee from "./Employee";
+import Reports from "./Reports";
+import Settings from "./Settings";
+import TasksWorkspace from "./TasksWorkspace";
+import ChatWidget from "./ChatWidget";
+import api from "./api";
+
+/**
+ * SECTION 1: THE COLLAPSIBLE SIDEBAR
+ * This handles the navigation and the "Small Version" toggle
  */
-
-const CRM = () => (
-  <div className="sub-view-container">
-    <div className="view-card">
-      <h2>CRM Overview</h2>
-      <div className="table-wrapper">
-        <table className="data-table">
-          <thead>
-            <tr><th>Lead Name</th><th>Value</th><th>Source</th><th>Status</th></tr>
-          </thead>
-          <tbody>
-            <tr><td>Alpha Corp</td><td>$12,500</td><td>LinkedIn</td><td><span className="pill green">Closed</span></td></tr>
-            <tr><td>Beta Tech</td><td>$8,200</td><td>Referral</td><td><span className="pill blue">Negotiation</span></td></tr>
-            <tr><td>Gamma Systems</td><td>$21,000</td><td>Cold Call</td><td><span className="pill orange">Discovery</span></td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-);
-
-const Employee = () => (
-  <div className="sub-view-container">
-    <div className="view-card">
-      <h2>Employee Directory</h2>
-      <div className="employee-grid">
-        {[1, 2, 3, 4, 5, 6].map(i => (
-          <div key={i} className="emp-profile">
-            <div className="avatar-placeholder"></div>
-            <h4>User Account {i}</h4>
-            <p>Senior Developer</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  </div>
-);
-
-const TasksWorkspace = () => (
-  <div className="sub-view-container">
-    <div className="view-card">
-      <h2>Workspace & Tasks</h2>
-      <div className="kanban-layout">
-        <div className="kanban-column"><h3>Todo</h3><div className="task-item">UI Refactor</div></div>
-        <div className="kanban-column"><h3>Doing</h3><div className="task-item">API Integration</div></div>
-        <div className="kanban-column"><h3>Done</h3><div className="task-item">Setup Repo</div></div>
-      </div>
-    </div>
-  </div>
-);
-
-const Reports = () => (
-  <div className="sub-view-container">
-    <div className="view-card">
-      <h2>Analytics Reports</h2>
-      <div className="chart-placeholder">
-        <div className="bar" style={{height: '60%'}}></div>
-        <div className="bar" style={{height: '80%'}}></div>
-        <div className="bar" style={{height: '40%'}}></div>
-        <div className="bar" style={{height: '90%'}}></div>
-      </div>
-    </div>
-  </div>
-);
-
-const Settings = () => (
-  <div className="sub-view-container">
-    <div className="view-card">
-      <h2>System Settings</h2>
-      <div className="settings-row">
-        <label>Enable Dark Mode</label>
-        <input type="checkbox" />
-      </div>
-      <div className="settings-row">
-        <label>Email Notifications</label>
-        <input type="checkbox" defaultChecked />
-      </div>
-    </div>
-  </div>
-);
-
-const ChatWidget = () => (
-  <div className="floating-chat-btn">
-    <span>💬</span>
-  </div>
-);
-
-/** * SECTION 2: SIDEBAR COMPONENT 
- */
-
-const Sidebar = ({ activePage, setActivePage, isCollapsed, setIsCollapsed, handleLogout }) => {
+const Sidebar = ({ activePage, setActivePage, isCollapsed, setIsCollapsed, onLogout }) => {
   const menuItems = [
     { id: "dashboard", label: "Home", icon: "🏠" },
     { id: "crm", label: "Analytics", icon: "📊" },
@@ -105,110 +26,113 @@ const Sidebar = ({ activePage, setActivePage, isCollapsed, setIsCollapsed, handl
   ];
 
   return (
-    <aside className={`sidebar-container ${isCollapsed ? "collapsed" : ""}`}>
-      <div className="sidebar-top">
-        <div className="logo-area">
-          {!isCollapsed && <span className="logo-text">D&T CRM</span>}
-          <button className="collapse-toggle" onClick={() => setIsCollapsed(!isCollapsed)}>
-            {isCollapsed ? "»" : "«"}
-          </button>
-        </div>
+    <aside className={`main-sidebar ${isCollapsed ? "is-small" : "is-full"}`}>
+      <div className="sidebar-header">
+        {!isCollapsed && <div className="brand-logo">D&T PANEL</div>}
+        <button className="collapse-ctrl" onClick={() => setIsCollapsed(!isCollapsed)}>
+          {isCollapsed ? "→" : "←"}
+        </button>
       </div>
 
-      <nav className="sidebar-nav">
+      <nav className="sidebar-menu">
         {menuItems.map((item) => (
           <button
             key={item.id}
-            className={`nav-link ${activePage === item.id ? "active" : ""}`}
+            className={`menu-item ${activePage === item.id ? "active" : ""}`}
             onClick={() => setActivePage(item.id)}
-            title={isCollapsed ? item.label : ""}
           >
-            <span className="nav-icon">{item.icon}</span>
-            {!isCollapsed && <span className="nav-label">{item.label}</span>}
+            <span className="menu-icon">{item.icon}</span>
+            {!isCollapsed && <span className="menu-label">{item.label}</span>}
           </button>
         ))}
       </nav>
 
-      <div className="sidebar-bottom">
-        <button className="nav-link logout-btn" onClick={handleLogout}>
-          <span className="nav-icon">⏻</span>
-          {!isCollapsed && <span className="nav-label">Logout</span>}
+      <div className="sidebar-footer">
+        <button className="menu-item logout-link" onClick={onLogout}>
+          <span className="menu-icon">⏻</span>
+          {!isCollapsed && <span className="menu-label">Logout</span>}
         </button>
       </div>
     </aside>
   );
 };
 
-/** * SECTION 3: DASHBOARD MAIN CONTENT 
+/**
+ * SECTION 2: THE DASHBOARD OVERVIEW
+ * The "Home" screen showing your widgets (Weather, Stocks, Map)
  */
-
-const DashboardView = ({ stats, weather, stocks, news, coords, setActivePage }) => {
+const DashboardHome = ({ stats, weather, stocks, news, coords, setActivePage }) => {
   return (
-    <div className="dashboard-content">
-      <header className="content-header">
-        <h1>Overview</h1>
-        <div className="header-actions">
-          <button className="primary-btn" onClick={() => setActivePage('crm')}>Open CRM →</button>
+    <div className="dashboard-wrapper">
+      <div className="welcome-banner">
+        <div>
+          <h1>System Overview</h1>
+          <p>Real-time data synchronization active.</p>
         </div>
-      </header>
+        <button className="cta-button" onClick={() => setActivePage("crm")}>
+          Launch CRM Data →
+        </button>
+      </div>
 
-      <div className="dashboard-grid">
-        {/* Weather Card */}
-        <div className="stat-card">
-          <span className="card-tag">Weather</span>
+      <div className="widget-grid">
+        {/* Weather Widget */}
+        <div className="widget-card">
+          <div className="widget-head">Local Weather</div>
           {weather ? (
-            <div className="card-body">
-              <h2 className="huge-val">{Math.round(weather.main.temp)}°C</h2>
-              <p>{weather.weather[0].description} in Mumbai</p>
+            <div className="widget-body">
+              <div className="temp-display">{Math.round(weather.main.temp)}°C</div>
+              <div className="weather-desc">{weather.weather[0].description}</div>
             </div>
-          ) : <p>Loading weather...</p>}
+          ) : <div className="loading-pulse">Updating...</div>}
         </div>
 
-        {/* Stock Card */}
-        <div className="stat-card">
-          <span className="card-tag">Markets</span>
-          <div className="card-body">
-            {stocks.map((s, i) => (
-              <div key={i} className="list-item">
-                <strong>{s.name}</strong>
-                <span className={s.change?.includes('+') ? "text-green" : "text-red"}>
-                  ₹{s.price}
-                </span>
+        {/* Stocks Widget */}
+        <div className="widget-card">
+          <div className="widget-head">Market Pulse</div>
+          <div className="widget-body">
+            {stocks.length > 0 ? stocks.map((s, i) => (
+              <div key={i} className="stock-line">
+                <span className="stock-name">{s.name}</span>
+                <span className="stock-price">₹{s.price}</span>
               </div>
-            ))}
+            )) : <div className="loading-pulse">Connecting to API...</div>}
           </div>
         </div>
 
         {/* Employee Stats */}
-        <div className="stat-card highlight">
-          <span className="card-tag">Team Size</span>
-          <div className="card-body">
-            <h2 className="huge-val">{stats.total}</h2>
-            <p>Active Employees Tracked</p>
+        <div className="widget-card stat-highlight">
+          <div className="widget-head">Workforce</div>
+          <div className="widget-body">
+            <div className="big-stat">{stats}</div>
+            <div className="stat-label">Total Staff Members</div>
           </div>
         </div>
 
-        {/* News Card */}
-        <div className="stat-card">
-          <span className="card-tag">News</span>
-          <div className="card-body news-feed">
-            {news.slice(0, 3).map((n, i) => (
-              <p key={i} className="news-title">● {n.title.substring(0, 50)}...</p>
-            ))}
-          </div>
-        </div>
-
-        {/* Map Card */}
-        <div className="stat-card wide-card">
-          <span className="card-tag">HQ Location</span>
-          <div className="map-container-fix">
+        {/* Map Widget */}
+        <div className="widget-card wide-widget">
+          <div className="widget-head">Global HQ Positioning</div>
+          <div className="map-view">
             <GoogleMapReact
               bootstrapURLKeys={{ key: "YOUR_GOOGLE_MAPS_API_KEY" }}
               defaultCenter={coords}
-              defaultZoom={15}
+              defaultZoom={13}
             >
-              <div lat={coords.lat} lng={coords.lng} className="map-marker">📍 HQ</div>
+              <div lat={coords.lat} lng={coords.lon} className="map-marker-icon">
+                📍 HQ
+              </div>
             </GoogleMapReact>
+          </div>
+        </div>
+
+        {/* News Feed */}
+        <div className="widget-card">
+          <div className="widget-head">Industry Headlines</div>
+          <div className="news-list">
+            {news.slice(0, 4).map((n, i) => (
+              <a key={i} href={n.url} target="_blank" rel="noreferrer" className="news-entry">
+                {n.title.substring(0, 45)}...
+              </a>
+            ))}
           </div>
         </div>
       </div>
@@ -216,42 +140,46 @@ const DashboardView = ({ stats, weather, stocks, news, coords, setActivePage }) 
   );
 };
 
-/** * MAIN APP CONTROLLER 
+/**
+ * SECTION 3: THE MAIN CONTROLLER
+ * This pulls everything together and manages the page switching
  */
-
 function Dashboard({ setMode }) {
-  // UI States
+  // State Management
   const [activePage, setActivePage] = useState("dashboard");
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString());
 
-  // Data States
+  // Data State
   const [weather, setWeather] = useState(null);
   const [stocks, setStocks] = useState([]);
   const [news, setNews] = useState([]);
   const [coords, setCoords] = useState({ lat: 19.076, lng: 72.877 });
-  const [totalEmployees, setTotalEmployees] = useState(124);
+  const [totalEmployees, setTotalEmployees] = useState(0);
 
-  // Effects
+  // Clock
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date().toLocaleTimeString()), 1000);
-    loadData();
     return () => clearInterval(timer);
   }, []);
 
-  const loadData = async () => {
-    try {
-      // Parallel fetch for speed
-      getWeather();
-      getStocks();
-      getNews();
-      getLocation();
-    } catch (e) {
-      console.error(e);
-    }
-  };
+  // Fetch your data
+  useEffect(() => {
+    const loadAllData = async () => {
+      try {
+        const empRes = await api.get("/api/reports");
+        setTotalEmployees(empRes.data.total || 0);
+      } catch (err) { console.error("API error:", err); }
 
-  const getWeather = async () => {
+      fetchWeather();
+      fetchStocks();
+      fetchNews();
+      fetchLocation();
+    };
+    loadAllData();
+  }, []);
+
+  const fetchWeather = async () => {
     try {
       const res = await fetch("https://api.openweathermap.org/data/2.5/weather?q=Mumbai&appid=3de55583c5dce6d3730d5e7629577229&units=metric");
       const data = await res.json();
@@ -259,15 +187,16 @@ function Dashboard({ setMode }) {
     } catch {}
   };
 
-  const getStocks = async () => {
-    // Mocking stock data to avoid API limit issues
+  const fetchStocks = async () => {
+    // Mocking stock data to bypass API rate limits for display
     setStocks([
-      { name: "RELIANCE", price: "2,540.00", change: "+1.2%" },
-      { name: "TCS", price: "3,410.20", change: "-0.4%" }
+      { name: "RELIANCE", price: "2,540.00" },
+      { name: "TCS", price: "3,412.50" },
+      { name: "INFY", price: "1,520.10" }
     ]);
   };
 
-  const getNews = async () => {
+  const fetchNews = async () => {
     try {
       const res = await fetch("https://api.spaceflightnewsapi.net/v4/articles/?limit=5");
       const data = await res.json();
@@ -275,7 +204,7 @@ function Dashboard({ setMode }) {
     } catch {}
   };
 
-  const getLocation = () => {
+  const fetchLocation = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition((pos) => {
         setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
@@ -289,257 +218,243 @@ function Dashboard({ setMode }) {
   };
 
   return (
-    <div className="full-app-wrapper">
+    <div className="dashboard-app-container">
+      {/* INLINE CSS 
+        Ensures everything stays pinned, full-height, and collapses correctly 
+      */}
       <style>{`
         :root {
-          --primary: #7c3aed;
           --sidebar-bg: #1e1b4b;
-          --content-bg: #f1f5f9;
-          --sidebar-w: 260px;
+          --sidebar-hover: #312e81;
+          --active-color: #7c3aed;
+          --content-bg: #f8fafc;
+          --sidebar-w-full: 260px;
           --sidebar-w-small: 85px;
-          --text-muted: #64748b;
-          --white: #ffffff;
-          --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .full-app-wrapper {
+        .dashboard-app-container {
           display: flex;
           width: 100vw;
           height: 100vh;
-          overflow: hidden;
-          font-family: 'Inter', system-ui, sans-serif;
           background: var(--content-bg);
+          overflow: hidden;
+          font-family: 'Inter', system-ui, -apple-system, sans-serif;
         }
 
-        /* SIDEBAR SECTION */
-        .sidebar-container {
-          width: var(--sidebar-w);
+        /* SIDEBAR STYLES */
+        .main-sidebar {
           height: 100vh;
           background: var(--sidebar-bg);
+          color: white;
           display: flex;
           flex-direction: column;
-          transition: var(--transition);
+          transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           flex-shrink: 0;
-          box-shadow: 4px 0 15px rgba(0,0,0,0.1);
           z-index: 100;
+          box-shadow: 4px 0 10px rgba(0,0,0,0.1);
         }
 
-        .sidebar-container.collapsed {
-          width: var(--sidebar-w-small);
-        }
+        .main-sidebar.is-full { width: var(--sidebar-w-full); }
+        .main-sidebar.is-small { width: var(--sidebar-w-small); }
 
-        .sidebar-top {
-          padding: 20px;
+        .sidebar-header {
+          height: 80px;
+          padding: 0 25px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
           border-bottom: 1px solid rgba(255,255,255,0.05);
         }
 
-        .logo-area {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          color: white;
-          font-weight: 800;
-          font-size: 1.2rem;
-        }
+        .brand-logo { font-weight: 900; font-size: 1.2rem; letter-spacing: 1px; color: #a5b4fc; }
 
-        .collapse-toggle {
+        .collapse-ctrl {
           background: rgba(255,255,255,0.1);
           border: none;
           color: white;
-          width: 32px;
-          height: 32px;
+          width: 30px;
+          height: 30px;
           border-radius: 6px;
           cursor: pointer;
-        }
-
-        .sidebar-nav {
-          flex: 1;
-          padding: 15px 0;
-          display: flex;
-          flex-direction: column;
-          gap: 5px;
-        }
-
-        .nav-link {
           display: flex;
           align-items: center;
-          padding: 15px 25px;
-          color: #a5b4fc;
-          background: transparent;
-          border: none;
-          width: 100%;
-          text-align: left;
-          cursor: pointer;
-          transition: 0.2s;
-        }
-
-        .nav-link:hover {
-          background: rgba(255,255,255,0.05);
-          color: white;
-        }
-
-        .nav-link.active {
-          background: var(--primary);
-          color: white;
-          border-right: 4px solid white;
-        }
-
-        .nav-icon {
-          font-size: 1.4rem;
-          min-width: 35px;
-          display: flex;
           justify-content: center;
         }
 
-        .nav-label {
-          margin-left: 15px;
-          font-weight: 500;
-          white-space: nowrap;
+        .sidebar-menu { flex: 1; padding: 20px 0; display: flex; flex-direction: column; gap: 5px; }
+
+        .menu-item {
+          background: transparent;
+          border: none;
+          color: #a5b4fc;
+          padding: 16px 28px;
+          display: flex;
+          align-items: center;
+          cursor: pointer;
+          transition: 0.2s;
+          text-align: left;
+          width: 100%;
+          position: relative;
         }
 
-        .logout-btn { color: #fda4af; margin-top: auto; }
+        .menu-item:hover { background: var(--sidebar-hover); color: white; }
+        .menu-item.active { background: var(--active-color); color: white; font-weight: 600; }
+        
+        .is-small .menu-item { justify-content: center; padding: 16px 0; }
+        .menu-icon { font-size: 1.4rem; min-width: 30px; display: flex; justify-content: center; }
+        .menu-label { margin-left: 15px; white-space: nowrap; font-size: 15px; }
 
-        /* CONTENT SECTION */
-        .main-stage {
+        .logout-link { margin-top: auto; border-top: 1px solid rgba(255,255,255,0.05); color: #fda4af; }
+
+        /* MAIN CONTENT AREA */
+        .main-viewport {
           flex: 1;
           display: flex;
           flex-direction: column;
-          height: 100vh;
           overflow-y: auto;
+          position: relative;
         }
 
-        .stage-top-bar {
-          background: var(--white);
+        .top-status-bar {
+          background: white;
           height: 70px;
-          padding: 0 40px;
           display: flex;
-          justify-content: space-between;
           align-items: center;
+          justify-content: space-between;
+          padding: 0 40px;
           border-bottom: 1px solid #e2e8f0;
           position: sticky;
           top: 0;
           z-index: 50;
         }
 
-        .clock-badge {
-          background: #f1f5f9;
-          padding: 8px 15px;
-          border-radius: 20px;
-          font-family: monospace;
-          font-weight: bold;
-          color: #1e293b;
+        .clock-view { font-weight: 800; font-family: monospace; font-size: 1.1rem; color: #1e293b; }
+
+        .dashboard-wrapper { padding: 40px; }
+        
+        .welcome-banner { 
+          display: flex; 
+          justify-content: space-between; 
+          align-items: center; 
+          margin-bottom: 40px;
         }
+        
+        .welcome-banner h1 { margin: 0; font-size: 1.8rem; color: #0f172a; }
+        .welcome-banner p { color: #64748b; margin-top: 5px; }
 
-        .dashboard-content { padding: 40px; }
-
-        .dashboard-grid {
+        .widget-grid {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-          gap: 25px;
+          gap: 24px;
         }
 
-        .stat-card {
-          background: var(--white);
+        .widget-card {
+          background: white;
           border-radius: 16px;
-          padding: 25px;
+          padding: 24px;
           box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
           border: 1px solid #e2e8f0;
         }
 
-        .stat-card.wide-card { grid-column: span 2; }
+        .widget-card.wide-widget { grid-column: span 2; }
 
-        .card-tag {
+        .widget-head {
           font-size: 0.75rem;
-          text-transform: uppercase;
-          color: var(--text-muted);
           font-weight: 700;
+          text-transform: uppercase;
+          color: #94a3b8;
           letter-spacing: 1px;
+          margin-bottom: 20px;
         }
 
-        .huge-val { font-size: 3rem; margin: 15px 0 5px; color: #0f172a; }
+        .temp-display { font-size: 3rem; font-weight: 800; color: #1e293b; }
+        .big-stat { font-size: 3.5rem; font-weight: 900; color: var(--active-color); line-height: 1; }
 
-        .map-container-fix {
+        .map-view {
           height: 300px;
           width: 100%;
           border-radius: 12px;
           overflow: hidden;
-          margin-top: 15px;
-          background: #cbd5e1;
+          margin-top: 10px;
+          background: #e2e8f0;
         }
 
-        .list-item {
+        .map-marker-icon {
+          background: #ef4444;
+          color: white;
+          padding: 5px 12px;
+          border-radius: 20px;
+          font-weight: bold;
+          font-size: 12px;
+          white-space: nowrap;
+          border: 2px solid white;
+          transform: translate(-50%, -100%);
+        }
+
+        .stock-line {
           display: flex;
           justify-content: space-between;
-          padding: 12px 0;
+          padding: 10px 0;
           border-bottom: 1px solid #f1f5f9;
         }
 
-        .primary-btn {
-          background: var(--primary);
+        .news-entry {
+          display: block;
+          padding: 12px;
+          background: #f8fafc;
+          margin-bottom: 8px;
+          border-radius: 8px;
+          text-decoration: none;
+          color: #334155;
+          font-size: 0.9rem;
+          transition: 0.2s;
+        }
+
+        .news-entry:hover { transform: translateX(5px); background: #f1f5f9; color: var(--active-color); }
+
+        .cta-button {
+          background: var(--active-color);
           color: white;
           border: none;
-          padding: 12px 24px;
-          border-radius: 10px;
-          font-weight: 600;
+          padding: 14px 28px;
+          border-radius: 12px;
+          font-weight: 700;
           cursor: pointer;
+          box-shadow: 0 10px 15px -3px rgba(124, 58, 237, 0.3);
         }
 
-        .floating-chat-btn {
-          position: fixed;
-          bottom: 30px;
-          right: 30px;
-          width: 60px;
-          height: 60px;
-          background: var(--primary);
-          color: white;
-          border-radius: 50%;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          font-size: 24px;
-          box-shadow: 0 10px 25px rgba(124, 58, 237, 0.4);
-          z-index: 1000;
-        }
-
-        /* VIEW SPECIFIC */
-        .sub-view-container { padding: 40px; }
-        .view-card { background: white; padding: 30px; border-radius: 16px; min-height: 500px; }
-        .data-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        .data-table th { text-align: left; padding: 12px; border-bottom: 2px solid #f1f5f9; color: var(--text-muted); }
-        .data-table td { padding: 15px 12px; border-bottom: 1px solid #f1f5f9; }
-        .pill { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; }
-        .pill.green { background: #dcfce7; color: #166534; }
-        .pill.blue { background: #dbeafe; color: #1e40af; }
-        .pill.orange { background: #ffedd5; color: #9a3412; }
+        .loading-pulse { color: #94a3b8; font-style: italic; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
       `}</style>
 
-      {/* COMPONENT 1: SIDEBAR */}
+      {/* RENDER SIDEBAR SECTION */}
       <Sidebar 
         activePage={activePage} 
         setActivePage={setActivePage} 
         isCollapsed={isCollapsed} 
         setIsCollapsed={setIsCollapsed}
-        handleLogout={handleLogout}
+        onLogout={handleLogout}
       />
 
-      {/* COMPONENT 2: MAIN VIEWPORT */}
-      <main className="main-stage">
-        <header className="stage-top-bar">
-          <div className="breadcrumb">System / <strong>{activePage}</strong></div>
-          <div className="clock-badge">{currentTime}</div>
-          <div className="user-profile-summary" style={{display: 'flex', gap: '10px', alignItems: 'center'}}>
-            <span style={{fontSize: '14px', fontWeight: '600'}}>Welcome, Admin</span>
-            <div style={{width: 35, height: 35, background: '#7c3aed', borderRadius: '50%'}}></div>
+      {/* RENDER MAIN VIEWPORT SECTION */}
+      <main className="main-viewport">
+        <header className="top-status-bar">
+          <div className="page-path">System / <strong>{activePage.toUpperCase()}</strong></div>
+          <div className="clock-view">{currentTime}</div>
+          <div className="user-info" style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+            <span style={{ fontSize: "14px", fontWeight: "600" }}>Admin Portal</span>
+            <div style={{ width: 35, height: 35, borderRadius: "50%", background: "#e2e8f0" }}></div>
           </div>
         </header>
 
-        <section className="viewport-inner">
+        <div className="content-container">
+          {/* LOGIC TO SHOW YOUR ACTUAL PAGES */}
           {activePage === "dashboard" && (
-            <DashboardView 
-              stats={{ total: totalEmployees }}
-              weather={weather}
-              stocks={stocks}
-              news={news}
+            <DashboardHome 
+              stats={totalEmployees} 
+              weather={weather} 
+              stocks={stocks} 
+              news={news} 
               coords={coords}
               setActivePage={setActivePage}
             />
@@ -550,7 +465,7 @@ function Dashboard({ setMode }) {
           {activePage === "workspace" && <TasksWorkspace />}
           {activePage === "reports" && <Reports />}
           {activePage === "settings" && <Settings />}
-        </section>
+        </div>
 
         <ChatWidget />
       </main>
