@@ -124,7 +124,7 @@ const DashboardHome = ({ weather, stocks, news, coords, empCount, setActivePage 
           <div className="card-tag">Headquarters Positioning</div>
           <div className="map-viewport-frame">
             <GoogleMapReact
-              bootstrapURLKeys={{ key: "YOUR_GOOGLE_MAPS_API_KEY" }}
+              bootstrapURLKeys={{ key: "AIzaSyBDJShPZFEoLlbDlSxvpMmeCUEUYcStxUI" }}
               center={coords}
               defaultZoom={15}
             >
