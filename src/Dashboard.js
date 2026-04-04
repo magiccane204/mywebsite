@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import GoogleMapReact from "google-map-react";
 
 /** * --- CORE SYSTEM IMPORTS ---
- * These are your actual files. I am calling them directly so 
- * their internal GitHub-connected logic stays intact.
+ * Directly calling your GitHub-connected files. 
+ * Their internal logic remains untouched and fully functional.
  */
 import CRM from "./CRM";
 import Employee from "./Employee";
@@ -15,46 +15,51 @@ import api from "./api";
 
 /**
  * COMPONENT: Sidebar
- * This is the persistent navigation pillar. 
- * It spans the full vertical height of the window.
+ * A persistent, window-spanning navigation pillar.
+ * Handles the "Small Version" collapse logic without covering the system.
  */
 const Sidebar = ({ activePage, setActivePage, isCollapsed, setIsCollapsed, onLogout }) => {
-  const navItems = [
-    { id: "dashboard", label: "Dashboard", icon: "🏠" },
-    { id: "crm", label: "Analytics", icon: "📊" },
-    { id: "employees", label: "Staffing", icon: "👥" },
-    { id: "workspace", label: "Workspace", icon: "💼" },
-    { id: "reports", label: "Reports", icon: "📈" },
-    { id: "settings", label: "Settings", icon: "⚙️" },
+  const navigationMap = [
+    { id: "dashboard", label: "Command Center", icon: "🏠", description: "System Overview" },
+    { id: "crm", label: "CRM Analytics", icon: "📊", description: "Lead Tracking" },
+    { id: "employees", label: "Workforce", icon: "👥", description: "Staff Management" },
+    { id: "workspace", label: "Project Hub", icon: "💼", description: "Task Management" },
+    { id: "reports", label: "Data Reports", icon: "📈", description: "Financials" },
+    { id: "settings", label: "System Config", icon: "⚙️", description: "Preferences" },
   ];
 
   return (
-    <aside className={`system-sidebar ${isCollapsed ? "slim" : "wide"}`}>
-      <div className="sidebar-top-branding">
-        {!isCollapsed && <div className="brand-name">D&T SYSTEM</div>}
-        <button className="toggle-trigger" onClick={() => setIsCollapsed(!isCollapsed)}>
+    <aside className={`app-sidebar-pillar ${isCollapsed ? "is-collapsed" : "is-expanded"}`}>
+      <div className="sidebar-branding">
+        {!isCollapsed && <div className="brand-title">D&T PANEL</div>}
+        <button className="toggle-control" onClick={() => setIsCollapsed(!isCollapsed)}>
           {isCollapsed ? "❯" : "❮"}
         </button>
       </div>
 
-      <nav className="sidebar-nav-container">
-        {navItems.map((item) => (
+      <nav className="sidebar-nav-list">
+        {navigationMap.map((item) => (
           <button
             key={item.id}
-            className={`sidebar-link ${activePage === item.id ? "active" : ""}`}
+            className={`nav-anchor ${activePage === item.id ? "is-active" : ""}`}
             onClick={() => setActivePage(item.id)}
             title={isCollapsed ? item.label : ""}
           >
-            <span className="link-icon">{item.icon}</span>
-            {!isCollapsed && <span className="link-label">{item.label}</span>}
+            <span className="nav-icon-box">{item.icon}</span>
+            {!isCollapsed && (
+              <div className="nav-label-box">
+                <span className="primary-label">{item.label}</span>
+                <span className="secondary-label">{item.description}</span>
+              </div>
+            )}
           </button>
         ))}
       </nav>
 
-      <div className="sidebar-bottom-actions">
-        <button className="sidebar-link logout-trigger" onClick={onLogout}>
-          <span className="link-icon">⏻</span>
-          {!isCollapsed && <span className="link-label">Exit System</span>}
+      <div className="sidebar-footer-region">
+        <button className="nav-anchor logout-action" onClick={onLogout}>
+          <span className="nav-icon-box">⏻</span>
+          {!isCollapsed && <span className="primary-label">Secure Logout</span>}
         </button>
       </div>
     </aside>
@@ -63,149 +68,193 @@ const Sidebar = ({ activePage, setActivePage, isCollapsed, setIsCollapsed, onLog
 
 /**
  * COMPONENT: DashboardHome
- * The "Overview" widgets for the main landing page.
+ * The primary overview containing themed widgets and dark-mode map tiles.
  */
-const DashboardHome = ({ weather, stocks, news, coords, empCount, setActivePage }) => {
+const DashboardHome = ({ 
+  weather, 
+  stocks, 
+  news, 
+  coords, 
+  empCount, 
+  isDarkMode, 
+  notifications 
+}) => {
+  
+  // Custom Dark Mode styling for the Google Maps API
+  const mapTheme = useMemo(() => [
+    { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
+    { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
+    { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
+    { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] },
+    { featureType: "road", elementType: "geometry", stylers: [{ color: "#38414e" }] },
+  ], []);
+
   return (
-    <div className="dashboard-view-wrapper">
-      <div className="view-intro">
-        <h1>Command Center</h1>
-        <p>Operational overview and real-time telemetry.</p>
+    <div className="home-view-container">
+      <div className="view-header-strip">
+        <div className="title-block">
+          <h1>System Overview</h1>
+          <p>Operational telemetry and live organizational data.</p>
+        </div>
       </div>
 
-      <div className="overview-grid">
-        {/* Weather Card */}
-        <div className="metric-card">
-          <div className="card-tag">Climate</div>
+      <div className="home-widget-grid">
+        {/* Climate Widget */}
+        <div className="widget-card">
+          <div className="widget-meta">ENVIRONMENTAL STATUS</div>
           {weather ? (
-            <div className="card-inner">
-              <div className="main-stat">{Math.round(weather.main.temp)}°C</div>
-              <div className="sub-stat">{weather.weather[0].description}</div>
+            <div className="widget-content">
+              <h2 className="display-val">{Math.round(weather.main.temp)}°C</h2>
+              <p className="display-desc">{weather.weather[0].description} in Mumbai</p>
             </div>
-          ) : <div className="loader-anim">Syncing Weather...</div>}
+          ) : <div className="skeleton-loader">Synchronizing weather...</div>}
         </div>
 
-        {/* Stocks Card */}
-        <div className="metric-card">
-          <div className="card-tag">Market Pulse</div>
-          <div className="card-inner">
+        {/* Stock Market Widget */}
+        <div className="widget-card">
+          <div className="widget-meta">FINANCIAL MARKETS</div>
+          <div className="widget-content">
             {stocks.length > 0 ? stocks.map((s, i) => (
-              <div key={i} className="stock-entry">
-                <span className="entry-name">{s.name}</span>
-                <span className="entry-val">₹{s.price}</span>
+              <div key={i} className="market-row">
+                <span className="m-name">{s.name}</span>
+                <span className="m-val">₹{s.price}</span>
               </div>
-            )) : <div className="loader-anim">Awaiting Market Feed...</div>}
+            )) : <div className="skeleton-loader">Awaiting market feed...</div>}
           </div>
         </div>
 
-        {/* Workforce Card */}
-        <div className="metric-card accent-card">
-          <div className="card-tag">Human Resources</div>
-          <div className="card-inner">
-            <div className="stat-huge">{empCount}</div>
-            <div className="sub-stat">Active Registered Personnel</div>
+        {/* Employee Counter */}
+        <div className="widget-card accent-variant">
+          <div className="widget-meta">ORGANIZATIONAL SCALE</div>
+          <div className="widget-content">
+            <h2 className="huge-val">{empCount}</h2>
+            <p className="display-desc">Total Active Personnel Registered</p>
           </div>
         </div>
 
-        {/* News Card */}
-        <div className="metric-card">
-          <div className="card-tag">Global Intelligence</div>
-          <div className="news-scroller">
-            {news.slice(0, 4).map((n, i) => (
-              <a key={i} href={n.url} target="_blank" rel="noreferrer" className="news-block">
-                {n.title.substring(0, 55)}...
-              </a>
-            ))}
+        {/* Notification Feed */}
+        <div className="widget-card">
+          <div className="widget-meta">RECENT ACTIVITY</div>
+          <div className="activity-feed">
+            {notifications.length > 0 ? notifications.map((n, i) => (
+              <div key={i} className="feed-item">
+                <span className="feed-icon">●</span>
+                <span className="feed-text">{n.message}</span>
+              </div>
+            )) : <p className="label-muted">No recent alerts.</p>}
           </div>
         </div>
 
-        {/* HQ Map - Fixed 'lng' reference */}
-        <div className="metric-card map-span">
-          <div className="card-tag">Headquarters Positioning</div>
-          <div className="map-viewport-frame">
+        {/* Google Maps Positioning */}
+        <div className="widget-card span-two">
+          <div className="widget-meta">HEADQUARTERS GEOLOCATION</div>
+          <div className="map-portal">
             <GoogleMapReact
               bootstrapURLKeys={{ key: "AIzaSyBDJShPZFEoLlbDlSxvpMmeCUEUYcStxUI" }}
               center={coords}
-              defaultZoom={15}
+              defaultZoom={14}
+              options={{ styles: isDarkMode ? mapTheme : [] }}
             >
-              <div lat={coords.lat} lng={coords.lng} className="geo-marker">
-                📍 HQ
+              <div lat={coords.lat} lng={coords.lng} className="geo-pin">
+                📍 D&T HQ
               </div>
             </GoogleMapReact>
           </div>
         </div>
-      </div>
-      
-      <div className="view-footer">
-        <button className="launch-btn" onClick={() => setActivePage("crm")}>
-          Launch CRM Full View →
-        </button>
+
+        {/* Global Intelligence / News */}
+        <div className="widget-card span-two">
+          <div className="widget-meta">GLOBAL INTELLIGENCE</div>
+          <div className="news-grid">
+            {news.slice(0, 4).map((n, i) => (
+              <a key={i} href={n.url} target="_blank" rel="noreferrer" className="news-tile">
+                <span className="news-tag">BREAKING</span>
+                <h4 className="news-title">{n.title.substring(0, 70)}...</h4>
+              </a>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
 };
 
 /**
- * MAIN DASHBOARD CONTROLLER
+ * MAIN DASHBOARD LOGIC
+ * The Orchestrator for state, theme, and data fetching.
  */
 function Dashboard({ setMode }) {
-  // Navigation & UI State
+  // Navigation & UI States
   const [activePage, setActivePage] = useState("dashboard");
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString());
 
-  // Real Data Integration State
+  // Data Persistence States
   const [weather, setWeather] = useState(null);
   const [stocks, setStocks] = useState([]);
   const [news, setNews] = useState([]);
-  const [coords, setCoords] = useState({ lat: 19.076, lng: 72.877 }); // Standardized to lng
   const [totalEmployees, setTotalEmployees] = useState(0);
+  const [coords, setCoords] = useState({ lat: 19.076, lng: 72.877 });
+  const [notifications, setNotifications] = useState([
+    { message: "System initialized successfully." },
+    { message: "API Gateway connection established." }
+  ]);
 
-  // System Timer
+  // Operational Effects
   useEffect(() => {
-    const ticker = setInterval(() => setCurrentTime(new Date().toLocaleTimeString()), 1000);
-    return () => clearInterval(ticker);
-  }, []);
-
-  // Primary Data Fetching (Connecting to your actual backend logic)
-  useEffect(() => {
-    const initializeSystem = async () => {
-      try {
-        const res = await api.get("/api/reports");
-        setTotalEmployees(res.data.total || 0);
-      } catch (err) {
-        console.warn("Backend API unreachable. Falling back to default stats.");
-        setTotalEmployees(124);
-      }
-
-      fetchExternalData();
-    };
+    const clock = setInterval(() => setCurrentTime(new Date().toLocaleTimeString()), 1000);
     initializeSystem();
+    return () => clearInterval(clock);
   }, []);
 
-  const fetchExternalData = async () => {
-    // Weather Fetch
+  const initializeSystem = async () => {
+    // Attempting real data fetch from your API.js
     try {
-      const wRes = await fetch("https://api.openweathermap.org/data/2.5/weather?q=Mumbai&appid=3de55583c5dce6d3730d5e7629577229&units=metric");
-      const wData = await wRes.json();
-      if (wData.main) setWeather(wData);
-    } catch (e) {}
+      const res = await api.get("/api/reports");
+      if (res.data) setTotalEmployees(res.data.total);
+    } catch (e) {
+      console.warn("Using fallback employee count.");
+      setTotalEmployees(124);
+    }
 
-    // Mock Stocks (to bypass AlphaVantage rate limits during UI work)
+    // Parallel external data sync
+    fetchClimateData();
+    fetchMarketData();
+    fetchIntelData();
+    fetchGeoLocation();
+  };
+
+  const fetchClimateData = async () => {
+    try {
+      const res = await fetch("https://api.openweathermap.org/data/2.5/weather?q=Mumbai&appid=3de55583c5dce6d3730d5e7629577229&units=metric");
+      const data = await res.json();
+      if (data.main) setWeather(data);
+    } catch (err) {
+      setNotifications(prev => [{ message: "Weather sync failed." }, ...prev]);
+    }
+  };
+
+  const fetchMarketData = () => {
+    // Mocking to bypass rate limits during development
     setStocks([
       { name: "RELIANCE", price: "2,540.00" },
-      { name: "TCS", price: "3,411.50" },
+      { name: "TCS", price: "3,411.20" },
       { name: "INFY", price: "1,525.10" }
     ]);
+  };
 
-    // News Fetch
+  const fetchIntelData = async () => {
     try {
-      const nRes = await fetch("https://api.spaceflightnewsapi.net/v4/articles/?limit=5");
-      const nData = await nRes.json();
-      setNews(nData.results || []);
-    } catch (e) {}
+      const res = await fetch("https://api.spaceflightnewsapi.net/v4/articles/?limit=5");
+      const data = await res.json();
+      setNews(data.results || []);
+    } catch (e) {
+      setNotifications(prev => [{ message: "News feed offline." }, ...prev]);
+    }
+  };
 
-    // Geo Location Sync
+  const fetchGeoLocation = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition((pos) => {
         setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
@@ -213,56 +262,73 @@ function Dashboard({ setMode }) {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     localStorage.clear();
     if (setMode) setMode("login");
-  };
+  }, [setMode]);
 
   return (
-    <div className="system-root">
-      {/* CRITICAL CSS ARCHITECTURE:
-        The flex layout below ensures the sidebar PUSHES the content 
-        instead of floating over it.
-      */}
+    <div className={`system-shell ${isDarkMode ? "dark-theme" : "light-theme"}`}>
       <style>{`
+        /* CSS ARCHITECTURE:
+          Ensures the sidebar PUSHES the system instead of covering it.
+        */
         :root {
-          --primary: #7c3aed;
-          --sidebar-dark: #111122;
-          --sidebar-hover: #1e1e38;
-          --body-bg: #f1f5f9;
-          --card-white: #ffffff;
-          --side-w-full: 260px;
-          --side-w-slim: 85px;
+          --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          --sidebar-w-full: 280px;
+          --sidebar-w-slim: 90px;
+        }
+
+        .light-theme {
+          --bg-primary: #f8fafc;
+          --bg-card: #ffffff;
+          --bg-side: #1e1b4b;
+          --text-p: #1e293b;
+          --text-s: #64748b;
+          --border: #e2e8f0;
+          --accent: #7c3aed;
+          --sidebar-text: #a5b4fc;
+        }
+
+        .dark-theme {
+          --bg-primary: #0f172a;
+          --bg-card: #1e293b;
+          --bg-side: #020617;
+          --text-p: #f1f5f9;
+          --text-s: #94a3b8;
+          --border: #334155;
+          --accent: #a78bfa;
+          --sidebar-text: #64748b;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
-        .system-root {
-          display: flex; /* Creates the Side-by-Side behavior */
+        .system-shell {
+          display: flex;
           width: 100vw;
           height: 100vh;
-          background: var(--body-bg);
+          background: var(--bg-primary);
+          color: var(--text-p);
           overflow: hidden;
-          font-family: 'Inter', system-ui, sans-serif;
+          font-family: 'Inter', -apple-system, sans-serif;
         }
 
-        /* --- SIDEBAR PILLAR --- */
-        .system-sidebar {
+        /* --- SIDEBAR LOGIC --- */
+        .app-sidebar-pillar {
           height: 100vh;
-          background: var(--sidebar-dark);
-          color: #94a3b8;
+          background: var(--bg-side);
           display: flex;
           flex-direction: column;
-          transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          flex-shrink: 0; /* Ensures the sidebar doesn't get squashed */
+          transition: width var(--transition-smooth);
+          flex-shrink: 0;
           z-index: 1000;
-          box-shadow: 4px 0 15px rgba(0,0,0,0.2);
+          box-shadow: 10px 0 30px rgba(0,0,0,0.2);
         }
 
-        .system-sidebar.wide { width: var(--side-w-full); }
-        .system-sidebar.slim { width: var(--side-w-slim); }
+        .app-sidebar-pillar.is-expanded { width: var(--sidebar-w-full); }
+        .app-sidebar-pillar.is-collapsed { width: var(--sidebar-w-slim); }
 
-        .sidebar-top-branding {
+        .sidebar-branding {
           height: 80px;
           padding: 0 25px;
           display: flex;
@@ -271,180 +337,116 @@ function Dashboard({ setMode }) {
           border-bottom: 1px solid rgba(255,255,255,0.05);
         }
 
-        .brand-name { font-weight: 900; color: white; font-size: 1.1rem; letter-spacing: 1px; }
+        .brand-title { color: #fff; font-weight: 900; letter-spacing: 1px; font-size: 1.2rem; }
 
-        .toggle-trigger {
+        .toggle-control {
           background: rgba(255,255,255,0.1);
           border: none;
-          color: white;
+          color: #fff;
           width: 32px;
           height: 32px;
           border-radius: 6px;
           cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
         }
 
-        .sidebar-nav-container { flex: 1; padding: 20px 0; display: flex; flex-direction: column; gap: 4px; }
+        .sidebar-nav-list { flex: 1; padding: 20px 0; display: flex; flex-direction: column; gap: 4px; }
 
-        .sidebar-link {
-          background: transparent;
-          border: none;
-          color: inherit;
-          padding: 16px 28px;
-          display: flex;
-          align-items: center;
-          cursor: pointer;
-          width: 100%;
-          text-align: left;
-          transition: 0.2s;
+        .nav-anchor {
+          background: transparent; border: none; color: var(--sidebar-text);
+          padding: 16px 25px; display: flex; align-items: center;
+          cursor: pointer; width: 100%; transition: 0.2s;
         }
 
-        .sidebar-link:hover { background: var(--sidebar-hover); color: white; }
-        .sidebar-link.active { background: var(--primary); color: white; font-weight: 600; }
+        .nav-anchor:hover { background: rgba(255,255,255,0.05); color: #fff; }
+        .nav-anchor.is-active { background: var(--accent); color: #fff; border-right: 4px solid #fff; }
 
-        .slim .sidebar-link { justify-content: center; padding: 16px 0; }
-        .link-icon { font-size: 1.4rem; min-width: 30px; text-align: center; }
-        .link-label { margin-left: 15px; white-space: nowrap; font-size: 15px; }
+        .nav-icon-box { font-size: 1.4rem; min-width: 35px; text-align: center; }
+        .nav-label-box { margin-left: 15px; display: flex; flex-direction: column; text-align: left; }
+        .primary-label { font-weight: 600; font-size: 14px; }
+        .secondary-label { font-size: 10px; opacity: 0.6; margin-top: 2px; }
 
-        .logout-trigger { margin-top: auto; border-top: 1px solid rgba(255,255,255,0.05); color: #fb7185; }
+        .is-collapsed .nav-anchor { justify-content: center; padding: 16px 0; }
+        .logout-action { border-top: 1px solid rgba(255,255,255,0.05); margin-top: auto; color: #fb7185 !important; }
 
-        /* --- MAIN VIEWPORT --- */
+        /* --- MAIN VIEWPORT LOGIC --- */
         .system-viewport {
-          flex: 1; /* Occupies the remaining space to the right of the sidebar */
+          flex: 1;
           height: 100vh;
           overflow-y: auto;
           display: flex;
           flex-direction: column;
-          min-width: 0; /* Prevents overflow-x in flex layout */
+          min-width: 0;
         }
 
-        .viewport-navbar {
+        .system-navbar {
           height: 70px;
-          background: white;
-          border-bottom: 1px solid #e2e8f0;
+          background: var(--bg-card);
+          border-bottom: 1px solid var(--border);
           display: flex;
           align-items: center;
           justify-content: space-between;
           padding: 0 40px;
           position: sticky;
           top: 0;
-          z-index: 50;
+          z-index: 100;
         }
 
-        .path-breadcrumb { font-size: 14px; color: #64748b; }
-        .path-breadcrumb strong { color: #1e293b; text-transform: uppercase; }
+        .nav-clock { font-weight: 800; font-family: monospace; background: var(--bg-primary); padding: 5px 15px; border-radius: 20px; }
 
-        .time-pill { 
-          font-weight: 800; 
-          font-family: monospace; 
-          background: #f1f5f9; 
-          padding: 6px 15px; 
-          border-radius: 20px; 
-          color: #334155; 
+        .theme-switch-btn {
+          background: var(--accent); color: #fff; border: none;
+          padding: 8px 18px; border-radius: 20px; cursor: pointer; font-weight: bold;
         }
 
-        /* --- DASHBOARD CONTENT --- */
-        .dashboard-view-wrapper { padding: 40px; }
-        .view-intro { margin-bottom: 35px; }
-        .view-intro h1 { font-size: 1.8rem; color: #0f172a; }
-        .view-intro p { color: #64748b; margin-top: 4px; }
+        /* --- DASHBOARD WIDGETS --- */
+        .home-view-container { padding: 40px; }
+        .title-block h1 { font-size: 2rem; margin-bottom: 5px; }
+        .title-block p { color: var(--text-s); }
 
-        .overview-grid {
+        .home-widget-grid {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-          gap: 25px;
+          gap: 24px; margin-top: 35px;
         }
 
-        .metric-card {
-          background: var(--card-white);
+        .widget-card {
+          background: var(--bg-card);
           padding: 25px;
-          border-radius: 16px;
-          border: 1px solid #e2e8f0;
-          box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+          border-radius: 20px;
+          border: 1px solid var(--border);
+          box-shadow: 0 4px 15px -3px rgba(0,0,0,0.05);
         }
 
-        .metric-card.map-span { grid-column: span 2; }
+        .widget-card.span-two { grid-column: span 2; }
+        .widget-meta { font-size: 10px; font-weight: 800; color: var(--text-s); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 20px; }
 
-        .card-tag {
-          font-size: 0.7rem;
-          font-weight: 800;
-          text-transform: uppercase;
-          color: #94a3b8;
-          letter-spacing: 1px;
-          margin-bottom: 15px;
-        }
+        .display-val { font-size: 2.8rem; font-weight: 900; }
+        .huge-val { font-size: 3.8rem; font-weight: 900; color: var(--accent); line-height: 1; }
+        .display-desc { color: var(--text-s); font-weight: 500; }
 
-        .main-stat { font-size: 2.8rem; font-weight: 900; color: #1e293b; }
-        .stat-huge { font-size: 4rem; font-weight: 900; color: var(--primary); line-height: 1; }
-        .sub-stat { color: #64748b; font-weight: 500; }
+        .market-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+        .m-name { font-weight: 700; }
 
-        .map-viewport-frame {
-          height: 300px;
-          width: 100%;
-          border-radius: 12px;
-          overflow: hidden;
-          margin-top: 15px;
-          background: #cbd5e1;
-          border: 1px solid #e2e8f0;
-        }
+        .map-portal { height: 320px; border-radius: 15px; overflow: hidden; margin-top: 15px; border: 1px solid var(--border); }
+        .geo-pin { background: #ef4444; color: #fff; padding: 5px 12px; border-radius: 20px; font-weight: bold; font-size: 12px; transform: translate(-50%, -100%); border: 2px solid #fff; }
 
-        .geo-marker {
-          background: #ef4444;
-          color: white;
-          padding: 6px 12px;
-          border-radius: 30px;
-          font-weight: bold;
-          font-size: 12px;
-          white-space: nowrap;
-          border: 2px solid white;
-          transform: translate(-50%, -100%);
-          box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-        }
+        .news-tile { display: block; padding: 15px; background: var(--bg-primary); margin-bottom: 12px; border-radius: 12px; text-decoration: none; color: var(--text-p); transition: transform 0.2s; }
+        .news-tile:hover { transform: translateX(8px); }
+        .news-tag { font-size: 9px; background: var(--accent); color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
+        .news-title { margin-top: 5px; font-size: 14px; line-height: 1.4; }
 
-        .stock-entry {
-          display: flex;
-          justify-content: space-between;
-          padding: 12px 0;
-          border-bottom: 1px solid #f1f5f9;
-        }
+        .activity-feed { max-height: 200px; overflow-y: auto; }
+        .feed-item { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; font-size: 13px; font-weight: 500; }
+        .feed-icon { color: var(--accent); font-size: 8px; }
 
-        .news-block {
-          display: block;
-          padding: 12px;
-          background: #f8fafc;
-          margin-bottom: 10px;
-          border-radius: 10px;
-          text-decoration: none;
-          color: #334155;
-          font-size: 0.9rem;
-          transition: 0.2s;
-        }
+        .skeleton-loader { color: var(--text-s); font-style: italic; }
 
-        .news-block:hover { transform: translateX(5px); background: #f1f5f9; color: var(--primary); }
-
-        .launch-btn {
-          margin-top: 40px;
-          background: var(--primary);
-          color: white;
-          border: none;
-          padding: 15px 30px;
-          border-radius: 12px;
-          font-weight: 700;
-          cursor: pointer;
-          box-shadow: 0 10px 15px -3px rgba(124, 58, 237, 0.3);
-        }
-
-        .loader-anim { color: #94a3b8; font-style: italic; animation: pulse 2s infinite; }
-        @keyframes pulse { 0% {opacity: 0.4;} 50% {opacity: 1;} 100% {opacity: 0.4;} }
-
-        /* USER INTERFACE HELPERS */
-        .user-pill { display: flex; align-items: center; gap: 12px; }
-        .avatar-box { width: 38px; height: 38px; background: #e2e8f0; border-radius: 50%; border: 2px solid white; }
+        /* USER PROFILE STYLING */
+        .user-meta-block { display: flex; align-items: center; gap: 15px; }
+        .avatar-frame { width: 38px; height: 38px; background: var(--accent); border-radius: 50%; border: 2px solid #fff; }
       `}</style>
 
-      {/* RENDER: SIDEBAR (Strictly Pinned to Left) */}
+      {/* RENDER SIDEBAR PILLAR */}
       <Sidebar 
         activePage={activePage} 
         setActivePage={setActivePage} 
@@ -453,43 +455,53 @@ function Dashboard({ setMode }) {
         onLogout={handleLogout}
       />
 
-      {/* RENDER: MAIN CONTENT VIEWPORT */}
+      {/* RENDER MAIN SYSTEM VIEWPORT */}
       <main className="system-viewport">
-        <header className="viewport-navbar">
-          <div className="path-breadcrumb">
-            System / <strong>{activePage}</strong>
+        <header className="system-navbar">
+          <div className="breadcrumb-box">
+            <span style={{color:'var(--text-s)', fontSize:'13px'}}>D&T Internal / </span>
+            <strong style={{textTransform:'uppercase'}}>{activePage}</strong>
           </div>
-          <div className="time-pill">{currentTime}</div>
-          <div className="user-pill">
-            <div style={{textAlign: 'right'}}>
-              <div style={{fontSize: '14px', fontWeight: '700'}}>Admin Portal</div>
-              <div style={{fontSize: '11px', color: '#64748b'}}>Superuser Access</div>
+          
+          <div className="nav-controls" style={{display:'flex', gap:'25px', alignItems:'center'}}>
+            <button className="theme-switch-btn" onClick={() => setIsDarkMode(!isDarkMode)}>
+              {isDarkMode ? "☀️ LIGHT" : "🌙 DARK"}
+            </button>
+            <div className="nav-clock">{currentTime}</div>
+            <div className="user-meta-block">
+              <div style={{textAlign:'right'}}>
+                <div style={{fontSize:'14px', fontWeight:'700'}}>Admin Portal</div>
+                <div style={{fontSize:'11px', color:'var(--text-s)'}}>Superuser Level</div>
+              </div>
+              <div className="avatar-frame"></div>
             </div>
-            <div className="avatar-box"></div>
           </div>
         </header>
 
-        <section className="viewport-dynamic-content">
-          {/* SWITCH LOGIC FOR YOUR PAGES - Calling them directly to preserve logic */}
+        <section className="dynamic-content-area">
+          {/* LOGIC FOR PAGE SWITCHING - Your components called directly here */}
           {activePage === "dashboard" && (
             <DashboardHome 
               weather={weather} 
               stocks={stocks} 
               news={news} 
               coords={coords} 
-              empCount={totalEmployees}
-              setActivePage={setActivePage}
+              empCount={totalEmployees} 
+              isDarkMode={isDarkMode}
+              notifications={notifications}
             />
           )}
 
-          {activePage === "crm" && <CRM />}
-          {activePage === "employees" && <Employee />}
-          {activePage === "workspace" && <TasksWorkspace />}
-          {activePage === "reports" && <Reports />}
-          {activePage === "settings" && <Settings />}
+          <div className="component-injection-point">
+            {activePage === "crm" && <CRM />}
+            {activePage === "employees" && <Employee />}
+            {activePage === "workspace" && <TasksWorkspace />}
+            {activePage === "reports" && <Reports />}
+            {activePage === "settings" && <Settings />}
+          </div>
         </section>
 
-        {/* Persistent Chat Widget from your files */}
+        {/* YOUR CHAT WIDGET */}
         <ChatWidget />
       </main>
     </div>
