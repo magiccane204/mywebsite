@@ -23,6 +23,7 @@ const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const NODE_ENV = process.env.NODE_ENV || "production";
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 console.log("RESEND KEY:", RESEND_API_KEY ? "Loaded" : "Missing");
 
 app.use(cors({   origin: [     "https://mywebsite-im3c.onrender.com"   ],   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],   allowedHeaders: ["Content-Type", "Authorization"],   credentials: true }));
@@ -728,15 +729,25 @@ app.post("/api/resume/extract", auth, upload.array("resumes", 20), async (req, r
     if (!req.files || req.files.length === 0)
       return res.status(400).json({ success: false, message: "No files uploaded" });
 
- const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    // Use gemini-1.5-flash or gemini-2.0-flash
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     const results = [];
 
-    for (const file of req.files) {
+    for (let i = 0; i < req.files.length; i++) {
+      const file = req.files[i];
+
+      // 🔥 RATE LIMIT FIX: If processing more than one file, wait 13 seconds between them.
+      // This ensures you never exceed your 5 RPM (Requests Per Minute) limit.
+      if (i > 0) {
+        console.log(`⏳ Waiting 13s to avoid 429 error for: ${file.originalname}`);
+        await delay(13000);
+      }
+
       try {
         const buffer = fs.readFileSync(file.path);
         let text = "";
 
-        // 1. Text Extraction
+        // 1. EXTRACT TEXT
         if (file.mimetype === "application/pdf") {
           const parsed = await pdfParse(buffer);
           text = (parsed.text || "").replace(/\n/g, " ").trim();
@@ -744,86 +755,77 @@ app.post("/api/resume/extract", auth, upload.array("resumes", 20), async (req, r
           const out = await mammoth.extractRawText({ buffer });
           text = (out.value || "").replace(/\n/g, " ").trim();
         } else {
-          results.push({ filename: file.originalname, success: false, error: "Unsupported type" });
+          results.push({ filename: file.originalname, success: false, error: "Unsupported file type" });
           continue;
         }
-        if (!text || text.trim().length === 0) {
-          text = "Resume content not readable. Try extracting basic details.";
+
+        if (!text) {
+          results.push({ filename: file.originalname, success: false, error: "Empty file content" });
+          continue;
         }
-        // 3. AI Parsing
-      const prompt = `
-      You are a resume parser.
 
-      Return ONLY valid JSON. No explanation.
+        // 2. THE AI PROMPT
+        const prompt = `
+          You are a professional resume parser. 
+          Extract data from the following resume text and return it strictly as a JSON object.
+          If any field is missing, use "N/A".
+          
+          Required JSON Keys:
+          {
+            "name": "Full Name",
+            "email": "Email Address",
+            "phone": "Phone Number",
+            "linkedIn": "LinkedIn URL",
+            "skills": "Key professional skills",
+            "experience": "Brief work history",
+            "education": "Degree and University info"
+          }
 
-      Format:
-      {
-      "name": "",
-      "email": "",
-      "phone": "",
-      "linkedIn": "",
-      "skills": "",
-      "experience": "",
-      "education": ""
-      }
+          Rules:
+          - Return ONLY the JSON object.
+          - No markdown code blocks (no \`\`\`json).
+          - No introductory text or explanations.
 
-      Rules:
-      - If missing, use "N/A"
-      - No extra text
-      - No markdown
+          Resume Text:
+          ${text}
+        `;
 
-      Resume:
-${text}
-`;
-
+        // 3. AI GENERATION
         const aiResult = await model.generateContent(prompt);
         const aiResponse = await aiResult.response;
-        let rawText = "";
+        let rawText = aiResponse.text().trim();
 
-try {
-  rawText = aiResponse.text();
-} catch {
-  rawText = "";
-}
-
-if (!rawText || rawText.trim().length === 0) {
-  rawText = "{}";
-}
-
-        // 4. JSON Sanitization
-let parsedData;
-
-try {
-  parsedData = JSON.parse(rawText);
-} catch {
-  try {
-    const start = rawText.indexOf("{");
-    const end = rawText.lastIndexOf("}") + 1;
-    parsedData = JSON.parse(rawText.substring(start, end));
-  } catch {
-    parsedData = {
-      name: "N/A",
-      email: "N/A",
-      phone: "N/A",
-      linkedIn: "N/A",
-      skills: "N/A",
-      experience: "N/A",
-      education: "N/A"
-          };
+        // 4. JSON SANITIZATION
+        let parsedData;
+        try {
+          // Removes any stray markdown backticks if Gemini accidentally adds them
+          const cleanedJson = rawText.replace(/```json|```/g, "").trim();
+          parsedData = JSON.parse(cleanedJson);
+        } catch (jsonErr) {
+          console.error("JSON Parse Error. Attempting substring recovery...");
+          const start = rawText.indexOf("{");
+          const end = rawText.lastIndexOf("}") + 1;
+          parsedData = JSON.parse(rawText.substring(start, end));
         }
-      }
 
-      results.push({
-        filename: file.originalname,
-        success: true,
-        data: parsedData
-      });
+        results.push({
+          filename: file.originalname,
+          success: true,
+          data: parsedData
+        });
 
       } catch (fileErr) {
         console.error(`Error processing ${file.originalname}:`, fileErr.message);
+        
+        // Stop the loop if we hit the Daily Quota (20 RPD)
+        if (fileErr.message.includes("429") || fileErr.message.includes("quota")) {
+          results.push({ filename: file.originalname, success: false, error: "Quota Exceeded (RPD/RPM)" });
+          break; 
+        }
+
         results.push({ filename: file.originalname, success: false, error: "AI Parsing Failed" });
       } finally {
-        // ✅ DELETES TEMPORARY FILE NO MATTER WHAT
+        // Always delete the temp file
         if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
       }
     }
@@ -831,11 +833,10 @@ try {
     return res.json({ success: true, resumes: results });
 
   } catch (err) {
-    console.error("SERVER_ERROR:", err);
+    console.error("CRITICAL_SERVER_ERROR:", err);
     return res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
-
 // --- DATA ANALYSIS (CLEAN & FAST) ---
 app.get("/api/dataanalysis", auth, async (req, res) => {
   try {
