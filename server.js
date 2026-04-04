@@ -27,7 +27,7 @@ console.log("RESEND KEY:", RESEND_API_KEY ? "Loaded" : "Missing");
 
 app.use(cors({   origin: [     "https://mywebsite-im3c.onrender.com"   ],   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],   allowedHeaders: ["Content-Type", "Authorization"],   credentials: true }));
 app.options("*", cors());
-app.use(express.json({ limit: "5mb" }));
+app.use(express.json({ limit: "20mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 
@@ -774,11 +774,21 @@ app.post("/api/resume/extract", auth, upload.array("resumes", 20), async (req, r
 
       Resume:
 ${text}
-`;;
+`;
 
         const aiResult = await model.generateContent(prompt);
         const aiResponse = await aiResult.response;
-        const rawText = aiResponse.text();
+        let rawText = "";
+
+try {
+  rawText = aiResponse.text();
+} catch {
+  rawText = "";
+}
+
+if (!rawText || rawText.trim().length === 0) {
+  rawText = "{}";
+}
 
         // 4. JSON Sanitization
 let parsedData;
