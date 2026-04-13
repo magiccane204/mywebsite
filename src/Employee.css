@@ -149,3 +149,66 @@ color: #e5e7eb;
 body.dark .empty {
 color: #9ca3af;
 }
+.locked-row {
+  opacity: 0.75;
+  background-color: rgba(40, 40, 45, 0.8) !important;
+  color: #aaa;
+}
+
+.locked-row td {
+  color: #bbb;
+}
+
+.lock-icon {
+  margin-right: 6px;
+  color: #ff9800;
+}
+
+.action-cell {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.action-btn {
+  padding: 6px 10px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.2s;
+}
+
+.action-btn:hover {
+  transform: scale(1.1);
+}
+
+.edit { background: #4a6bff; color: white; }
+.role-btn { background: #9c27b0; color: white; }
+.lock-btn { background: #ff9800; color: white; }
+.delete-btn { background: #f44336; color: white; }
+
+.action-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.role-badge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.role-badge.admin { background: #4a6bff; color: white; }
+.role-badge.superadmin { background: #9c27b0; color: white; }
+.role-badge.employee { background: #555; color: #ddd; }
+
+.status {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+}
+.status.active { background: #2e7d32; color: white; }
+.status.locked { background: #c62828; color: white; }
