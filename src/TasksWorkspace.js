@@ -16,9 +16,6 @@ function TasksWorkspace() {
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [uploadingId, setUploadingId] = useState(null);
 
-  const rawRole = (localStorage.getItem("role") || "").trim();
-  const isAdmin = rawRole === "Admin" || rawRole === "SuperAdmin";
-
   const getHeaders = () => ({
     headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
   });
@@ -32,14 +29,14 @@ function TasksWorkspace() {
     try {
       const res = await api.get("/tasks", getHeaders());
       setTasks(res.data);
-    } catch (err) {}
+    } catch {}
   }
 
   async function loadEmployees() {
     try {
       const res = await api.get("/Employees", getHeaders());
       setEmployees(res.data);
-    } catch (err) {}
+    } catch {}
   }
 
   async function createTask() {
@@ -48,22 +45,39 @@ function TasksWorkspace() {
       return;
     }
 
-    await api.post("/tasks", {
-      Title: title,
-      Description: description,
-      EmployeeEmail: employeeEmail
-    }, getHeaders());
+    try {
+      await api.post(
+        "/tasks",
+        {
+          Title: title,
+          Description: description,
+          EmployeeEmail: employeeEmail
+        },
+        getHeaders()
+      );
 
-    setTitle("");
-    setDescription("");
-    setEmployeeEmail("");
-    setShowTaskModal(false);
-    loadTasks();
+      setTitle("");
+      setDescription("");
+      setEmployeeEmail("");
+      setShowTaskModal(false);
+
+      loadTasks();
+    } catch {
+      alert("Failed to create task");
+    }
   }
 
   async function updateTaskStatus(id, status) {
-    await api.put(`/tasks/status/${id}`, { Status: status }, getHeaders());
-    loadTasks();
+    try {
+      await api.put(
+        `/tasks/status/${id}`,
+        { Status: status },
+        getHeaders()
+      );
+      loadTasks();
+    } catch {
+      alert("Status update failed");
+    }
   }
 
   async function handleFileUpload(id, file) {
@@ -74,19 +88,24 @@ function TasksWorkspace() {
     const formData = new FormData();
     formData.append("file", file);
 
-    await axios.post(
-      `https://mywebsite-im3c.onrender.com/api/tasks/upload/${id}`,
-      formData,
-      {
-        headers: {
-          ...getHeaders().headers,
-          "Content-Type": "multipart/form-data"
+    try {
+      await axios.post(
+        `https://mywebsite-im3c.onrender.com/api/tasks/upload/${id}`,
+        formData,
+        {
+          headers: {
+            ...getHeaders().headers,
+            "Content-Type": "multipart/form-data"
+          }
         }
-      }
-    );
+      );
+
+      loadTasks();
+    } catch {
+      alert("Upload failed");
+    }
 
     setUploadingId(null);
-    loadTasks();
   }
 
   function downloadFile(id) {
@@ -97,44 +116,72 @@ function TasksWorkspace() {
   }
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h2>Task Workspace</h2>
+    <div style={{ padding: "20px", color: "white" }}>
 
-      {isAdmin && (
-        <button onClick={() => setShowTaskModal(true)}>
-          Create Task
+      {/* HEADER */}
+      <div style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: "20px"
+      }}>
+        <h2>Task Workspace</h2>
+
+        <button
+          onClick={() => setShowTaskModal(true)}
+          style={{
+            background: "#7c3aed",
+            color: "white",
+            padding: "10px 20px",
+            border: "none",
+            borderRadius: "6px",
+            cursor: "pointer"
+          }}
+        >
+          ➕ Add Task
         </button>
-      )}
+      </div>
 
+      {/* MODAL */}
       {showTaskModal && (
-        <div>
-          <input
-            placeholder="Title"
-            value={title}
-            onChange={e => setTitle(e.target.value)}
-          />
-          <textarea
-            placeholder="Description"
-            value={description}
-            onChange={e => setDescription(e.target.value)}
-          />
-          <select
-            value={employeeEmail}
-            onChange={e => setEmployeeEmail(e.target.value)}
+        <div className="chart-modal" onClick={() => setShowTaskModal(false)}>
+          <div
+            className="chart-modal-content"
+            onClick={(e) => e.stopPropagation()}
           >
-            <option value="">Select</option>
-            {employees.map(emp => (
-              <option key={emp._id} value={emp.Email}>
-                {emp.Name}
-              </option>
-            ))}
-          </select>
+            <h3>Create Task</h3>
 
-          <button onClick={createTask}>Send</button>
+            <input
+              placeholder="Task Title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
+
+            <textarea
+              placeholder="Description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+
+            <select
+              value={employeeEmail}
+              onChange={(e) => setEmployeeEmail(e.target.value)}
+            >
+              <option value="">Select Employee</option>
+              {employees.map((emp) => (
+                <option key={emp._id} value={emp.Email}>
+                  {emp.Name}
+                </option>
+              ))}
+            </select>
+
+            <button onClick={createTask}>Create Task</button>
+          </div>
         </div>
       )}
 
-      <table>
+      {/* TABLE */}
+      <table className="excel-table" style={{ width: "100%" }}>
         <thead>
           <tr>
             <th>Title</th>
@@ -146,43 +193,53 @@ function TasksWorkspace() {
         </thead>
 
         <tbody>
-          {tasks.map(task => (
-            <tr key={task._id}>
-              <td>{task.Title}</td>
-              <td>{task.Description}</td>
-
-              <td>
-                <select
-                  value={task.Status}
-                  onChange={e =>
-                    updateTaskStatus(task._id, e.target.value)
-                  }
-                >
-                  <option>Pending</option>
-                  <option>In Progress</option>
-                  <option>Completed</option>
-                </select>
-              </td>
-
-              <td>
-                {task.FileId && (
-                  <button onClick={() => downloadFile(task._id)}>
-                    Download
-                  </button>
-                )}
-              </td>
-
-              <td>
-                <input
-                  type="file"
-                  onChange={e =>
-                    handleFileUpload(task._id, e.target.files[0])
-                  }
-                />
-                {uploadingId === task._id && "..."}
+          {tasks.length === 0 ? (
+            <tr>
+              <td colSpan="5" style={{ textAlign: "center" }}>
+                No tasks found
               </td>
             </tr>
-          ))}
+          ) : (
+            tasks.map((task) => (
+              <tr key={task._id}>
+                <td>{task.Title}</td>
+                <td>{task.Description}</td>
+
+                <td>
+                  <select
+                    value={task.Status}
+                    onChange={(e) =>
+                      updateTaskStatus(task._id, e.target.value)
+                    }
+                  >
+                    <option value="Pending">Pending</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Completed">Completed</option>
+                  </select>
+                </td>
+
+                <td>
+                  {task.FileId ? (
+                    <button onClick={() => downloadFile(task._id)}>
+                      Download
+                    </button>
+                  ) : (
+                    "None"
+                  )}
+                </td>
+
+                <td>
+                  <input
+                    type="file"
+                    onChange={(e) =>
+                      handleFileUpload(task._id, e.target.files[0])
+                    }
+                  />
+                  {uploadingId === task._id && " ..."}
+                </td>
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
     </div>
