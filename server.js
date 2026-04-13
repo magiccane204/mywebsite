@@ -177,7 +177,58 @@ app.post("/api/signup", async (req, res) => {
   }
 
 });
+// Change Role - SuperAdmin Only + Temporary
+app.put("/api/employees/change-role", auth, async (req, res) => {
+  if (req.user.role !== "SuperAdmin") {
+    return res.status(403).json({ message: "Only SuperAdmin can change roles" });
+  }
 
+  const { employeeId, newRole, durationDays } = req.body;
+
+  if (!employeeId || !newRole || !durationDays) {
+    return res.status(400).json({ message: "Missing required fields" });
+  }
+
+  if (!["Employee", "Admin", "SuperAdmin"].includes(newRole)) {
+    return res.status(400).json({ message: "Invalid role" });
+  }
+
+  try {
+    const employee = await EmployeesModel.findById(employeeId);
+    if (!employee || employee.Company !== req.user.company) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + Number(durationDays));
+
+    await EmployeesModel.updateOne(
+      { _id: employeeId },
+      {
+        $set: {
+          Role: newRole,
+          roleExpiresAt: expiresAt,
+          updatedAt: new Date()
+        }
+      }
+    );
+
+    logAudit("ROLE_CHANGED", req.user.email, {
+      employeeId,
+      from: employee.Role,
+      to: newRole,
+      durationDays
+    });
+
+    res.json({
+      success: true,
+      message: `Role updated to ${newRole} (expires in ${durationDays} days)`
+    });
+  } catch (err) {
+    console.error("CHANGE_ROLE_ERROR", err);
+    res.status(500).json({ message: "Failed to change role" });
+  }
+});
 app.post("/api/login", rateLimit, async (req, res) => {
   try {
     const email = String(req.body.email || "").trim().toLowerCase();
