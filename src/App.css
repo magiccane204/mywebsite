@@ -1,252 +1,81 @@
-/* ================= GLOBAL ================= */
-body {
-  margin: 0;
-  font-family: "Poppins", sans-serif;
+/* Add these specific class fixes to your existing CSS file */
 
-  background: radial-gradient(circle at 20% 20%, #eef2ff, transparent),
-              radial-gradient(circle at 80% 80%, #e0e7ff, transparent),
-              #f8fafc;
-}
-
-/* ================= PAGE ================= */
-.auth-page {
-  height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-
-  position: relative;
-  overflow: hidden;
-}
-
-/* subtle animated glow background */
-.auth-page::before {
-  content: "";
-  position: absolute;
-  width: 600px;
-  height: 600px;
-  background: radial-gradient(circle, rgba(124,58,237,0.15), transparent 70%);
-  top: -100px;
-  left: -100px;
-  filter: blur(80px);
-  animation: floatGlow 8s ease-in-out infinite alternate;
-}
-
-.auth-page::after {
-  content: "";
-  position: absolute;
-  width: 500px;
-  height: 500px;
-  background: radial-gradient(circle, rgba(99,102,241,0.12), transparent 70%);
-  bottom: -120px;
-  right: -120px;
-  filter: blur(80px);
-  animation: floatGlow 10s ease-in-out infinite alternate-reverse;
-}
-
-@keyframes floatGlow {
-  from { transform: translateY(0px); }
-  to { transform: translateY(30px); }
-}
-
-/* ================= CARD ================= */
 .auth-page .floating-card {
-  background: rgba(255,255,255,0.85);
-  backdrop-filter: blur(18px);
-
-  padding: 52px 60px;
-
-  width: 460px;
-  max-width: 90%;
-
-  border-radius: 28px;
-  text-align: center;
-
-  border: 1px solid rgba(255,255,255,0.6);
-
-  box-shadow:
-    0 25px 70px rgba(0, 0, 0, 0.12),
-    inset 0 1px 0 rgba(255,255,255,0.7);
-
+  /* ... your existing card styles ... */
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 22px;
-
-  transition: all 0.35s ease;
+  gap: 15px; /* Tighter gap for the inputs */
 }
 
-/* hover lift */
-.auth-page .floating-card:hover {
-  transform: translateY(-6px);
-  box-shadow:
-    0 35px 90px rgba(0, 0, 0, 0.18),
-    0 0 0 1px rgba(99,102,241,0.15);
+/* Ensure the wrapper handles the image properly */
+.profile-wrapper {
+  margin-bottom: 10px;
+  position: relative;
 }
 
-/* ================= PROFILE ================= */
-.auth-page .floating-card img {
+.profile-img {
   width: 130px;
   height: 130px;
   border-radius: 50%;
-
-  padding: 6px;
-
-  background: linear-gradient(135deg, #6366f1, #7c3aed);
-
-  box-shadow:
-    0 12px 30px rgba(124, 58, 237, 0.35);
-
-  transition: all 0.3s ease;
+  padding: 5px;
+  background: linear-gradient(135deg, #7c3aed, #6366f1);
+  box-shadow: 0 10px 25px rgba(124, 58, 237, 0.3);
 }
 
-.auth-page .floating-card img:hover {
-  transform: scale(1.06) rotate(2deg);
-}
-
-/* ================= TITLE ================= */
-.auth-page h1 {
-  margin: 5px 0;
-  font-size: 34px;
-  font-weight: 600;
-  color: #0f172a;
-
-  letter-spacing: -0.5px;
-}
-
-/* ================= SUBTITLE ================= */
-.auth-page p {
-  font-size: 14px;
-  color: #64748b;
+.title {
   margin: 0;
+  font-size: 32px;
+  font-weight: 700;
+  color: #1e293b;
 }
 
-/* ================= INPUT ================= */
-.auth-page .floating-card input {
-  width: 100%;
-  padding: 15px 18px;
-  font-size: 15px;
+.subtitle {
+  margin-bottom: 10px;
+  color: #64748b;
+}
 
+.input-group {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.input-field {
+  width: 100%;
+  padding: 14px 20px;
   border-radius: 30px;
-  border: 1px solid rgba(203, 213, 225, 0.6);
-
-  background: rgba(255,255,255,0.7);
-
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
   outline: none;
-
-  transition: all 0.25s ease;
-
-  box-shadow: inset 0 2px 6px rgba(0,0,0,0.04);
+  transition: 0.2s;
 }
 
-/* focus */
-.auth-page .floating-card input:focus {
-  border-color: #6366f1;
-  background: #ffffff;
-
-  box-shadow:
-    0 0 0 4px rgba(99,102,241,0.15),
-    0 6px 20px rgba(0,0,0,0.06);
-
-  transform: scale(1.015);
+.input-field:focus {
+  border-color: #7c3aed;
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.1);
 }
 
-/* ================= BUTTON ================= */
-.auth-page .button {
+.button {
   width: 100%;
-  padding: 16px;
-
+  padding: 14px;
   border-radius: 30px;
   border: none;
-
-  font-size: 17px;
-  font-weight: 600;
-
   background: linear-gradient(135deg, #7c3aed, #6366f1);
   color: white;
-
+  font-weight: 700;
+  font-size: 16px;
   cursor: pointer;
-
-  position: relative;
-  overflow: hidden;
-
-  transition: all 0.25s ease;
+  margin-top: 10px;
 }
 
-/* shine effect */
-.auth-page .button::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: -120%;
-  width: 100%;
-  height: 100%;
-
-  background: linear-gradient(
-    120deg,
-    transparent,
-    rgba(255,255,255,0.5),
-    transparent
-  );
-
-  transition: 0.5s;
-}
-
-.auth-page .button:hover::before {
-  left: 120%;
-}
-
-/* hover */
-.auth-page .button:hover {
-  transform: translateY(-3px);
-
-  box-shadow:
-    0 15px 40px rgba(124, 58, 237, 0.4);
-}
-
-/* click */
-.auth-page .button:active {
-  transform: scale(0.97);
-}
-
-/* ================= LINK ================= */
-.auth-page span {
-  color: #4f46e5;
+.link-text {
+  color: #6366f1;
+  font-weight: 600;
   cursor: pointer;
-  font-weight: 500;
-  position: relative;
 }
 
-/* animated underline */
-.auth-page span::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  bottom: -2px;
-
-  width: 0%;
-  height: 2px;
-
-  background: #6366f1;
-  transition: 0.3s;
-}
-
-.auth-page span:hover::after {
-  width: 100%;
-}
-
-/* ================= DESKTOP ================= */
-@media (min-width: 1024px) {
-  .auth-page .floating-card {
-    width: 520px;
-  }
-
-  .auth-page .floating-card img {
-    width: 150px;
-    height: 150px;
-  }
-
-  .auth-page h1 {
-    font-size: 38px;
-  }
+.link-text:hover {
+  text-decoration: underline;
 }
