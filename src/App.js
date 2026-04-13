@@ -1,11 +1,29 @@
-/* ... your imports stay the same ... */
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+
+// MODULE IMPORTS
+import Signup from "./SignUp.js";
+import Otp from "./otp.js";
+import Dashboard from "./Dashboard.js";
+
+// CSS IMPORT
+import "./App.css";
+
+// API CONFIGURATION
+const api = axios.create({
+  baseURL: "https://mywebsite-im3c.onrender.com",
+  headers: {
+    "Content-Type": "application/json"
+  }
+});
 
 function App() {
   const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false); // Added loading state
+  const [loading, setLoading] = useState(false);
 
+  // --- PERSISTENT SESSION CHECK ---
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) return;
@@ -15,7 +33,7 @@ function App() {
     async function loadUser() {
       try {
         const res = await api.get("/api/me");
-        // Apply dark mode to body
+        // Initial Theme Sync
         if (res.data.DarkMode) {
           document.body.classList.add("dark-theme");
         } else {
@@ -23,6 +41,7 @@ function App() {
         }
         setMode("crm");
       } catch (err) {
+        console.error("Session expired.");
         localStorage.removeItem("token");
         setMode("login");
       }
@@ -30,9 +49,10 @@ function App() {
     loadUser();
   }, []);
 
+  // --- AUTHENTICATION HANDLER ---
   const handleLogin = async () => {
     if (!email || !password) {
-      alert("Please enter both email and password");
+      alert("Please enter credentials.");
       return;
     }
 
@@ -44,24 +64,23 @@ function App() {
       });
 
       if (res.data.success) {
-        // Store email for the OTP component to use
         localStorage.setItem("otp_email", email.trim().toLowerCase());
         setMode("otp");
       }
     } catch (err) {
       const data = err.response?.data;
       if (data?.notVerified) {
-        alert("Account not activated. Redirecting to signup...");
+        alert("Account not activated. Redirecting to verification...");
         setMode("signup");
       } else {
-        alert(data?.message || "Invalid credentials");
+        alert(data?.message || "Invalid Email or Password");
       }
     } finally {
       setLoading(false);
     }
   };
 
-  // --- ROUTING LOGIC ---
+  // --- ROUTING ENGINE ---
   if (mode === "signup") return <Signup setMode={setMode} />;
   
   if (mode === "otp") {
@@ -70,14 +89,14 @@ function App() {
 
   if (mode === "crm") return <Dashboard setMode={setMode} />;
 
-  // --- LOGIN UI ---
+  // --- LOGIN UI (WELCOME BACK CARD) ---
   return (
     <div className="auth-page">
       <div className="floating-card">
         <div className="profile-wrapper">
           <img
             src="/user.png" 
-            alt="User Profile"
+            alt="Profile"
             className="profile-img"
           />
         </div>
