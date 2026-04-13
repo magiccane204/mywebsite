@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-/** * --- THE D&T CORE ENGINE ---
- * Building on existing modules without overwriting their internal logic.
- */
+import ChatWidget from "./ChatWidget"; // Calling your pre-existing component
 import Employee from "./Employee"; 
 import TasksWorkspace from "./TasksWorkspace";
 import Settings from "./Settings";
@@ -360,6 +358,7 @@ const Dashboard = ({ setMode }) => {
              {activePage === "settings" && <Settings user={user} refresh={syncSystem} />}
           </div>
         </section>
+              <ChatWidget user={user} />
       </main>
     </div>
   );
