@@ -18,7 +18,7 @@ export default function Employee() {
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [newRole, setNewRole] = useState("");
-  const [roleDuration, setRoleDuration] = useState(30); // days
+  const [roleDuration, setRoleDuration] = useState(30);
 
   useEffect(() => {
     loadMe();
@@ -59,7 +59,6 @@ export default function Employee() {
 
   const submitEmployee = async () => {
     if (role === "Employee") return;
-
     if (!name || !email || !position || salary === "") {
       showMessage("All fields are required", "error");
       return;
@@ -67,12 +66,11 @@ export default function Employee() {
 
     try {
       if (editingId) {
-        const employee = employees.find(c => (c.Id || c._id) === editingId);
-        if (employee?.locked) {
+        const emp = employees.find(c => (c._id || c.Id) === editingId);
+        if (emp?.locked) {
           showMessage("Locked employees cannot be modified", "error");
           return;
         }
-
         await api.put("/api/update-employee", {
           Id: editingId,
           Name: name,
@@ -92,7 +90,7 @@ export default function Employee() {
       }
       resetForm();
       loadEmployees();
-    } catch (err) {
+    } catch {
       showMessage("Operation failed", "error");
     }
   };
@@ -107,12 +105,10 @@ export default function Employee() {
     setEmail(emp.Email);
     setPosition(emp["Applied Position"] || "");
     setSalary(emp.Salary || "");
-    setMessage("");
   };
 
   const deleteEmployee = async (id) => {
     if (role !== "SuperAdmin") return;
-
     const emp = employees.find(c => (c._id || c.Id) === id);
     if (emp?.locked) {
       showMessage("Locked employees cannot be deleted", "error");
@@ -131,7 +127,6 @@ export default function Employee() {
 
   const toggleLock = async (id) => {
     if (role !== "SuperAdmin") return;
-
     try {
       await api.put(`/api/Employees/lock/${id}`);
       showMessage("Lock status updated");
@@ -141,7 +136,6 @@ export default function Employee() {
     }
   };
 
-  // === NEW: Change Role (SuperAdmin Only) ===
   const openRoleModal = (emp) => {
     if (role !== "SuperAdmin") {
       showMessage("Only SuperAdmin can change roles", "error");
@@ -155,18 +149,16 @@ export default function Employee() {
 
   const changeRole = async () => {
     if (!selectedEmployee) return;
-
     try {
-      await api.put(`/api/employees/change-role`, {
+      await api.put("/api/employees/change-role", {
         employeeId: selectedEmployee._id || selectedEmployee.Id,
         newRole,
         durationDays: Number(roleDuration)
       });
-
       showMessage(`Role changed to ${newRole} for ${roleDuration} days`);
       setShowRoleModal(false);
       loadEmployees();
-    } catch (err) {
+    } catch {
       showMessage("Failed to change role", "error");
     }
   };
@@ -184,7 +176,7 @@ export default function Employee() {
         Employee Management — <span className="user-role">{role}</span>
       </h2>
 
-      {/* Add / Edit Form */}
+      {/* Add/Edit Form - Matching your dark theme */}
       <div className="Employee-card">
         <h3>{editingId ? "Update Employee" : "Add New Employee"}</h3>
         {role === "Employee" && <p className="view-only">View Only Mode</p>}
@@ -195,21 +187,17 @@ export default function Employee() {
           <input value={position} onChange={(e) => setPosition(e.target.value)} placeholder="Position" />
           <input type="number" value={salary} onChange={(e) => setSalary(e.target.value)} placeholder="Salary" />
 
-          <button onClick={submitEmployee} disabled={role === "Employee"} className="submit-btn">
+          <button onClick={submitEmployee} disabled={role === "Employee"} className="add-btn">
             {editingId ? "Update Employee" : "Add Employee"}
           </button>
 
-          {editingId && (
-            <button onClick={resetForm} className="cancel-btn">Cancel</button>
-          )}
+          {editingId && <button onClick={resetForm} className="cancel-btn">Cancel</button>}
         </div>
 
-        {message && (
-          <p className={`message ${messageType}`}>{message}</p>
-        )}
+        {message && <p className={`message ${messageType}`}>{message}</p>}
       </div>
 
-      {/* Employee List */}
+      {/* Employee Directory - Matching your screenshot style */}
       <div className="Employee-card">
         <div className="list-header">
           <h3>Employee Directory ({filteredEmployees.length})</h3>
@@ -221,79 +209,93 @@ export default function Employee() {
           />
         </div>
 
-        {filteredEmployees.length === 0 ? (
-          <p className="empty">No employees found</p>
-        ) : (
-          <div className="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Position</th>
-                  <th>Salary</th>
-                  <th>Role</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredEmployees.map((emp) => (
-                  <tr key={emp._id || emp.Id} className={emp.locked ? "locked-row" : ""}>
-                    <td>
-                      {emp.locked && "🔒 "}
-                      {emp.Name}
-                    </td>
-                    <td>{emp.Email}</td>
-                    <td>{emp["Applied Position"]}</td>
-                    <td>₹{Number(emp.Salary).toLocaleString('en-IN')}</td>
-                    <td>
-                      <span className={`role-badge ${emp.Role?.toLowerCase() || 'employee'}`}>
-                        {emp.Role || "Employee"}
-                      </span>
-                    </td>
-                    <td>
-                      <span className={`status ${emp.locked ? 'locked' : 'active'}`}>
-                        {emp.locked ? "Locked" : "Active"}
-                      </span>
-                    </td>
-                    <td className="action-cell">
-                      <button title="Edit" onClick={() => editEmployee(emp)} disabled={emp.locked}>
-                        ✏️
-                      </button>
+        <div className="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Position</th>
+                <th>Salary</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredEmployees.map((emp) => (
+                <tr 
+                  key={emp._id || emp.Id} 
+                  className={emp.locked ? "locked-row" : ""}
+                >
+                  <td>
+                    {emp.locked && <span className="lock-icon">🔒</span>}
+                    {emp.Name}
+                  </td>
+                  <td>{emp.Email}</td>
+                  <td>{emp["Applied Position"]}</td>
+                  <td>₹{Number(emp.Salary || 0).toLocaleString('en-IN')}</td>
+                  <td>
+                    <span className={`role-badge ${ (emp.Role || "Employee").toLowerCase() }`}>
+                      {emp.Role || "Employee"}
+                    </span>
+                  </td>
+                  <td>
+                    <span className={`status ${emp.locked ? "locked" : "active"}`}>
+                      {emp.locked ? "Locked" : "Active"}
+                    </span>
+                  </td>
+                  <td className="action-cell">
+                    <button 
+                      title="Edit" 
+                      onClick={() => editEmployee(emp)} 
+                      disabled={emp.locked}
+                      className="action-btn edit"
+                    >
+                      ✏️
+                    </button>
 
-                      {role === "SuperAdmin" && (
-                        <>
-                          <button title="Change Role" onClick={() => openRoleModal(emp)}>
-                            👤
-                          </button>
-                          <button title="Lock / Unlock" onClick={() => toggleLock(emp._id || emp.Id)}>
-                            🔒
-                          </button>
-                          <button
-                            title="Delete"
-                            onClick={() => deleteEmployee(emp._id || emp.Id)}
-                            disabled={emp.locked}
-                            className="delete-btn"
-                          >
-                            🗑
-                          </button>
-                        </>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                    {role === "SuperAdmin" && (
+                      <>
+                        <button 
+                          title="Change Role" 
+                          onClick={() => openRoleModal(emp)}
+                          className="action-btn role-btn"
+                        >
+                          👤
+                        </button>
+
+                        <button 
+                          title="Lock / Unlock" 
+                          onClick={() => toggleLock(emp._id || emp.Id)}
+                          className="action-btn lock-btn"
+                        >
+                          🔒
+                        </button>
+
+                        <button 
+                          title="Delete" 
+                          onClick={() => deleteEmployee(emp._id || emp.Id)}
+                          disabled={emp.locked}
+                          className="action-btn delete-btn"
+                        >
+                          🗑
+                        </button>
+                      </>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Role Change Modal */}
       {showRoleModal && selectedEmployee && (
         <div className="modal-overlay">
           <div className="modal">
-            <h3>Change Role — {selectedEmployee.Name}</h3>
+            <h3>Change Role - {selectedEmployee.Name}</h3>
             <p><strong>Current Role:</strong> {selectedEmployee.Role || "Employee"}</p>
 
             <label>New Role:</label>
@@ -303,11 +305,11 @@ export default function Employee() {
               <option value="SuperAdmin">SuperAdmin</option>
             </select>
 
-            <label>Temporary Duration (days):</label>
+            <label>Temporary Duration (in days):</label>
             <input
               type="number"
               value={roleDuration}
-              onChange={(e) => setRoleDuration(e.target.value)}
+              onChange={(e) => setRoleDuration(Math.max(1, e.target.value))}
               min="1"
               max="365"
             />
