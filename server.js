@@ -1207,6 +1207,10 @@ const leaveSchema = new mongoose.Schema({
   Reason: { type: String, required: true },
   EmployeeEmail: String,
   Company: String,
+  Status: { 
+    type: String, 
+    default: "Submitted" // This ensures every new leave starts here
+  },
   createdAt: {
     type: Date,
     default: Date.now
@@ -1214,7 +1218,6 @@ const leaveSchema = new mongoose.Schema({
 });
 
 const Leave = mongoose.model("Leave", leaveSchema);
-
 
 
 const taskDir = path.join(__dirname, "taskUploads");
@@ -1327,20 +1330,16 @@ res.status(500).json({message:"Failed to fetch leaves"});
 // UPDATE LEAVE STATUS (Admin/SuperAdmin Only)
 app.put("/api/leaves/status/:id", auth, async (req, res) => {
   try {
-    // 1. Permission check
+    const { status } = req.body; 
+    
+    // Permission Check
     if (req.user.role !== "Admin" && req.user.role !== "SuperAdmin") {
-      return res.status(403).json({ message: "Not authorized to change status" });
+      return res.status(403).json({ message: "Access Denied" });
     }
 
-    const { status } = req.body;
-    if (!["Approved", "Rejected", "Submitted"].includes(status)) {
-      return res.status(400).json({ message: "Invalid status" });
-    }
-
-    // 2. Find and Update
     const updatedLeave = await Leave.findOneAndUpdate(
       { _id: req.params.id, Company: req.user.company },
-      { $set: { Status: status } },
+      { $set: { Status: status } }, // Capital 'S' to match Schema
       { new: true }
     );
 
