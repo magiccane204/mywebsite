@@ -13,8 +13,8 @@ function LeaveManagement() {
   const [leaves, setLeaves] = useState([]);
   const [formData, setFormData] = useState({ Date: "", Reason: "" });
   const [loading, setLoading] = useState(false);
+  const [updatingId, setUpdatingId] = useState(null); // Track which row is updating
   
-  // ✅ FIXED: Changed 'role' to 'userRole' to match your local storage
   const userRole = localStorage.getItem("userRole"); 
 
   const fetchLeaves = useCallback(async () => {
@@ -46,19 +46,22 @@ function LeaveManagement() {
   };
 
   const handleStatusUpdate = async (leaveId, newStatus) => {
+    setUpdatingId(leaveId);
     try {
-      // ✅ This sends the update to the backend route we added
+      // Logic fix: Ensure status string matches backend expectations
       await api.put(`/leaves/status/${leaveId}`, { status: newStatus });
-      fetchLeaves(); 
+      await fetchLeaves(); 
     } catch (err) {
       alert("Failed to update status. Check backend console.");
+    } finally {
+      setUpdatingId(null);
     }
   };
 
   return (
     <div className="leave-mgmt-container">
       <style>{`
-        .leave-mgmt-container { padding: 40px; color: #f8fafc; }
+        .leave-mgmt-container { padding: 40px; color: #f8fafc; font-family: sans-serif; }
         .leave-form-card, .leave-table-card { 
           background: #1a1935; border: 1px solid #2d2b55; 
           padding: 30px; border-radius: 20px; margin-bottom: 30px; 
@@ -67,20 +70,21 @@ function LeaveManagement() {
         .input-group label { font-size: 11px; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px; display: block; }
         .leave-input { background: #0b0a1a; border: 1px solid #2d2b55; color: white; padding: 12px; border-radius: 8px; width: 100%; box-sizing: border-box; }
         
-        .custom-table { width: 100%; border-collapse: collapse; }
+        .custom-table { width: 100%; border-collapse: collapse; table-layout: auto; }
         .custom-table th { text-align: left; padding: 15px; font-size: 11px; color: #94a3b8; text-transform: uppercase; border-bottom: 1px solid #2d2b55; }
-        .custom-table td { padding: 15px; font-size: 14px; border-bottom: 1px solid #2d2b55; color: #e2e8f0; }
+        .custom-table td { padding: 15px; font-size: 14px; border-bottom: 1px solid #2d2b55; color: #e2e8f0; vertical-align: middle; }
         
-        .status-badge { padding: 5px 12px; border-radius: 20px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+        .status-badge { padding: 6px 14px; border-radius: 20px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; display: inline-block; min-width: 80px; text-align: center; }
         .status-submitted { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
         .status-approved { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
         .status-rejected { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
 
-        .admin-actions { display: flex; gap: 10px; }
-        .action-btn { border: none; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: 900; text-transform: uppercase; transition: all 0.2s ease; }
+        .admin-actions { display: flex; gap: 8px; justify-content: flex-start; }
+        .action-btn { border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-size: 10px; font-weight: 900; text-transform: uppercase; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; }
         .btn-approve { background: #10b981; color: white; box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.3); }
         .btn-reject { background: #ef4444; color: white; box-shadow: 0 4px 14px 0 rgba(239, 68, 68, 0.3); }
-        .action-btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
+        .action-btn:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.1); }
+        .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
       `}</style>
 
       <div className="leave-form-card">
@@ -94,7 +98,7 @@ function LeaveManagement() {
             <label>Reason for Absence</label>
             <input type="text" className="leave-input" placeholder="e.g. Family Emergency" value={formData.Reason} onChange={(e) => setFormData({...formData, Reason: e.target.value})} required />
           </div>
-          <button type="submit" className="action-btn" style={{background: '#7c3aed', padding: '12px'}} disabled={loading}>
+          <button type="submit" className="action-btn" style={{background: '#7c3aed', padding: '12px', width: '100%'}} disabled={loading}>
             {loading ? "WAIT..." : "SUBMIT"}
           </button>
         </form>
@@ -109,7 +113,6 @@ function LeaveManagement() {
               <th>Employee Email</th>
               <th>Reason</th>
               <th>Status</th>
-              {/* ✅ Power Check */}
               {(userRole === "Admin" || userRole === "SuperAdmin") && <th>Actions</th>}
             </tr>
           </thead>
@@ -124,13 +127,27 @@ function LeaveManagement() {
                     {leave.Status || 'Submitted'}
                   </span>
                 </td>
-                {/* ✅ Power Check */}
                 {(userRole === "Admin" || userRole === "SuperAdmin") && (
                   <td>
-                    <div className="admin-actions">
-                      <button onClick={() => handleStatusUpdate(leave._id, 'Approved')} className="action-btn btn-approve">Approve</button>
-                      <button onClick={() => handleStatusUpdate(leave._id, 'Rejected')} className="action-btn btn-reject">Reject</button>
-                    </div>
+                    {/* Only show buttons if the status is still 'Submitted' */}
+                    {(!leave.Status || leave.Status === "Submitted") ? (
+                      <div className="admin-actions">
+                        <button 
+                          disabled={updatingId === leave._id}
+                          onClick={() => handleStatusUpdate(leave._id, 'Approved')} 
+                          className="action-btn btn-approve">
+                          Approve
+                        </button>
+                        <button 
+                          disabled={updatingId === leave._id}
+                          onClick={() => handleStatusUpdate(leave._id, 'Rejected')} 
+                          className="action-btn btn-reject">
+                          Reject
+                        </button>
+                      </div>
+                    ) : (
+                      <span style={{color: '#94a3b8', fontSize: '11px', fontStyle: 'italic'}}>Processed</span>
+                    )}
                   </td>
                 )}
               </tr>
