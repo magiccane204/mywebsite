@@ -1,410 +1,162 @@
-import React, { useState, useEffect } from "react";
-import * as XLSX from "xlsx";
+import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
-import { Resizable } from "react-resizable";
-import {
-  Plus, Download, Upload, FileText,
-  Trash2, AlertTriangle, Save, CheckCircle,
-  X, Table as TableIcon, Loader2
-} from "lucide-react";
 
-export default function ExcelTable({ onColumnSelect }) {
-  const [tableData, setTableData] = useState([Array(10).fill("")]);
-  const [colHeaders, setColHeaders] = useState(["Name", "Email", "Phone", "LinkedIn", "Skills", "Experience", "Education"]);
-  const [colWidths, setColWidths] = useState({});
-  const [selectedCell, setSelectedCell] = useState({ r: 0, c: 0 });
-  const [selectedCols, setSelectedCols] = useState([]);
-  const [isParsing, setIsParsing] = useState(false);
-  const [isFormatModalOpen, setIsFormatModalOpen] = useState(false);
-  const [formatConfirmText, setFormatConfirmText] = useState("");
-  const [isAutoSaving, setIsAutoSaving] = useState(false);
+const api = axios.create({ baseURL: "/api" });
 
-  // Load from localStorage (keep your existing logic)
-  useEffect(() => {
-    const savedData = localStorage.getItem("crm-data");
-    const savedHeaders = localStorage.getItem("crm-headers");
-    const savedWidths = localStorage.getItem("crm-widths");
-    if (savedData) {
-      try {
-        const parsed = JSON.parse(savedData);
-        if (parsed.length > 0) setTableData(parsed);
-      } catch (e) {}
-    } else {
-      setTableData(Array(15).fill(null).map(() => Array(10).fill("")));
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
+function LeaveManagement() {
+  const [leaves, setLeaves] = useState([]);
+  const [formData, setFormData] = useState({ Date: "", Reason: "" });
+  const [loading, setLoading] = useState(false);
+  const [updatingId, setUpdatingId] = useState(null); // Track which row is updating
+  
+  const userRole = localStorage.getItem("userRole"); 
+
+  const fetchLeaves = useCallback(async () => {
+    try {
+      const res = await api.get("/leaves");
+      setLeaves(res.data);
+    } catch (err) {
+      console.error("Failed to fetch leaves", err);
     }
-    if (savedHeaders) setColHeaders(JSON.parse(savedHeaders));
-    if (savedWidths) setColWidths(JSON.parse(savedWidths));
   }, []);
 
-  // Auto-save (keep your existing logic)
   useEffect(() => {
-    setIsAutoSaving(true);
-    const timer = setTimeout(() => {
-      localStorage.setItem("crm-data", JSON.stringify(tableData));
-      localStorage.setItem("crm-headers", JSON.stringify(colHeaders));
-      localStorage.setItem("crm-widths", JSON.stringify(colWidths));
-      setIsAutoSaving(false);
-    }, 800);
-    return () => clearTimeout(timer);
-  }, [tableData, colHeaders, colWidths]);
+    fetchLeaves();
+  }, [fetchLeaves]);
 
-  // Keep all your existing handler functions (handleImportExcel, handleAiResumeUpload, 
-  // handleColumnHeaderClick, handleCellChange, handleHeaderChange, addRow, deleteRow, 
-  // insertColumn, deleteColumn, exportToExcel, triggerReset, onResize)
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await api.post("/leaves", formData);
+      setFormData({ Date: "", Reason: "" });
+      fetchLeaves();
+      alert("Leave applied successfully!");
+    } catch (err) {
+      alert("Error applying for leave.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const onResize = (index) => (e, { size }) => {
-    setColWidths(prev => ({ ...prev, [index]: size.width }));
+  const handleStatusUpdate = async (leaveId, newStatus) => {
+    setUpdatingId(leaveId);
+    try {
+      // Logic fix: Ensure status string matches backend expectations
+      await api.put(`/leaves/status/${leaveId}`, { status: newStatus });
+      await fetchLeaves(); 
+    } catch (err) {
+      alert("Failed to update status. Check backend console.");
+    } finally {
+      setUpdatingId(null);
+    }
   };
 
   return (
-    <div className="crm-app-container">
-      <style jsx>{`
-        .crm-app-container {
-          background: var(--bg-card);
-          border-radius: 20px;
-          overflow: hidden;
-          height: 100%;
-          display: flex;
-          flex-direction: column;
-          color: var(--text-main);
+    <div className="leave-mgmt-container">
+      <style>{`
+        .leave-mgmt-container { padding: 40px; color: #f8fafc; font-family: sans-serif; }
+        .leave-form-card, .leave-table-card { 
+          background: #1a1935; border: 1px solid #2d2b55; 
+          padding: 30px; border-radius: 20px; margin-bottom: 30px; 
         }
+        .form-grid { display: grid; grid-template-columns: 1fr 2fr 150px; gap: 20px; align-items: flex-end; }
+        .input-group label { font-size: 11px; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px; display: block; }
+        .leave-input { background: #0b0a1a; border: 1px solid #2d2b55; color: white; padding: 12px; border-radius: 8px; width: 100%; box-sizing: border-box; }
+        
+        .custom-table { width: 100%; border-collapse: collapse; table-layout: auto; }
+        .custom-table th { text-align: left; padding: 15px; font-size: 11px; color: #94a3b8; text-transform: uppercase; border-bottom: 1px solid #2d2b55; }
+        .custom-table td { padding: 15px; font-size: 14px; border-bottom: 1px solid #2d2b55; color: #e2e8f0; vertical-align: middle; }
+        
+        .status-badge { padding: 6px 14px; border-radius: 20px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; display: inline-block; min-width: 80px; text-align: center; }
+        .status-submitted { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+        .status-approved { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .status-rejected { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
 
-        .crm-toolbar {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 16px 24px;
-          background: var(--bg-sidebar);
-          border-bottom: 1px solid var(--border);
-        }
-
-        .toolbar-left, .toolbar-right {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-
-        .tool-btn {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 8px 16px;
-          background: transparent;
-          border: 1px solid var(--border);
-          border-radius: 10px;
-          color: var(--text-main);
-          cursor: pointer;
-          font-size: 14px;
-          transition: all 0.2s;
-        }
-
-        .tool-btn:hover {
-          background: rgba(124, 58, 237, 0.1);
-          border-color: var(--accent);
-        }
-
-        .tool-btn.primary {
-          background: var(--accent);
-          color: white;
-          border-color: var(--accent);
-        }
-
-        .status-tag {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          padding: 6px 14px;
-          border-radius: 9999px;
-          font-size: 13px;
-          font-weight: 600;
-        }
-
-        .formula-bar {
-          display: flex;
-          align-items: center;
-          padding: 10px 24px;
-          background: var(--bg-viewport);
-          border-bottom: 1px solid var(--border);
-          gap: 12px;
-          font-size: 14px;
-        }
-
-        .grid-viewport {
-          flex: 1;
-          overflow: auto;
-          padding: 10px;
-          background: var(--bg-card);
-        }
-
-        /* FIXED & CLEAN TABLE */
-        .excel-table {
-          width: 100%;
-          border-collapse: collapse;
-          table-layout: fixed;           /* This fixes alignment */
-          background: var(--bg-card);
-        }
-
-        .excel-table th,
-        .excel-table td {
-          border: 1px solid var(--border);
-          padding: 8px 10px;
-          box-sizing: border-box;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-
-        .excel-table th {
-          background: var(--bg-sidebar);
-          font-weight: 600;
-          position: sticky;
-          top: 0;
-          z-index: 10;
-          height: 52px;
-        }
-
-        .excel-table td {
-          background: var(--bg-card);
-          min-height: 42px;
-        }
-
-        /* Force consistent column widths */
-        .header-cell {
-          width: 100%;
-          height: 100%;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .row-number-header,
-        .row-number-cell {
-          width: 50px !important;
-          min-width: 50px !important;
-          max-width: 50px !important;
-          text-align: center;
-          background: var(--bg-sidebar);
-        }
-
-        .actions-header,
-        .row-action-cell {
-          width: 70px !important;
-          min-width: 70px !important;
-          max-width: 70px !important;
-          text-align: center;
-        }
-
-        .cell-editor {
-          width: 100%;
-          background: transparent;
-          border: none;
-          outline: none;
-          color: var(--text-main);
-          font-size: 14px;
-          padding: 4px 6px;
-        }
-
-        .cell-editor:focus {
-          background: rgba(124, 58, 237, 0.15);
-          border-radius: 4px;
-        }
-
-        .header-edit-input {
-          width: 100%;
-          background: transparent;
-          border: none;
-          outline: none;
-          font-weight: 600;
-          color: var(--text-main);
-        }
-
-        .selected-column-header {
-          background: rgba(124, 58, 237, 0.25) !important;
-        }
-
-        .active-cell {
-          box-shadow: inset 0 0 0 2px var(--accent);
-        }
-
-        .del-row-btn {
-          background: none;
-          border: none;
-          color: #ef4444;
-          cursor: pointer;
-          opacity: 0.6;
-        }
-
-        .del-row-btn:hover {
-          opacity: 1;
-        }
-
-        .modal-overlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(0,0,0,0.7);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 2000;
-        }
-
-        .modal-card {
-          background: var(--bg-card);
-          border: 1px solid var(--border);
-          border-radius: 16px;
-          padding: 32px;
-          text-align: center;
-          max-width: 380px;
-        }
+        .admin-actions { display: flex; gap: 8px; justify-content: flex-start; }
+        .action-btn { border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-size: 10px; font-weight: 900; text-transform: uppercase; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; }
+        .btn-approve { background: #10b981; color: white; box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.3); }
+        .btn-reject { background: #ef4444; color: white; box-shadow: 0 4px 14px 0 rgba(239, 68, 68, 0.3); }
+        .action-btn:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.1); }
+        .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
       `}</style>
 
-      {/* Toolbar */}
-      <header className="crm-toolbar">
-        <div className="toolbar-left">
-          <div className="brand">
-            <TableIcon size={20} />
-            <span>CRM AI Engine</span>
+      <div className="leave-form-card">
+        <h3>Apply for Leave</h3>
+        <form onSubmit={handleSubmit} className="form-grid">
+          <div className="input-group">
+            <label>Leave Date</label>
+            <input type="date" className="leave-input" value={formData.Date} onChange={(e) => setFormData({...formData, Date: e.target.value})} required />
           </div>
-          <button className="tool-btn primary" onClick={addRow}>
-            <Plus size={16} /> Add Row
-          </button>
-          <button className="tool-btn" onClick={exportToExcel}>
-            <Download size={16} /> Export
-          </button>
-          <label className="tool-btn">
-            <Upload size={16} /> Import
-            <input type="file" hidden accept=".xlsx,.xls,.csv" onChange={handleImportExcel} />
-          </label>
-          <label className={`tool-btn ${isParsing ? 'loading' : ''}`}>
-            {isParsing ? <Loader2 size={16} className="spin" /> : <FileText size={16} />}
-            <span>{isParsing ? "Parsing..." : "Parse Resumes"}</span>
-            <input type="file" hidden multiple accept=".pdf,.docx" onChange={handleAiResumeUpload} disabled={isParsing} />
-          </label>
-        </div>
-        <div className="toolbar-right">
-          <div className={`status-tag ${isAutoSaving ? 'saving' : 'saved'}`}>
-            {isAutoSaving ? <Save size={12} className="spin" /> : <CheckCircle size={12} />}
-            {isAutoSaving ? "Saving..." : "All Changes Saved"}
+          <div className="input-group">
+            <label>Reason for Absence</label>
+            <input type="text" className="leave-input" placeholder="e.g. Family Emergency" value={formData.Reason} onChange={(e) => setFormData({...formData, Reason: e.target.value})} required />
           </div>
-          <button className="tool-btn danger" onClick={() => setIsFormatModalOpen(true)}>
-            <AlertTriangle size={16} />
+          <button type="submit" className="action-btn" style={{background: '#7c3aed', padding: '12px', width: '100%'}} disabled={loading}>
+            {loading ? "WAIT..." : "SUBMIT"}
           </button>
-        </div>
-      </header>
-
-      {/* Formula Bar */}
-      <div className="formula-bar">
-        <div className="cell-id">
-          {String.fromCharCode(65 + selectedCell.c)}{selectedCell.r + 1}
-        </div>
-        <div className="fx-label">fx</div>
-        <input
-          className="formula-input"
-          value={tableData[selectedCell.r]?.[selectedCell.c] || ""}
-          onChange={(e) => handleCellChange(selectedCell.r, selectedCell.c, e.target.value)}
-        />
+        </form>
       </div>
 
-      {/* Table - Fixed Alignment */}
-      <div className="grid-viewport">
-        <table className="excel-table">
+      <div className="leave-table-card">
+        <h3>Leave History & Requests</h3>
+        <table className="custom-table">
           <thead>
             <tr>
-              <th className="row-number-header">#</th>
-              {colHeaders.map((_, c) => (
-                <Resizable
-                  key={c}
-                  width={colWidths[c] || 160}
-                  height={0}
-                  onResize={onResize(c)}
-                  minConstraints={[100, 0]}
-                >
-                  <th
-                    style={{
-                      width: colWidths[c] || 160,
-                      minWidth: colWidths[c] || 160,
-                      maxWidth: colWidths[c] || 160,
-                    }}
-                    onClick={() => handleColumnHeaderClick(c)}
-                    className={selectedCols.includes(c) ? "selected-column-header" : ""}
-                  >
-                    <div className="header-cell">
-                      <input
-                        className="header-edit-input"
-                        value={colHeaders[c] || ""}
-                        placeholder={`Field ${c + 1}`}
-                        onClick={(e) => e.stopPropagation()}
-                        onChange={(e) => handleHeaderChange(c, e.target.value)}
-                      />
-                      <div className="header-actions">
-                        <button onClick={(e) => { e.stopPropagation(); insertColumn(c); }}>+</button>
-                        <button onClick={(e) => { e.stopPropagation(); deleteColumn(c); }}>
-                          <X size={10} />
-                        </button>
-                      </div>
-                    </div>
-                  </th>
-                </Resizable>
-              ))}
-              <th className="actions-header">ACTIONS</th>
+              <th>Date</th>
+              <th>Employee Email</th>
+              <th>Reason</th>
+              <th>Status</th>
+              {(userRole === "Admin" || userRole === "SuperAdmin") && <th>Actions</th>}
             </tr>
           </thead>
           <tbody>
-            {tableData.map((row, r) => (
-              <tr key={r}>
-                <td className="row-number-cell">{r + 1}</td>
-                {row.map((cell, c) => (
-                  <td
-                    key={c}
-                    style={{
-                      width: colWidths[c] || 160,
-                      minWidth: colWidths[c] || 160,
-                      maxWidth: colWidths[c] || 160,
-                    }}
-                    className={selectedCell.r === r && selectedCell.c === c ? "active-cell" : ""}
-                    onClick={() => setSelectedCell({ r, c })}
-                  >
-                    <input
-                      className="cell-editor"
-                      value={cell || ""}
-                      onChange={(e) => handleCellChange(r, c, e.target.value)}
-                    />
-                  </td>
-                ))}
-                <td className="row-action-cell">
-                  <button className="del-row-btn" onClick={() => deleteRow(r)}>
-                    <Trash2 size={14} />
-                  </button>
+            {leaves.map((leave) => (
+              <tr key={leave._id}>
+                <td style={{fontWeight: 'bold'}}>{leave.Date}</td>
+                <td style={{color: '#94a3b8'}}>{leave.EmployeeEmail}</td>
+                <td>{leave.Reason}</td>
+                <td>
+                  <span className={`status-badge status-${(leave.Status || 'submitted').toLowerCase()}`}>
+                    {leave.Status || 'Submitted'}
+                  </span>
                 </td>
+                {(userRole === "Admin" || userRole === "SuperAdmin") && (
+                  <td>
+                    {/* Only show buttons if the status is still 'Submitted' */}
+                    {(!leave.Status || leave.Status === "Submitted") ? (
+                      <div className="admin-actions">
+                        <button 
+                          disabled={updatingId === leave._id}
+                          onClick={() => handleStatusUpdate(leave._id, 'Approved')} 
+                          className="action-btn btn-approve">
+                          Approve
+                        </button>
+                        <button 
+                          disabled={updatingId === leave._id}
+                          onClick={() => handleStatusUpdate(leave._id, 'Rejected')} 
+                          className="action-btn btn-reject">
+                          Reject
+                        </button>
+                      </div>
+                    ) : (
+                      <span style={{color: '#94a3b8', fontSize: '11px', fontStyle: 'italic'}}>Processed</span>
+                    )}
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-
-      {/* Reset Modal */}
-      {isFormatModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-card">
-            <AlertTriangle size={48} color="#ef4444" />
-            <h2>Reset Table</h2>
-            <p>This action will permanently clear all data.</p>
-            <input
-              type="text"
-              placeholder="Type FORMAT to confirm"
-              value={formatConfirmText}
-              onChange={(e) => setFormatConfirmText(e.target.value)}
-              style={{ width: "100%", margin: "16px 0", padding: "10px", borderRadius: "8px", border: "1px solid var(--border)" }}
-            />
-            <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
-              <button onClick={() => setIsFormatModalOpen(false)}>Cancel</button>
-              <button className="confirm-btn" onClick={triggerReset} style={{ background: "#ef4444", color: "white" }}>
-                Wipe Data
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
+
+export default LeaveManagement;
