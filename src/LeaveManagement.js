@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 
-// 1. Setup API with Authorization (Essential for your 'auth' middleware)
+// 1. Setup API with FIXED baseURL
+// By using "/api", it correctly targets your Express routes without doubling the prefix
 const api = axios.create({
-  baseURL: "https://mywebsite-im3c.onrender.com/api"
+  baseURL: "/api"
 });
 
 // Interceptor to attach the token automatically
@@ -18,10 +19,10 @@ function LeaveManagement() {
   const [formData, setFormData] = useState({ Date: "", Reason: "" });
   const [loading, setLoading] = useState(false);
 
-  // 2. FETCH LEAVES
+  // 2. FETCH LEAVES - Path changed from "/api/leaves" to "/leaves"
   const fetchLeaves = useCallback(async () => {
     try {
-      const res = await api.get("/api/leaves");
+      const res = await api.get("/leaves");
       setLeaves(res.data);
     } catch (err) {
       console.error("Failed to fetch leaves", err);
@@ -32,12 +33,12 @@ function LeaveManagement() {
     fetchLeaves();
   }, [fetchLeaves]);
 
-  // 3. SUBMIT LEAVE REQUEST
+  // 3. SUBMIT LEAVE REQUEST - Path changed from "/api/leaves" to "/leaves"
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await api.post("/api/leaves", formData);
+      await api.post("/leaves", formData);
       setFormData({ Date: "", Reason: "" }); // Reset form
       fetchLeaves(); // Refresh list
       alert("Leave applied successfully!");
@@ -53,7 +54,7 @@ function LeaveManagement() {
       <style>{`
         .leave-mgmt-container { padding: 40px; }
         
-        /* FORM STYLING (Matched to your 'Add Employee' style) */
+        /* FORM STYLING */
         .leave-form-card { 
           background: #1a1935; border: 1px solid #2d2b55; 
           padding: 30px; border-radius: 20px; margin-bottom: 30px; 
