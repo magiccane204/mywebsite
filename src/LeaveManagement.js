@@ -14,9 +14,8 @@ function LeaveManagement() {
   const [formData, setFormData] = useState({ Date: "", Reason: "" });
   const [loading, setLoading] = useState(false);
   
-  // Get user role from local storage or your auth state
-  // This assumes you save the role during login
-  const userRole = localStorage.getItem("role"); 
+  // ✅ FIXED: Changed 'role' to 'userRole' to match your local storage
+  const userRole = localStorage.getItem("userRole"); 
 
   const fetchLeaves = useCallback(async () => {
     try {
@@ -46,20 +45,20 @@ function LeaveManagement() {
     }
   };
 
-  // --- NEW: Admin Action Handler ---
   const handleStatusUpdate = async (leaveId, newStatus) => {
     try {
+      // ✅ This sends the update to the backend route we added
       await api.put(`/leaves/status/${leaveId}`, { status: newStatus });
-      fetchLeaves(); // Refresh list to show new status
+      fetchLeaves(); 
     } catch (err) {
-      alert("Failed to update status. Check permissions.");
+      alert("Failed to update status. Check backend console.");
     }
   };
 
   return (
     <div className="leave-mgmt-container">
       <style>{`
-        .leave-mgmt-container { padding: 40px; color: #e2e8f0; }
+        .leave-mgmt-container { padding: 40px; color: #f8fafc; }
         .leave-form-card, .leave-table-card { 
           background: #1a1935; border: 1px solid #2d2b55; 
           padding: 30px; border-radius: 20px; margin-bottom: 30px; 
@@ -68,20 +67,20 @@ function LeaveManagement() {
         .input-group label { font-size: 11px; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px; display: block; }
         .leave-input { background: #0b0a1a; border: 1px solid #2d2b55; color: white; padding: 12px; border-radius: 8px; width: 100%; box-sizing: border-box; }
         
-        .custom-table { width: 100%; border-collapse: collapse; color: #f8fafc; }
+        .custom-table { width: 100%; border-collapse: collapse; }
         .custom-table th { text-align: left; padding: 15px; font-size: 11px; color: #94a3b8; text-transform: uppercase; border-bottom: 1px solid #2d2b55; }
-        .custom-table td { padding: 15px; font-size: 14px; border-bottom: 1px solid #2d2b55; color: #cbd5e1; }
+        .custom-table td { padding: 15px; font-size: 14px; border-bottom: 1px solid #2d2b55; color: #e2e8f0; }
         
-        .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; text-transform: uppercase; }
-        .status-submitted { background: rgba(59, 130, 246, 0.2); color: #3b82f6; }
-        .status-approved { background: rgba(16, 185, 129, 0.2); color: #10b981; }
-        .status-rejected { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+        .status-badge { padding: 5px 12px; border-radius: 20px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+        .status-submitted { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+        .status-approved { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .status-rejected { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
 
-        .admin-actions { display: flex; gap: 8px; }
-        .action-btn { border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; transition: 0.2s; }
-        .btn-approve { background: #10b981; color: white; }
-        .btn-reject { background: #ef4444; color: white; }
-        .action-btn:hover { opacity: 0.8; transform: translateY(-1px); }
+        .admin-actions { display: flex; gap: 10px; }
+        .action-btn { border: none; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: 900; text-transform: uppercase; transition: all 0.2s ease; }
+        .btn-approve { background: #10b981; color: white; box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.3); }
+        .btn-reject { background: #ef4444; color: white; box-shadow: 0 4px 14px 0 rgba(239, 68, 68, 0.3); }
+        .action-btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
       `}</style>
 
       <div className="leave-form-card">
@@ -92,11 +91,11 @@ function LeaveManagement() {
             <input type="date" className="leave-input" value={formData.Date} onChange={(e) => setFormData({...formData, Date: e.target.value})} required />
           </div>
           <div className="input-group">
-            <label>Reason</label>
-            <input type="text" className="leave-input" placeholder="e.g. Sick Leave" value={formData.Reason} onChange={(e) => setFormData({...formData, Reason: e.target.value})} required />
+            <label>Reason for Absence</label>
+            <input type="text" className="leave-input" placeholder="e.g. Family Emergency" value={formData.Reason} onChange={(e) => setFormData({...formData, Reason: e.target.value})} required />
           </div>
-          <button type="submit" className="apply-btn" style={{background: '#7c3aed', color: 'white', padding: '12px', border: 'none', borderRadius: '8px', cursor: 'pointer'}} disabled={loading}>
-            {loading ? "..." : "Submit"}
+          <button type="submit" className="action-btn" style={{background: '#7c3aed', padding: '12px'}} disabled={loading}>
+            {loading ? "WAIT..." : "SUBMIT"}
           </button>
         </form>
       </div>
@@ -107,23 +106,25 @@ function LeaveManagement() {
           <thead>
             <tr>
               <th>Date</th>
-              <th>Employee</th>
+              <th>Employee Email</th>
               <th>Reason</th>
               <th>Status</th>
+              {/* ✅ Power Check */}
               {(userRole === "Admin" || userRole === "SuperAdmin") && <th>Actions</th>}
             </tr>
           </thead>
           <tbody>
             {leaves.map((leave) => (
               <tr key={leave._id}>
-                <td>{leave.Date}</td>
-                <td>{leave.EmployeeEmail}</td>
+                <td style={{fontWeight: 'bold'}}>{leave.Date}</td>
+                <td style={{color: '#94a3b8'}}>{leave.EmployeeEmail}</td>
                 <td>{leave.Reason}</td>
                 <td>
                   <span className={`status-badge status-${(leave.Status || 'submitted').toLowerCase()}`}>
                     {leave.Status || 'Submitted'}
                   </span>
                 </td>
+                {/* ✅ Power Check */}
                 {(userRole === "Admin" || userRole === "SuperAdmin") && (
                   <td>
                     <div className="admin-actions">
