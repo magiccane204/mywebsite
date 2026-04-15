@@ -1324,7 +1324,34 @@ console.error("GET_LEAVES_ERROR",err);
 res.status(500).json({message:"Failed to fetch leaves"});
 }
 });
+// UPDATE LEAVE STATUS (Admin/SuperAdmin Only)
+app.put("/api/leaves/status/:id", auth, async (req, res) => {
+  try {
+    // 1. Permission check
+    if (req.user.role !== "Admin" && req.user.role !== "SuperAdmin") {
+      return res.status(403).json({ message: "Not authorized to change status" });
+    }
 
+    const { status } = req.body;
+    if (!["Approved", "Rejected", "Submitted"].includes(status)) {
+      return res.status(400).json({ message: "Invalid status" });
+    }
+
+    // 2. Find and Update
+    const updatedLeave = await Leave.findOneAndUpdate(
+      { _id: req.params.id, Company: req.user.company },
+      { $set: { Status: status } },
+      { new: true }
+    );
+
+    if (!updatedLeave) return res.status(404).json({ message: "Leave not found" });
+
+    res.json({ success: true, leave: updatedLeave });
+  } catch (err) {
+    console.error("LEAVE_STATUS_ERROR", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
 app.get("/api/tasks", auth, async (req, res) => {
 
   try {
