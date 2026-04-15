@@ -7,7 +7,6 @@ import {
   Trash2, AlertTriangle, Save, CheckCircle,
   X, Table as TableIcon, Loader2
 } from "lucide-react";
-import "./ExcelTable.css";
 
 export default function ExcelTable({ onColumnSelect }) {
   const [tableData, setTableData] = useState([Array(10).fill("")]);
@@ -25,7 +24,6 @@ export default function ExcelTable({ onColumnSelect }) {
     const savedData = localStorage.getItem("crm-data");
     const savedHeaders = localStorage.getItem("crm-headers");
     const savedWidths = localStorage.getItem("crm-widths");
-
     if (savedData) {
       try {
         const parsed = JSON.parse(savedData);
@@ -34,7 +32,6 @@ export default function ExcelTable({ onColumnSelect }) {
     } else {
       setTableData(Array(15).fill(null).map(() => Array(10).fill("")));
     }
-
     if (savedHeaders) setColHeaders(JSON.parse(savedHeaders));
     if (savedWidths) setColWidths(JSON.parse(savedWidths));
   }, []);
@@ -51,152 +48,10 @@ export default function ExcelTable({ onColumnSelect }) {
     return () => clearTimeout(timer);
   }, [tableData, colHeaders, colWidths]);
 
-  // Import Excel/CSV
-  const handleImportExcel = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      const bstr = evt.target.result;
-      const wb = XLSX.read(bstr, { type: "binary" });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const data = XLSX.utils.sheet_to_json(ws, { header: 1 });
-      if (data.length > 0) {
-        setColHeaders(data[0]);
-        setTableData(data.slice(1).map(row => [...row, ...Array(10 - row.length).fill("")]));
-      }
-    };
-    reader.readAsBinaryString(file);
-    e.target.value = null;
-  };
-
-  // AI Resume Upload
-  const handleAiResumeUpload = async (e) => {
-    const files = e.target.files;
-    if (!files.length) return;
-    setIsParsing(true);
-    const formData = new FormData();
-    for (const file of files) formData.append("resumes", file);
-
-    try {
-      const token = localStorage.getItem("token");
-      const res = await axios.post("/api/resume/extract", formData, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (res.data.success) {
-        const newRows = res.data.resumes
-          .filter(r => r.success)
-          .map(r => [
-            r.data.name || "N/A",
-            r.data.email || "N/A",
-            r.data.phone || "N/A",
-            r.data.linkedIn || "N/A",
-            r.data.skills || "N/A",
-            r.data.experience || "N/A",
-            r.data.education || "N/A",
-            ...Array(3).fill("N/A")
-          ]);
-
-        if (newRows.length > 0) {
-          setTableData(prev => [...newRows, ...prev]);
-        }
-      }
-    } catch (err) {
-      alert("AI Resume parsing failed. Please try again.");
-    } finally {
-      setIsParsing(false);
-      e.target.value = null;
-    }
-  };
-
-  // Column selection for charts
-  const handleColumnHeaderClick = (colIndex) => {
-    const nextSelected = selectedCols.includes(colIndex)
-      ? selectedCols.filter(i => i !== colIndex)
-      : [...selectedCols, colIndex];
-
-    setSelectedCols(nextSelected);
-
-    const chartData = tableData.map((row, rIdx) => {
-      const dataPoint = { name: row[0] || `Row ${rIdx + 1}` };
-      nextSelected.forEach(idx => {
-        const key = colHeaders[idx] || `Field ${idx + 1}`;
-        const val = parseFloat(row[idx]) || 0;
-        dataPoint[key] = val;
-      });
-      return dataPoint;
-    }).filter(point => nextSelected.some(idx => point[colHeaders[idx] || `Field ${idx + 1}`] !== 0));
-
-    const activeLabels = nextSelected.map(idx => colHeaders[idx] || `Field ${idx + 1}`);
-    if (onColumnSelect) onColumnSelect(chartData, activeLabels);
-  };
-
-  const handleCellChange = (r, c, value) => {
-    const newData = [...tableData];
-    newData[r][c] = value;
-    setTableData(newData);
-  };
-
-  const handleHeaderChange = (c, value) => {
-    const newHeaders = [...colHeaders];
-    while (newHeaders.length <= c) newHeaders.push("");
-    newHeaders[c] = value;
-    setColHeaders(newHeaders);
-  };
-
-  const addRow = () => {
-    const numCols = tableData[0]?.length || 10;
-    setTableData([...tableData, Array(numCols).fill("")]);
-  };
-
-  const deleteRow = (rowIndex) => {
-    if (tableData.length <= 1) return;
-    setTableData(tableData.filter((_, i) => i !== rowIndex));
-  };
-
-  const insertColumn = (cIndex) => {
-    const newData = tableData.map(row => {
-      const newRow = [...row];
-      newRow.splice(cIndex + 1, 0, "");
-      return newRow;
-    });
-    const newHeaders = [...colHeaders];
-    newHeaders.splice(cIndex + 1, 0, "");
-    setColHeaders(newHeaders);
-    setTableData(newData);
-  };
-
-  const deleteColumn = (cIndex) => {
-    if (tableData[0].length <= 1) return;
-    const newData = tableData.map(row => row.filter((_, i) => i !== cIndex));
-    const newHeaders = colHeaders.filter((_, i) => i !== cIndex);
-    setColHeaders(newHeaders);
-    setTableData(newData);
-    setSelectedCols(prev => prev.filter(i => i !== cIndex));
-  };
+  // ... (keep all your existing functions: handleImportExcel, handleAiResumeUpload, etc.)
 
   const onResize = (index) => (e, { size }) => {
     setColWidths(prev => ({ ...prev, [index]: size.width }));
-  };
-
-  const exportToExcel = () => {
-    const exportData = [colHeaders, ...tableData];
-    const ws = XLSX.utils.aoa_to_sheet(exportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "CRM_Data");
-    XLSX.writeFile(wb, `CRM_Export_${new Date().toISOString().slice(0,10)}.xlsx`);
-  };
-
-  const triggerReset = () => {
-    if (formatConfirmText === "FORMAT") {
-      setTableData(Array(15).fill(null).map(() => Array(10).fill("")));
-      setColHeaders(["Name", "Email", "Phone", "LinkedIn", "Skills", "Experience", "Education"]);
-      setColWidths({});
-      setSelectedCols([]);
-      setIsFormatModalOpen(false);
-      setFormatConfirmText("");
-    }
   };
 
   return (
@@ -225,14 +80,6 @@ export default function ExcelTable({ onColumnSelect }) {
           display: flex;
           align-items: center;
           gap: 12px;
-        }
-
-        .brand {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-weight: 700;
-          font-size: 1.1rem;
         }
 
         .tool-btn {
@@ -270,16 +117,6 @@ export default function ExcelTable({ onColumnSelect }) {
           font-weight: 600;
         }
 
-        .status-tag.saved {
-          background: #10b98122;
-          color: #10b981;
-        }
-
-        .status-tag.saving {
-          background: #eab30822;
-          color: #eab308;
-        }
-
         .formula-bar {
           display: flex;
           align-items: center;
@@ -297,18 +134,24 @@ export default function ExcelTable({ onColumnSelect }) {
           background: var(--bg-card);
         }
 
+        /* FIXED TABLE STYLES */
         .excel-table {
           width: 100%;
           border-collapse: collapse;
+          table-layout: fixed;           /* Important for alignment */
           background: var(--bg-card);
-          color: var(--text-main);
         }
 
-        .excel-table th, .excel-table td {
+        .excel-table th,
+        .excel-table td {
           border: 1px solid var(--border);
-          padding: 8px;
+          padding: 8px 10px;
           text-align: left;
           vertical-align: middle;
+          box-sizing: border-box;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
         .excel-table th {
@@ -321,7 +164,29 @@ export default function ExcelTable({ onColumnSelect }) {
 
         .excel-table td {
           background: var(--bg-card);
+        }
+
+        /* Column width enforcement */
+        .excel-table th.col-resizable,
+        .excel-table td.col-resizable {
           min-width: 120px;
+        }
+
+        .row-number-header,
+        .row-number-cell {
+          width: 50px !important;
+          min-width: 50px !important;
+          max-width: 50px !important;
+          text-align: center;
+          background: var(--bg-sidebar);
+        }
+
+        .actions-header,
+        .row-action-cell {
+          width: 60px !important;
+          min-width: 60px !important;
+          max-width: 60px !important;
+          text-align: center;
         }
 
         .cell-editor {
@@ -362,13 +227,6 @@ export default function ExcelTable({ onColumnSelect }) {
           box-shadow: inset 0 0 0 2px var(--accent);
         }
 
-        .row-number-cell, .row-number-header, .actions-header {
-          background: var(--bg-sidebar);
-          text-align: center;
-          width: 50px;
-          font-weight: 600;
-        }
-
         .del-row-btn {
           background: none;
           border: none;
@@ -401,55 +259,17 @@ export default function ExcelTable({ onColumnSelect }) {
         }
       `}</style>
 
-      {/* Toolbar */}
+      {/* Toolbar - keep as is */}
       <header className="crm-toolbar">
-        <div className="toolbar-left">
-          <div className="brand">
-            <TableIcon size={20} />
-            <span>CRM AI Engine</span>
-          </div>
-          <button className="tool-btn primary" onClick={addRow}>
-            <Plus size={16} /> Add Row
-          </button>
-          <button className="tool-btn" onClick={exportToExcel}>
-            <Download size={16} /> Export
-          </button>
-          <label className="tool-btn">
-            <Upload size={16} /> Import
-            <input type="file" hidden accept=".xlsx,.xls,.csv" onChange={handleImportExcel} />
-          </label>
-          <label className={`tool-btn ${isParsing ? 'loading' : ''}`}>
-            {isParsing ? <Loader2 size={16} className="spin" /> : <FileText size={16} />}
-            <span>{isParsing ? "Parsing..." : "Parse Resumes"}</span>
-            <input type="file" hidden multiple accept=".pdf,.docx" onChange={handleAiResumeUpload} disabled={isParsing} />
-          </label>
-        </div>
-
-        <div className="toolbar-right">
-          <div className={`status-tag ${isAutoSaving ? 'saving' : 'saved'}`}>
-            {isAutoSaving ? <Save size={12} className="spin" /> : <CheckCircle size={12} />}
-            {isAutoSaving ? "Saving..." : "All Changes Saved"}
-          </div>
-          <button className="tool-btn danger" onClick={() => setIsFormatModalOpen(true)}>
-            <AlertTriangle size={16} />
-          </button>
-        </div>
+        {/* ... your existing toolbar code ... */}
       </header>
 
-      {/* Formula Bar */}
+      {/* Formula Bar - keep as is */}
       <div className="formula-bar">
-        <div className="cell-id">
-          {String.fromCharCode(65 + selectedCell.c)}{selectedCell.r + 1}
-        </div>
-        <div className="fx-label">fx</div>
-        <input
-          className="formula-input"
-          value={tableData[selectedCell.r]?.[selectedCell.c] || ""}
-          onChange={(e) => handleCellChange(selectedCell.r, selectedCell.c, e.target.value)}
-        />
+        {/* ... your existing formula bar ... */}
       </div>
 
-      {/* Table */}
+      {/* FIXED TABLE */}
       <div className="grid-viewport">
         <table className="excel-table">
           <thead>
@@ -464,7 +284,12 @@ export default function ExcelTable({ onColumnSelect }) {
                   minConstraints={[100, 0]}
                 >
                   <th
-                    style={{ width: colWidths[c] || 160 }}
+                    className="col-resizable"
+                    style={{
+                      width: colWidths[c] || 160,
+                      minWidth: colWidths[c] || 160,
+                      maxWidth: colWidths[c] || 160,
+                    }}
                     onClick={() => handleColumnHeaderClick(c)}
                     className={selectedCols.includes(c) ? "selected-column-header" : ""}
                   >
@@ -478,7 +303,9 @@ export default function ExcelTable({ onColumnSelect }) {
                       />
                       <div className="header-actions">
                         <button onClick={(e) => { e.stopPropagation(); insertColumn(c); }}>+</button>
-                        <button onClick={(e) => { e.stopPropagation(); deleteColumn(c); }}><X size={10} /></button>
+                        <button onClick={(e) => { e.stopPropagation(); deleteColumn(c); }}>
+                          <X size={10} />
+                        </button>
                       </div>
                     </div>
                   </th>
@@ -494,7 +321,12 @@ export default function ExcelTable({ onColumnSelect }) {
                 {row.map((cell, c) => (
                   <td
                     key={c}
-                    className={selectedCell.r === r && selectedCell.c === c ? "active-cell" : ""}
+                    className={`col-resizable ${selectedCell.r === r && selectedCell.c === c ? "active-cell" : ""}`}
+                    style={{
+                      width: colWidths[c] || 160,
+                      minWidth: colWidths[c] || 160,
+                      maxWidth: colWidths[c] || 160,
+                    }}
                     onClick={() => setSelectedCell({ r, c })}
                   >
                     <input
@@ -515,27 +347,10 @@ export default function ExcelTable({ onColumnSelect }) {
         </table>
       </div>
 
-      {/* Reset Modal */}
+      {/* Reset Modal - keep as is */}
       {isFormatModalOpen && (
         <div className="modal-overlay">
-          <div className="modal-card">
-            <AlertTriangle size={48} color="#ef4444" />
-            <h2>Reset Table</h2>
-            <p>This action will permanently clear all data.</p>
-            <input
-              type="text"
-              placeholder="Type FORMAT to confirm"
-              value={formatConfirmText}
-              onChange={(e) => setFormatConfirmText(e.target.value)}
-              style={{ width: "100%", margin: "16px 0", padding: "10px", borderRadius: "8px", border: "1px solid var(--border)" }}
-            />
-            <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
-              <button onClick={() => setIsFormatModalOpen(false)}>Cancel</button>
-              <button className="confirm-btn" onClick={triggerReset} style={{ background: "#ef4444", color: "white" }}>
-                Wipe Data
-              </button>
-            </div>
-          </div>
+          {/* ... your modal code ... */}
         </div>
       )}
     </div>
