@@ -178,6 +178,7 @@ app.post("/api/signup", async (req, res) => {
 
 });
 // Change Role - SuperAdmin Only + Temporary
+// Change Role - SuperAdmin Only + Temporary
 app.put("/api/employees/change-role", auth, async (req, res) => {
   if (req.user.role !== "SuperAdmin") {
     return res.status(403).json({ message: "Only SuperAdmin can change roles" });
@@ -188,22 +189,22 @@ app.put("/api/employees/change-role", auth, async (req, res) => {
   if (!employeeId || !newRole || !durationDays) {
     return res.status(400).json({ message: "Missing required fields" });
   }
-
   if (!["Employee", "Admin", "SuperAdmin"].includes(newRole)) {
     return res.status(400).json({ message: "Invalid role" });
   }
+  if (!mongoose.Types.ObjectId.isValid(employeeId)) {
+    return res.status(400).json({ message: "Invalid employee ID" });
+  }
 
   try {
-    const employee = await EmployeesModel.findById(employeeId);
-    if (!employee || employee.Company !== req.user.company) {
-      return res.status(404).json({ message: "Employee not found" });
-    }
-
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + Number(durationDays));
 
-    await EmployeesModel.updateOne(
-      { _id: employeeId },
+    const result = await EmployeesModel.updateOne(
+      {
+        _id: employeeId,
+        Company: req.user.company
+      },
       {
         $set: {
           Role: newRole,
@@ -213,10 +214,22 @@ app.put("/api/employees/change-role", auth, async (req, res) => {
       }
     );
 
+    if (result.matchedCount === 0) {
+      return res.status(404).json({
+        message: "Employee not found or does not belong to your company"
+      });
+    }
+
+    if (result.modifiedCount === 0) {
+      return res.json({
+        success: true,
+        message: "Role was already set to this value (no change)"
+      });
+    }
+
     logAudit("ROLE_CHANGED", req.user.email, {
       employeeId,
-      from: employee.Role,
-      to: newRole,
+      newRole,
       durationDays
     });
 
@@ -402,25 +415,25 @@ app.post("/api/verify-otp", async (req, res) => {
 });
 
 const employeeSchema = new mongoose.Schema({
-
   Name: { type: String, required: true },
-
   Email: { type: String, required: true },
-
   Salary: { type: Number, required: true },
-
   "Applied Position": { type: String, required: true },
-
   Company: { type: String, required: true },
-
+  Role: {
+    type: String,
+    default: "Employee",
+    enum: ["Employee", "Admin", "SuperAdmin"],
+    required: true
+  },
+  roleExpiresAt: {
+    type: Date,
+    default: null
+  },
   locked: { type: Boolean, default: false },
-
   createdAt: { type: Date, default: Date.now },
-
   updatedAt: { type: Date, default: Date.now },
-
 });
-
 employeeSchema.index(
   { Email: 1, Company: 1 },
   { unique: true }
@@ -519,30 +532,23 @@ console.error("TERMINATION EMAIL FAILED:", err);
 }
 
 
-app.post("/api/Employees", auth, async (req, res) => {
-
+app.post("/api/employees", auth, async (req, res) => {
   if (req.user.role === "Employee")
     return res.status(403).json({ message: "Forbidden" });
 
   const { error, value } = addEmployeeSchema.validate(req.body);
-
   if (error)
-    return res.status(400).json({
-      message: error.details[0].message,
-    });
+    return res.status(400).json({ message: error.details[0].message });
 
   try {
-
     const employee = await EmployeesModel.create({
-
       ...value,
-
       Company: req.user.company,
-
-      createdAt: new Date(),
-
+      Role: "Employee",
+      roleExpiresAt: null,
       locked: false,
-
+      createdAt: new Date(),
+      updatedAt: new Date()
     });
 
     sendAppointmentEmail({
@@ -559,22 +565,13 @@ app.post("/api/Employees", auth, async (req, res) => {
       success: true,
       id: employee._id,
     });
-
   } catch (err) {
-
     if (err.code === 11000)
-      return res.status(409).json({
-        message: "Employee already exists",
-      });
+      return res.status(409).json({ message: "Employee already exists" });
 
     console.error("ADD_EMPLOYEE_ERROR", err);
-
-    return res.status(500).json({
-      message: "Something went wrong",
-    });
-
+    return res.status(500).json({ message: "Something went wrong" });
   }
-
 });
 
 
@@ -1555,7 +1552,31 @@ app.get(/^\/(?!api).*/, (req, res) => {
   res.sendFile(path.join(frontendPath, "index.html"));
 });
 
+// ================= AUTO EXPIRE TEMPORARY ROLES =================
+setInterval(async () => {
+  try {
+    const now = new Date();
+    const result = await EmployeesModel.updateMany(
+      {
+        roleExpiresAt: { $lte: now },
+        Role: { $ne: "Employee" }
+      },
+      {
+        $set: {
+          Role: "Employee",
+          roleExpiresAt: null,
+          updatedAt: now
+        }
+      }
+    );
 
+    if (result.modifiedCount > 0) {
+      console.log(`✅ Auto-expired ${result.modifiedCount} temporary role(s)`);
+    }
+  } catch (err) {
+    console.error("AUTO_ROLE_EXPIRATION_ERROR:", err);
+  }
+}, 15 * 60 * 1000); // every 15 minutes
 async function startServer() {
 
   await mongoose.connect(MONGO_URI);
