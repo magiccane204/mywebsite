@@ -179,6 +179,7 @@ app.post("/api/signup", async (req, res) => {
 });
 // Change Role - SuperAdmin Only + Temporary
 // Change Role - SuperAdmin Only + Temporary
+// Change Role - SuperAdmin Only + Temporary
 app.put("/api/employees/change-role", auth, async (req, res) => {
   if (req.user.role !== "SuperAdmin") {
     return res.status(403).json({ message: "Only SuperAdmin can change roles" });
@@ -189,9 +190,11 @@ app.put("/api/employees/change-role", auth, async (req, res) => {
   if (!employeeId || !newRole || !durationDays) {
     return res.status(400).json({ message: "Missing required fields" });
   }
+
   if (!["Employee", "Admin", "SuperAdmin"].includes(newRole)) {
     return res.status(400).json({ message: "Invalid role" });
   }
+
   if (!mongoose.Types.ObjectId.isValid(employeeId)) {
     return res.status(400).json({ message: "Invalid employee ID" });
   }
@@ -200,7 +203,8 @@ app.put("/api/employees/change-role", auth, async (req, res) => {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + Number(durationDays));
 
-    const result = await EmployeesModel.updateOne(
+    // 1. Update EmployeesModel
+    const employeeResult = await EmployeesModel.updateOne(
       {
         _id: employeeId,
         Company: req.user.company
@@ -214,29 +218,45 @@ app.put("/api/employees/change-role", auth, async (req, res) => {
       }
     );
 
-    if (result.matchedCount === 0) {
+    if (employeeResult.matchedCount === 0) {
       return res.status(404).json({
         message: "Employee not found or does not belong to your company"
       });
     }
 
-    if (result.modifiedCount === 0) {
-      return res.json({
-        success: true,
-        message: "Role was already set to this value (no change)"
-      });
+    // 2. Get employee email to update users collection
+    const employee = await EmployeesModel.findById(employeeId);
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    // 3. IMPORTANT: Also update the 'users' collection (this affects JWT)
+    const userUpdateResult = await users.updateOne(
+      { Email: employee.Email.toLowerCase() },
+      {
+        $set: {
+          Role: newRole,
+          // Optional: You can also store expiration in users collection if needed
+        }
+      }
+    );
+
+    if (userUpdateResult.matchedCount === 0) {
+      console.warn(`User record not found for email: ${employee.Email} (role updated only in EmployeesModel)`);
     }
 
     logAudit("ROLE_CHANGED", req.user.email, {
       employeeId,
+      employeeEmail: employee.Email,
       newRole,
       durationDays
     });
 
     res.json({
       success: true,
-      message: `Role updated to ${newRole} (expires in ${durationDays} days)`
+      message: `Role updated to ${newRole} for ${employee.Name} (expires in ${durationDays} days)`
     });
+
   } catch (err) {
     console.error("CHANGE_ROLE_ERROR", err);
     res.status(500).json({ message: "Failed to change role" });
@@ -337,55 +357,52 @@ app.post("/api/verify-otp", async (req, res) => {
     const otp = String(req.body.otp || "").trim();
 
     if (!email || !otp) {
-      return res.status(400).json({
-        success: false,
-        message: "Email and OTP required",
-      });
+      return res.status(400).json({ success: false, message: "Email and OTP required" });
     }
 
     const record = await otps.findOne({ Email: email });
-
-    if (!record) {
-      return res.status(401).json({
-        success: false,
-        message: "OTP expired",
-      });
-    }
+    if (!record) return res.status(401).json({ success: false, message: "OTP expired" });
 
     if (record.attempts >= 5) {
-      return res.status(403).json({
-        success: false,
-        message: "Too many attempts",
-      });
+      return res.status(403).json({ success: false, message: "Too many attempts" });
     }
 
     if (record.OTP !== otp) {
-      await otps.updateOne(
-        { Email: email },
-        { $inc: { attempts: 1 } }
-      );
-
-      return res.status(401).json({
-        success: false,
-        message: "Invalid OTP",
-      });
+      await otps.updateOne({ Email: email }, { $inc: { attempts: 1 } });
+      return res.status(401).json({ success: false, message: "Invalid OTP" });
     }
 
-    const user = await users.findOne({ Email: email });
+    // === CRITICAL FIX: Get role from BOTH collections with fallback ===
+    let user = await users.findOne({ Email: email });
 
     if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: "User not found",
-      });
+      return res.status(401).json({ success: false, message: "User not found" });
     }
 
-    // ✅ TOKEN
+    // Check latest role from EmployeesModel (source of truth for roles)
+    const employee = await EmployeesModel.findOne({ 
+      Email: email, 
+      Company: user.Company 
+    });
+
+    const finalRole = employee && employee.Role ? employee.Role : user.Role;
+
+    // Optional: Sync back to users collection if they differ (safety net)
+    if (employee && employee.Role && employee.Role !== user.Role) {
+      console.log(`🔄 Syncing role for ${email}: ${user.Role} → ${employee.Role}`);
+      await users.updateOne(
+        { Email: email },
+        { $set: { Role: employee.Role } }
+      );
+      user.Role = employee.Role; // update local object
+    }
+
+    // ✅ Create new token with the FINAL role
     const token = jwt.sign(
       {
         id: user._id,
         email: user.Email,
-        role: user.Role,
+        role: finalRole,           // ← Use finalRole here
         company: user.Company
       },
       JWT_SECRET,
@@ -403,17 +420,14 @@ app.post("/api/verify-otp", async (req, res) => {
     return res.json({
       success: true,
       token,
-      role: user.Role   // ⭐ IMPORTANT
+      role: finalRole   // ← Return the correct role
     });
 
   } catch (err) {
     console.error("VERIFY_OTP_ERROR", err);
-    return res.status(500).json({
-      message: "Internal server error",
-    });
+    return res.status(500).json({ message: "Internal server error" });
   }
 });
-
 const employeeSchema = new mongoose.Schema({
   Name: { type: String, required: true },
   Email: { type: String, required: true },
@@ -1556,22 +1570,44 @@ app.get(/^\/(?!api).*/, (req, res) => {
 setInterval(async () => {
   try {
     const now = new Date();
-    const result = await EmployeesModel.updateMany(
-      {
-        roleExpiresAt: { $lte: now },
-        Role: { $ne: "Employee" }
-      },
-      {
-        $set: {
-          Role: "Employee",
-          roleExpiresAt: null,
-          updatedAt: now
-        }
-      }
-    );
 
-    if (result.modifiedCount > 0) {
-      console.log(`✅ Auto-expired ${result.modifiedCount} temporary role(s)`);
+    // Find employees whose temporary role expired
+    const expiredEmployees = await EmployeesModel.find({
+      roleExpiresAt: { $lte: now },
+      Role: { $ne: "Employee" }
+    });
+
+    if (expiredEmployees.length > 0) {
+      const emailsToUpdate = expiredEmployees.map(emp => emp.Email.toLowerCase());
+
+      // Update EmployeesModel
+      const result = await EmployeesModel.updateMany(
+        {
+          roleExpiresAt: { $lte: now },
+          Role: { $ne: "Employee" }
+        },
+        {
+          $set: {
+            Role: "Employee",
+            roleExpiresAt: null,
+            updatedAt: now
+          }
+        }
+      );
+
+      // Also sync to users collection
+      if (emailsToUpdate.length > 0) {
+        await users.updateMany(
+          { Email: { $in: emailsToUpdate } },
+          {
+            $set: {
+              Role: "Employee"
+            }
+          }
+        );
+      }
+
+      console.log(`✅ Auto-expired ${result.modifiedCount} temporary role(s) and synced to users collection`);
     }
   } catch (err) {
     console.error("AUTO_ROLE_EXPIRATION_ERROR:", err);
