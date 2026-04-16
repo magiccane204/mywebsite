@@ -242,10 +242,8 @@ app.post("/api/login", rateLimit, async (req, res) => {
     }
 
     const user = await users.findOne({ Email: email });
-
     if (!user) {
       const employee = await EmployeesModel.findOne({ Email: email });
-
       if (employee) {
         return res.status(403).json({
           success: false,
@@ -253,7 +251,6 @@ app.post("/api/login", rateLimit, async (req, res) => {
           message: "Account not activated"
         });
       }
-
       return res.status(401).json({
         success: false,
         message: "User not found"
@@ -262,15 +259,17 @@ app.post("/api/login", rateLimit, async (req, res) => {
 
     let match = false;
 
-    if (user.Role === "SuperAdmin") {
-      const hashedInput = crypto
+    // Try bcrypt first (for all modern users)
+    if (user.Password && user.Password.startsWith("$2")) {
+      match = await bcrypt.compare(password, user.Password);
+    } 
+    // Fallback to SHA256 only for legacy users (you, admin, etc.)
+    else {
+      const sha256Hash = crypto
         .createHash("sha256")
         .update(password)
         .digest("hex");
-
-      if (hashedInput === user.Password) match = true;
-    } else {
-      match = await bcrypt.compare(password, user.Password);
+      match = sha256Hash === user.Password;
     }
 
     if (!match) {
@@ -280,11 +279,22 @@ app.post("/api/login", rateLimit, async (req, res) => {
       });
     }
 
-    // ✅ OTP GENERATION
+    // === Auto-migrate SHA256 → bcrypt on successful login ===
+    if (user.Password && user.Password.length === 64 && !user.Password.startsWith("$2")) {
+      console.log(`🔄 Auto-migrating password for ${email} to bcrypt`);
+      const newHashedPassword = await bcrypt.hash(password, 10);
+      
+      await users.updateOne(
+        { Email: email },
+        { $set: { Password: newHashedPassword } }
+      );
+      
+      console.log(`✅ Password successfully migrated to bcrypt for ${email}`);
+    }
+
+    // OTP flow
     const otp = generate();
-
     await otps.deleteMany({ Email: email });
-
     await otps.insertOne({
       Email: email,
       OTP: otp,
@@ -292,7 +302,6 @@ app.post("/api/login", rateLimit, async (req, res) => {
       createdAt: new Date(),
     });
 
-    // ✅ SEND EMAIL
     await resend.emails.send({
       from: "CRM <noreply@dntcrm.work.gd>",
       to: email,
@@ -304,12 +313,9 @@ app.post("/api/login", rateLimit, async (req, res) => {
       success: true,
       message: "OTP sent"
     });
-
   } catch (err) {
     console.error("LOGIN_ERROR", err);
-    return res.status(500).json({
-      message: "Internal server error"
-    });
+    return res.status(500).json({ message: "Internal server error" });
   }
 });
 app.post("/api/verify-otp", async (req, res) => {
@@ -1133,30 +1139,29 @@ app.put("/api/me/settings", auth, async (req, res) => {
 
 
 app.put("/api/me/password", auth, async (req, res) => {
-
   const { password } = req.body;
-
   if (!password)
     return res.status(400).json({ error: "Password required" });
 
   try {
-
     const hashed = await bcrypt.hash(password, 10);
+    
+    // Use raw collection for consistency with login/signup
+    const result = await users.updateOne(
+      { Email: req.user.email },
+      { $set: { Password: hashed } }
+    );
 
-    await User.findByIdAndUpdate(req.user.id, {
-      Password: hashed
-    });
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
 
-    res.json({ message: "Password updated" });
-
-  } catch {
-
+    res.json({ message: "Password updated successfully" });
+  } catch (err) {
+    console.error("PASSWORD_UPDATE_ERROR", err);
     res.status(500).json({ error: "Failed to update password" });
-
   }
-
 });
-
 
 
 
