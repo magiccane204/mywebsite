@@ -1,85 +1,73 @@
-/* ==================== MODERN EMPLOYEE MANAGEMENT STYLES ==================== */
+/* ==================== MODERN DARK/LIGHT EMPLOYEE MANAGEMENT ==================== */
 
 .Employee-wrapper {
   padding: 32px 24px;
-  max-width: 1400px;
+  max-width: 1450px;
   margin: auto;
-  font-family: "Inter", system-ui, sans-serif;
   background: var(--bg-primary);
   color: var(--text-primary);
-  min-height: 100vh;
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
 }
 
 .Employee-title {
   font-size: 28px;
   font-weight: 700;
   margin-bottom: 32px;
-  color: var(--text-primary);
 }
 
+/* Cards */
 .Employee-card {
   background: var(--bg-card);
   border-radius: 20px;
   padding: 32px;
   margin-bottom: 40px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
   border: 1px solid var(--border-color);
-  transition: transform 0.2s ease;
-}
-
-.Employee-card:hover {
-  transform: translateY(-2px);
 }
 
 /* ==================== ADD EMPLOYEE FORM ==================== */
-
 .Employee-form {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 20px 24px;
-  align-items: start;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 22px 28px;
 }
 
 .Employee-form input {
-  padding: 14px 16px;
+  padding: 15px 18px;
   border-radius: 12px;
   border: 1px solid var(--border-color);
   background: var(--bg-primary);
   color: var(--text-primary);
-  font-size: 15px;
-  transition: all 0.2s;
+  font-size: 15.5px;
 }
 
 .Employee-form input:focus {
-  outline: none;
-  border-color: var(--purple);
-  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.15);
+  border-color: #a855f7;
+  box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.18);
 }
 
 .add-btn {
   grid-column: 1 / -1;
-  padding: 16px;
+  padding: 16px 24px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #8b5cf6, #a855f7);
+  background: linear-gradient(135deg, #8b5cf6, #c026d3);
   color: white;
-  font-size: 16px;
   font-weight: 600;
+  font-size: 16px;
   border: none;
   cursor: pointer;
-  transition: all 0.3s;
-  margin-top: 12px;
+  margin-top: 10px;
 }
 
 .add-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(139, 92, 246, 0.3);
+  box-shadow: 0 10px 25px rgba(139, 92, 246, 0.35);
 }
 
-/* ==================== TABLE - MODERN & CLEAN ==================== */
-
+/* ==================== TABLE - FIXED CONTRAST ==================== */
 .table-container {
-  overflow-x: auto;
   border-radius: 16px;
+  overflow: hidden;
   border: 1px solid var(--border-color);
   background: var(--bg-card);
 }
@@ -87,8 +75,7 @@
 table {
   width: 100%;
   border-collapse: collapse;
-  background: var(--bg-table);
-  font-size: 15px;
+  font-size: 15.2px;
 }
 
 thead tr {
@@ -102,18 +89,21 @@ th {
   font-weight: 600;
   color: var(--text-secondary);
   text-transform: uppercase;
-  font-size: 12.2px;
-  letter-spacing: 0.6px;
+  font-size: 12.4px;
+  letter-spacing: 0.65px;
 }
 
 td {
-  padding: 18px 18px;
+  padding: 19px 18px;
   border-bottom: 1px solid var(--border-color);
-  color: var(--text-primary);
+  color: var(--text-primary);        /* ← Most important fix */
+  font-weight: 500;
 }
 
+/* Row Backgrounds */
 tbody tr {
-  transition: background 0.2s ease;
+  background-color: var(--bg-table);
+  transition: background-color 0.25s ease;
 }
 
 tbody tr:hover {
@@ -124,22 +114,20 @@ tbody tr:nth-child(even) {
   background-color: var(--striped-bg);
 }
 
-/* Locked row */
 tbody tr.locked-row {
-  background-color: var(--locked-bg);
+  background-color: var(--locked-bg) !important;
 }
 
-/* Status & Role Badges */
+/* Badges */
 .status {
   padding: 7px 16px;
   border-radius: 9999px;
-  font-size: 13.2px;
+  font-size: 13.5px;
   font-weight: 600;
-  letter-spacing: 0.3px;
 }
 
 .status.active {
-  background: #14532d;
+  background: #166534;
   color: #86efac;
 }
 
@@ -149,9 +137,9 @@ tbody tr.locked-row {
 }
 
 .role-badge {
-  padding: 7px 14px;
+  padding: 7px 15px;
   border-radius: 8px;
-  font-size: 13.5px;
+  font-size: 13.8px;
   font-weight: 500;
 }
 
@@ -164,44 +152,44 @@ tbody tr.locked-row {
 .role-badge.Employee,
 .role-badge.employee {
   background: #374151;
-  color: #d1d5db;
+  color: #e2e8f0;
 }
 
 /* Actions */
 .actions-wrapper {
   display: flex;
-  gap: 8px;
+  gap: 7px;
 }
 
 .action-btn {
   width: 38px;
   height: 38px;
+  border: none;
   border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: none;
-  cursor: pointer;
   font-size: 16px;
+  cursor: pointer;
   transition: all 0.2s;
 }
 
 .action-btn:hover:not(:disabled) {
-  transform: scale(1.08);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  transform: scale(1.1);
 }
 
-.edit { background: #3b82f6; color: white; }
-.role-btn { background: #8b5cf6; color: white; }
-.lock-btn { background: #f59e0b; color: white; }
-.delete-btn { background: #ef4444; color: white; }
+.edit { background: #2563eb; color: white; }
+.role-btn { background: #9333ea; color: white; }
+.lock-btn { background: #d97706; color: white; }
+.delete-btn { background: #dc2626; color: white; }
 
-/* Lock icon */
 .lock-icon {
   color: #fbbf24;
-  margin-right: 8px;
-  font-size: 18px;
+  font-size: 19px;
+  margin-right: 7px;
 }
+
+/* ==================== CSS VARIABLES ==================== */
 :root {
   --bg-primary: #f8fafc;
   --bg-card: #ffffff;
@@ -213,14 +201,13 @@ tbody tr.locked-row {
   --hover-bg: #f1f5f9;
   --striped-bg: #f8fafc;
   --locked-bg: #fefce8;
-  --purple: #8b5cf6;
 }
 
 body.dark {
   --bg-primary: #0f172a;
   --bg-card: #1e2937;
   --bg-table: #1e2937;
-  --text-primary: #f1f5f9;
+  --text-primary: #f1f5f9;     /* Bright white - visible on dark rows */
   --text-secondary: #94a3b8;
   --border-color: #334155;
   --header-bg: #1e2937;
