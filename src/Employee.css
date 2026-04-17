@@ -1,4 +1,4 @@
-/* ==================== TABLE - DARK MODE & FORMAL LOOK ==================== */
+/* ==================== TABLE - PROPER LIGHT/DARK MODE SUPPORT ==================== */
 
 .table-container {
   overflow-x: auto;
@@ -11,56 +11,65 @@ table {
   width: 100%;
   border-collapse: collapse;
   background: var(--bg-table);
-  font-size: 14.5px;
+  font-size: 14.8px;
 }
 
 thead tr {
-  background: #1e2937;           /* Slightly darker header for formality */
-  border-bottom: 2px solid #334155;
+  background: var(--header-bg);
+  border-bottom: 2px solid var(--border-color);
 }
 
 th {
-  padding: 18px 14px;
+  padding: 18px 16px;
   text-align: left;
   font-weight: 600;
-  color: #cbd5e1;
+  color: var(--text-secondary);
   text-transform: uppercase;
-  font-size: 12.8px;
-  letter-spacing: 0.8px;
-  background: #1e2937;
+  font-size: 12.5px;
+  letter-spacing: 0.7px;
   position: sticky;
   top: 0;
   z-index: 10;
 }
 
 td {
-  padding: 16px 14px;
+  padding: 16px 16px;
   border-bottom: 1px solid var(--border-color);
   color: var(--text-primary);
   vertical-align: middle;
 }
 
-/* Row styling */
+/* Row Styling - Adapts to Light/Dark */
 tbody tr {
   transition: background-color 0.2s ease;
+  background-color: var(--bg-table);
 }
 
 tbody tr:hover {
-  background-color: #334155;     /* Subtle hover effect */
+  background-color: var(--hover-bg, #f1f5f9); /* Light mode default */
 }
 
-tbody tr.locked-row {
-  background-color: #2a2f3a;
-  opacity: 0.95;
+body.dark tbody tr:hover {
+  background-color: #334155;   /* Dark mode hover */
 }
 
-/* Alternating row colors for better readability (formal look) */
+/* Alternating rows for better readability */
 tbody tr:nth-child(even) {
+  background-color: var(--striped-bg, #f8fafc);
+}
+
+body.dark tbody tr:nth-child(even) {
   background-color: #242b38;
 }
 
-tbody tr:nth-child(odd) {
-  background-color: transparent;
+/* Locked Row */
+tbody tr.locked-row {
+  background-color: var(--locked-bg, #fef3c7);
+  opacity: 0.95;
+}
+
+body.dark tbody tr.locked-row {
+  background-color: #2a2f3a;
 }
 
 /* Status Badges */
@@ -91,26 +100,28 @@ tbody tr:nth-child(odd) {
   font-weight: 500;
 }
 
-.role-badge.admin {
+.role-badge.admin,
+.role-badge.Admin {
   background-color: #6b21a8;
   color: #e0bbff;
 }
 
-.role-badge.superadmin {
+.role-badge.superadmin,
+.role-badge.SuperAdmin {
   background-color: #b91c1c;
   color: #fda4af;
 }
 
-.role-badge.employee {
+.role-badge.employee,
+.role-badge.Employee {
   background-color: #334155;
   color: #cbd5e1;
 }
 
-/* Action Buttons - Make them more compact & professional */
+/* Action Buttons */
 .actions-wrapper {
   display: flex;
   gap: 6px;
-  justify-content: flex-start;
 }
 
 .action-btn {
@@ -137,22 +148,42 @@ tbody tr:nth-child(odd) {
 .delete-btn { background: #ef4444; color: white; }
 
 .action-btn:disabled {
-  opacity: 0.4;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
-/* Lock icon in name column */
+/* Lock Icon */
 .lock-icon {
   margin-right: 6px;
   color: #f59e0b;
-  font-size: 16px;
 }
 
-/* Make the table header more prominent */
-thead th:first-child {
-  border-top-left-radius: 12px;
+/* Rounded corners on header */
+thead th:first-child { border-top-left-radius: 12px; }
+thead th:last-child { border-top-right-radius: 12px; }
+:root {
+  --bg-primary: #f8fafc;
+  --bg-card: #ffffff;
+  --bg-table: #ffffff;
+  --text-primary: #1e2937;
+  --text-secondary: #64748b;
+  --border-color: #e2e8f0;
+  --header-bg: #f1f5f9;
+  --striped-bg: #f8fafc;
+  --locked-bg: #fef3c7;
+  --hover-bg: #f1f5f9;
+  /* ... your other colors */
 }
 
-thead th:last-child {
-  border-top-right-radius: 12px;
+body.dark {
+  --bg-primary: #0f172a;
+  --bg-card: #1e2937;
+  --bg-table: #1e2937;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --border-color: #334155;
+  --header-bg: #1e2937;
+  --striped-bg: #242b38;
+  --locked-bg: #2a2f3a;
+  --hover-bg: #334155;
 }
