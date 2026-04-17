@@ -1,17 +1,94 @@
-/* ==================== TABLE - PROPER LIGHT/DARK MODE SUPPORT ==================== */
+/* ==================== MODERN EMPLOYEE MANAGEMENT STYLES ==================== */
+
+.Employee-wrapper {
+  padding: 32px 24px;
+  max-width: 1400px;
+  margin: auto;
+  font-family: "Inter", system-ui, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+}
+
+.Employee-title {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 32px;
+  color: var(--text-primary);
+}
+
+.Employee-card {
+  background: var(--bg-card);
+  border-radius: 20px;
+  padding: 32px;
+  margin-bottom: 40px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  border: 1px solid var(--border-color);
+  transition: transform 0.2s ease;
+}
+
+.Employee-card:hover {
+  transform: translateY(-2px);
+}
+
+/* ==================== ADD EMPLOYEE FORM ==================== */
+
+.Employee-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px 24px;
+  align-items: start;
+}
+
+.Employee-form input {
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 15px;
+  transition: all 0.2s;
+}
+
+.Employee-form input:focus {
+  outline: none;
+  border-color: var(--purple);
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.15);
+}
+
+.add-btn {
+  grid-column: 1 / -1;
+  padding: 16px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #8b5cf6, #a855f7);
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s;
+  margin-top: 12px;
+}
+
+.add-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(139, 92, 246, 0.3);
+}
+
+/* ==================== TABLE - MODERN & CLEAN ==================== */
 
 .table-container {
   overflow-x: auto;
-  border-radius: 12px;
+  border-radius: 16px;
   border: 1px solid var(--border-color);
-  background: var(--bg-table);
+  background: var(--bg-card);
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
   background: var(--bg-table);
-  font-size: 14.8px;
+  font-size: 15px;
 }
 
 thead tr {
@@ -20,126 +97,98 @@ thead tr {
 }
 
 th {
-  padding: 18px 16px;
+  padding: 20px 18px;
   text-align: left;
   font-weight: 600;
   color: var(--text-secondary);
   text-transform: uppercase;
-  font-size: 12.5px;
-  letter-spacing: 0.7px;
-  position: sticky;
-  top: 0;
-  z-index: 10;
+  font-size: 12.2px;
+  letter-spacing: 0.6px;
 }
 
 td {
-  padding: 16px 16px;
+  padding: 18px 18px;
   border-bottom: 1px solid var(--border-color);
   color: var(--text-primary);
-  vertical-align: middle;
 }
 
-/* Row Styling - Adapts to Light/Dark */
 tbody tr {
-  transition: background-color 0.2s ease;
-  background-color: var(--bg-table);
+  transition: background 0.2s ease;
 }
 
 tbody tr:hover {
-  background-color: var(--hover-bg, #f1f5f9); /* Light mode default */
+  background-color: var(--hover-bg);
 }
 
-body.dark tbody tr:hover {
-  background-color: #334155;   /* Dark mode hover */
-}
-
-/* Alternating rows for better readability */
 tbody tr:nth-child(even) {
-  background-color: var(--striped-bg, #f8fafc);
+  background-color: var(--striped-bg);
 }
 
-body.dark tbody tr:nth-child(even) {
-  background-color: #242b38;
-}
-
-/* Locked Row */
+/* Locked row */
 tbody tr.locked-row {
-  background-color: var(--locked-bg, #fef3c7);
-  opacity: 0.95;
+  background-color: var(--locked-bg);
 }
 
-body.dark tbody tr.locked-row {
-  background-color: #2a2f3a;
-}
-
-/* Status Badges */
+/* Status & Role Badges */
 .status {
-  padding: 6px 14px;
+  padding: 7px 16px;
   border-radius: 9999px;
-  font-size: 13px;
+  font-size: 13.2px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.3px;
 }
 
 .status.active {
-  background-color: #166534;
+  background: #14532d;
   color: #86efac;
 }
 
 .status.locked {
-  background-color: #7f1d1d;
+  background: #7f1d1d;
   color: #fda4af;
 }
 
-/* Role Badges */
 .role-badge {
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 13px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 13.5px;
   font-weight: 500;
 }
 
-.role-badge.admin,
-.role-badge.Admin {
-  background-color: #6b21a8;
+.role-badge.Admin,
+.role-badge.admin {
+  background: #6b21a8;
   color: #e0bbff;
 }
 
-.role-badge.superadmin,
-.role-badge.SuperAdmin {
-  background-color: #b91c1c;
-  color: #fda4af;
+.role-badge.Employee,
+.role-badge.employee {
+  background: #374151;
+  color: #d1d5db;
 }
 
-.role-badge.employee,
-.role-badge.Employee {
-  background-color: #334155;
-  color: #cbd5e1;
-}
-
-/* Action Buttons */
+/* Actions */
 .actions-wrapper {
   display: flex;
-  gap: 6px;
+  gap: 8px;
 }
 
 .action-btn {
-  width: 34px;
-  height: 34px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
-  font-size: 15px;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.2s;
 }
 
 .action-btn:hover:not(:disabled) {
-  transform: translateY(-1px) scale(1.05);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transform: scale(1.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 
 .edit { background: #3b82f6; color: white; }
@@ -147,32 +196,24 @@ body.dark tbody tr.locked-row {
 .lock-btn { background: #f59e0b; color: white; }
 .delete-btn { background: #ef4444; color: white; }
 
-.action-btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-/* Lock Icon */
+/* Lock icon */
 .lock-icon {
-  margin-right: 6px;
-  color: #f59e0b;
+  color: #fbbf24;
+  margin-right: 8px;
+  font-size: 18px;
 }
-
-/* Rounded corners on header */
-thead th:first-child { border-top-left-radius: 12px; }
-thead th:last-child { border-top-right-radius: 12px; }
 :root {
   --bg-primary: #f8fafc;
   --bg-card: #ffffff;
   --bg-table: #ffffff;
-  --text-primary: #1e2937;
+  --text-primary: #1f2937;
   --text-secondary: #64748b;
   --border-color: #e2e8f0;
   --header-bg: #f1f5f9;
-  --striped-bg: #f8fafc;
-  --locked-bg: #fef3c7;
   --hover-bg: #f1f5f9;
-  /* ... your other colors */
+  --striped-bg: #f8fafc;
+  --locked-bg: #fefce8;
+  --purple: #8b5cf6;
 }
 
 body.dark {
@@ -183,7 +224,7 @@ body.dark {
   --text-secondary: #94a3b8;
   --border-color: #334155;
   --header-bg: #1e2937;
+  --hover-bg: #334155;
   --striped-bg: #242b38;
   --locked-bg: #2a2f3a;
-  --hover-bg: #334155;
 }
