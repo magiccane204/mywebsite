@@ -55,53 +55,53 @@ function logAudit(action, email, meta = {}) {
     timestamp: new Date(),
   });
 }
+// ================== AUTH MIDDLEWARE (Improved) ==================
 function auth(req, res, next) {
-
   const raw = req.headers.authorization;
-
-  console.log("AUTH HEADER:", raw);
-
   if (!raw) return res.sendStatus(401);
 
   const token = raw.split(" ")[1];
-
-  console.log("TOKEN:", token);
-
   if (!token) return res.sendStatus(401);
 
   try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    
+    // Critical: Always enforce company from token
+    req.user = {
+      id: decoded.id,
+      email: decoded.email.toLowerCase(),
+      role: decoded.role,
+      company: decoded.company   // ← This is the source of truth
+    };
 
-   const decoded = jwt.verify(token, JWT_SECRET);
-
-req.user = {
-  id: decoded.id,
-  email: decoded.email,
-  role: decoded.role,
-  company: decoded.company
-};
-
-    console.log("USER VERIFIED:", req.user);
-
+    console.log("✅ AUTH SUCCESS:", req.user.email, "| Company:", req.user.company, "| Role:", req.user.role);
     next();
-
   } catch (err) {
-
-    console.log("JWT ERROR:", err.message);
-
+    console.log("❌ JWT ERROR:", err.message);
     return res.sendStatus(403);
-
   }
 }
-const mockAuth = (req, res, next) => {
+// Add this in ALL routes that use auth (example shown for /api/employees)
+app.post("/api/employees", auth, async (req, res) => {
+  if (req.user.role === "Employee")
+    return res.status(403).json({ message: "Forbidden" });
 
-  req.user = {
-    email: "admin@company.com",
-    role: "SuperAdmin",
-    company: "YourCompany Pvt Ltd",
-  };
+  // ←←← ADD THIS SAFETY CHECK
+  if (!req.user.company || req.user.company.trim() === "") {
+    return res.status(403).json({ message: "Company not set in session. Please login again." });
+  }
 
-  next();
-};
+  // ... rest of your code
+//const mockAuth = (req, res, next) => {
+
+  //req.user = {
+   // email: "admin@company.com",
+   // role: "SuperAdmin",
+    //company: "YourCompany Pvt Ltd",
+ // };
+
+ // next();
+//};
 const rateMap = new Map();
 
 function rateLimit(req, res, next) {
@@ -128,15 +128,16 @@ app.post("/api/signup", async (req, res) => {
     if (!email || !password || !company)
       return res.status(400).json({ message: "Missing fields" });
 
-    const employee = await EmployeesModel.findOne({
-      Email: email,
-      Company: company
-    });
+// ADD THIS inside your try block, right after const { email, password, company } = req.body;
 
-    if (!employee)
-      return res.status(403).json({
-        message: "Employee record not found or company mismatch"
-      });
+const employee = await EmployeesModel.findOne({
+  Email: email.toLowerCase(),
+  Company: company // This ensures they are actually invited by this specific company
+});
+
+if (!employee) {
+  return res.status(403).json({ message: "No invitation found for this email at this company." });
+}
 
     const existingUser = await users.findOne({ Email: email });
 
@@ -190,66 +191,54 @@ app.put("/api/employees/change-role", auth, async (req, res) => {
   if (!employeeId || !newRole || !durationDays) {
     return res.status(400).json({ message: "Missing required fields" });
   }
-
   if (!["Employee", "Admin", "SuperAdmin"].includes(newRole)) {
     return res.status(400).json({ message: "Invalid role" });
   }
-
   if (!mongoose.Types.ObjectId.isValid(employeeId)) {
     return res.status(400).json({ message: "Invalid employee ID" });
   }
 
   try {
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + Number(durationDays));
+    const expiresAt = durationDays > 0 
+      ? new Date(Date.now() + Number(durationDays) * 24 * 60 * 60 * 1000) 
+      : null;
 
-    // 1. Update EmployeesModel
+    // 1. Update EmployeesModel (Source of Truth)
     const employeeResult = await EmployeesModel.updateOne(
-      {
-        _id: employeeId,
-        Company: req.user.company
+      { 
+        _id: employeeId, 
+        Company: req.user.company   // ← Critical: Prevent cross-company changes
       },
-      {
-        $set: {
+      { 
+        $set: { 
           Role: newRole,
           roleExpiresAt: expiresAt,
           updatedAt: new Date()
-        }
+        } 
       }
     );
 
     if (employeeResult.matchedCount === 0) {
-      return res.status(404).json({
-        message: "Employee not found or does not belong to your company"
+      return res.status(404).json({ 
+        message: "Employee not found or does not belong to your company" 
       });
     }
 
-    // 2. Get employee email to update users collection
+    // 2. Get employee details
     const employee = await EmployeesModel.findById(employeeId);
-    if (!employee) {
-      return res.status(404).json({ message: "Employee not found" });
-    }
 
-    // 3. IMPORTANT: Also update the 'users' collection (this affects JWT)
+    // 3. Sync to users collection
     const userUpdateResult = await users.updateOne(
       { Email: employee.Email.toLowerCase() },
-      {
-        $set: {
-          Role: newRole,
-          // Optional: You can also store expiration in users collection if needed
-        }
-      }
+      { $set: { Role: newRole } }
     );
-
-    if (userUpdateResult.matchedCount === 0) {
-      console.warn(`User record not found for email: ${employee.Email} (role updated only in EmployeesModel)`);
-    }
 
     logAudit("ROLE_CHANGED", req.user.email, {
       employeeId,
       employeeEmail: employee.Email,
       newRole,
-      durationDays
+      durationDays,
+      expiresAt
     });
 
     res.json({
@@ -380,14 +369,21 @@ app.post("/api/verify-otp", async (req, res) => {
     }
 
     // Check latest role from EmployeesModel (source of truth for roles)
- // Get employee (source of truth)
+    // Get employee (source of truth)
+// FIND THIS BLOCK inside /api/verify-otp:
+// const finalRole = employee && employee.Role ? employee.Role : user.Role;
+
+// REPLACE IT WITH THIS:
 const employee = await EmployeesModel.findOne({ 
-  Email: email,
-  Company: user.Company
+  Email: email, 
+  Company: user.Company 
 });
 
-const finalRole = employee && employee.Role ? employee.Role : user.Role;
+if (!employee) {
+  return res.status(403).json({ success: false, message: "No active employee record." });
+}
 
+const finalRole = employee.Role; // Role comes ONLY from the Employee record
 // 🔥 Sync role FIRST
 if (employee && employee.Role && employee.Role !== user.Role) {
   console.log(`🔄 Syncing role for ${email}: ${user.Role} → ${employee.Role}`);
