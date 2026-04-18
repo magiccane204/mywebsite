@@ -103,6 +103,7 @@ const EmployeesModel = mongoose.model(
 );
 
 // ================== AUTH MIDDLEWARE (INSTANT RBAC) ==================
+// ================== AUTH MIDDLEWARE (INSTANT RBAC) ==================
 async function auth(req, res, next) {
   const raw = req.headers.authorization;
   if (!raw) return res.sendStatus(401);
@@ -113,20 +114,22 @@ async function auth(req, res, next) {
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     
-    // FIX 1: Case-insensitive Regex search
+    // Case-insensitive Regex search for the Employee inside their specific company
     let employee = await EmployeesModel.findOne({ 
       Email: { $regex: new RegExp(`^${decoded.email}$`, "i") }, 
       Company: decoded.company 
     });
 
-    // FIX 2: SuperAdmin Anti-Lockout (Middleware Version)
-    // If you are a SuperAdmin but don't exist in the Employee table, let the request through.
-    if (!employee && decoded.role === "SuperAdmin") {
+    // Anti-Lockout Bypass for ALL Admins across ALL companies
+    const isAdminRole = decoded.role === "SuperAdmin" || decoded.role === "Super Admin" || decoded.role === "Admin";
+
+    if (!employee && isAdminRole) {
         req.user = {
             id: decoded.id,
             email: decoded.email.toLowerCase(),
-            role: "SuperAdmin",
-            company: decoded.company || "Apple"
+            role: decoded.role === "Super Admin" ? "SuperAdmin" : decoded.role,
+            // 👇 FIX: Strictly uses the company from your token. No hardcoding!
+            company: decoded.company 
         };
         return next();
     }
