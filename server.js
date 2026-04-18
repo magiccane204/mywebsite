@@ -71,6 +71,37 @@ function rateLimit(req, res, next) {
   rateMap.set(ip, now);
   next();
 }
+const employeeSchema = new mongoose.Schema({
+  Name: { type: String, required: true },
+  Email: { type: String, required: true },
+  Salary: { type: Number, required: true },
+  "Applied Position": { type: String, required: true },
+  Company: { type: String, required: true },
+  Role: {
+    type: String,
+    default: "Employee",
+    enum: ["Employee", "Admin", "SuperAdmin"],
+    required: true
+  },
+  roleExpiresAt: {
+    type: Date,
+    default: null
+  },
+  locked: { type: Boolean, default: false },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
+});
+employeeSchema.index(
+  { Email: 1, Company: 1 },
+  { unique: true }
+);
+
+const EmployeesModel = mongoose.model(
+  "Employee",
+  employeeSchema,
+  "Employee"
+);
+
 // ================== AUTH MIDDLEWARE (INSTANT RBAC) ==================
 async function auth(req, res, next) {
   const raw = req.headers.authorization;
@@ -94,60 +125,37 @@ async function auth(req, res, next) {
     req.user = {
       id: decoded.id,
       email: employee.Email.toLowerCase(),
-      role: employee.Role,    // Source of truth
+      role: employee.Role,
       company: employee.Company
     };
 
-    console.log("✅ AUTH SUCCESS:", req.user.email, "| Role:", req.user.role);
     next();
   } catch (err) {
-    console.log("❌ JWT ERROR:", err.message);
     return res.sendStatus(403);
   }
 }
-
 // ================== SIGNUP (SECURE INVITE ONLY) ==================
 app.post("/api/signup", async (req, res) => {
   try {
     const { email, password, company } = req.body;
-
-    if (!email || !password || !company)
-      return res.status(400).json({ message: "Missing fields" });
+    if (!email || !password || !company) return res.status(400).json({ message: "Missing fields" });
 
     // Ensure they exist in the Employee table for this specific company
-    const employee = await EmployeesModel.findOne({
-      Email: email.toLowerCase(),
-      Company: company
-    });
-
-    if (!employee) {
-      return res.status(403).json({ message: "No invitation found for this email at this company." });
-    }
+    const employee = await EmployeesModel.findOne({ Email: email.toLowerCase(), Company: company });
+    if (!employee) return res.status(403).json({ message: "No invitation found for this email at this company." });
 
     const existingUser = await users.findOne({ Email: email.toLowerCase() });
-    if (existingUser)
-      return res.status(409).json({ message: "Account already activated" });
+    if (existingUser) return res.status(409).json({ message: "Account already activated" });
 
     const hashed = await bcrypt.hash(password, 10);
-
     await users.insertOne({
-      Name: employee.Name,
-      Email: email.toLowerCase(),
-      Password: hashed,
-      Company: employee.Company,
-      Role: "Employee",
-      DarkMode: false,
-      createdAt: new Date()
+      Name: employee.Name, Email: email.toLowerCase(), Password: hashed, Company: employee.Company,
+      Role: "Employee", DarkMode: false, createdAt: new Date()
     });
 
     logAudit("ACCOUNT_ACTIVATED", email, { company: employee.Company });
-
     res.json({ success: true, message: "Account activated successfully" });
-
-  } catch (err) {
-    console.error("SIGNUP_ERROR", err);
-    res.status(500).json({ message: "Internal server error" });
-  }
+  } catch (err) { res.status(500).json({ message: "Internal server error" }); }
 });
 app.put("/api/employees/change-role", auth, async (req, res) => {
   if (req.user.role !== "SuperAdmin") {
@@ -313,118 +321,40 @@ app.post("/api/verify-otp", async (req, res) => {
     const email = String(req.body.email || "").trim().toLowerCase();
     const otp = String(req.body.otp || "").trim();
 
-    if (!email || !otp) {
-      return res.status(400).json({ success: false, message: "Email and OTP required" });
-    }
+    if (!email || !otp) return res.status(400).json({ success: false, message: "Email and OTP required" });
 
     const record = await otps.findOne({ Email: email });
     if (!record) return res.status(401).json({ success: false, message: "OTP expired" });
-
-    if (record.attempts >= 5) {
-      return res.status(403).json({ success: false, message: "Too many attempts" });
-    }
+    if (record.attempts >= 5) return res.status(403).json({ success: false, message: "Too many attempts" });
 
     if (record.OTP !== otp) {
       await otps.updateOne({ Email: email }, { $inc: { attempts: 1 } });
       return res.status(401).json({ success: false, message: "Invalid OTP" });
     }
 
-    // === CRITICAL FIX: Get role from BOTH collections with fallback ===
     let user = await users.findOne({ Email: email });
+    if (!user) return res.status(401).json({ success: false, message: "User not found" });
 
-    if (!user) {
-      return res.status(401).json({ success: false, message: "User not found" });
+    const employee = await EmployeesModel.findOne({ Email: email, Company: user.Company });
+    if (!employee) return res.status(403).json({ success: false, message: "No active employee record." });
+
+    const finalRole = employee.Role;
+    if (employee && employee.Role && employee.Role !== user.Role) {
+      await users.updateOne({ Email: email }, { $set: { Role: employee.Role } });
+      user.Role = employee.Role;
     }
 
-    // Check latest role from EmployeesModel (source of truth for roles)
-    // Get employee (source of truth)
-// FIND THIS BLOCK inside /api/verify-otp:
-// const finalRole = employee && employee.Role ? employee.Role : user.Role;
+    const token = jwt.sign(
+      { id: user._id, email: user.Email, role: finalRole, company: user.Company }, 
+      JWT_SECRET, { expiresIn: "1h" }
+    );
 
-// REPLACE IT WITH THIS:
-const employee = await EmployeesModel.findOne({ 
-  Email: email, 
-  Company: user.Company 
+    await sessions.insertOne({ email, token: hashToken(token), createdAt: new Date() });
+    await otps.deleteMany({ Email: email });
+
+    return res.json({ success: true, token, role: finalRole });
+  } catch (err) { res.status(500).json({ message: "Internal server error" }); }
 });
-
-if (!employee) {
-  return res.status(403).json({ success: false, message: "No active employee record." });
-}
-
-const finalRole = employee.Role; // Role comes ONLY from the Employee record
-// 🔥 Sync role FIRST
-if (employee && employee.Role && employee.Role !== user.Role) {
-  console.log(`🔄 Syncing role for ${email}: ${user.Role} → ${employee.Role}`);
-
-  await users.updateOne(
-    { Email: email },
-    { $set: { Role: employee.Role } }
-  );
-
-  user.Role = employee.Role;
-}
-
-
-
-// 🔥 THEN create token
-const token = jwt.sign(
-  {
-    id: user._id,
-    email: user.Email,
-    role: finalRole,
-    company: user.Company
-  },
-  JWT_SECRET,
-  { expiresIn: "1h" }
-);
-    await sessions.insertOne({
-  email,
-  token: hashToken(token),
-  createdAt: new Date(),
-});
-
-await otps.deleteMany({ Email: email });
-
-return res.json({
-  success: true,
-  token,
-  role: finalRole
-});
-  } catch (err) {
-    console.error("VERIFY_OTP_ERROR", err);
-    return res.status(500).json({ message: "Internal server error" });
-  }
-});
-const employeeSchema = new mongoose.Schema({
-  Name: { type: String, required: true },
-  Email: { type: String, required: true },
-  Salary: { type: Number, required: true },
-  "Applied Position": { type: String, required: true },
-  Company: { type: String, required: true },
-  Role: {
-    type: String,
-    default: "Employee",
-    enum: ["Employee", "Admin", "SuperAdmin"],
-    required: true
-  },
-  roleExpiresAt: {
-    type: Date,
-    default: null
-  },
-  locked: { type: Boolean, default: false },
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now },
-});
-employeeSchema.index(
-  { Email: 1, Company: 1 },
-  { unique: true }
-);
-
-const EmployeesModel = mongoose.model(
-  "Employee",
-  employeeSchema,
-  "Employee"
-);
 
 const addEmployeeSchema = Joi.object({
 
