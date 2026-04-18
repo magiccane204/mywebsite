@@ -335,17 +335,32 @@ app.post("/api/verify-otp", async (req, res) => {
     let user = await users.findOne({ Email: email });
     if (!user) return res.status(401).json({ success: false, message: "User not found" });
 
-    const employee = await EmployeesModel.findOne({ Email: email, Company: user.Company });
-    if (!employee) return res.status(403).json({ success: false, message: "No active employee record." });
+    // FIX 1: Use case-insensitive Regex search for the Employee record to prevent case mismatches.
+    // FIX 2: Safely handle Company checking.
+    let employee = await EmployeesModel.findOne({ 
+      Email: { $regex: new RegExp(`^${email}$`, "i") }, 
+      ...(user.Company ? { Company: user.Company } : {})
+    });
 
-    const finalRole = employee.Role;
-    if (employee && employee.Role && employee.Role !== user.Role) {
+    // FIX 3: SuperAdmin Anti-Lockout.
+    // If you manually seeded your admin account in the 'users' DB but it's missing from 
+    // the 'Employee' DB, this bypasses the block so you can get into your dashboard.
+    if (!employee && user.Role === "SuperAdmin") {
+        employee = { Role: "SuperAdmin", Company: user.Company || "Apple" }; // Mock object to proceed
+    } else if (!employee) {
+        return res.status(403).json({ success: false, message: "No active employee record." });
+    }
+
+    const finalRole = employee.Role || user.Role;
+
+    // Only attempt to sync roles if it's a real MongoDB document (has an _id)
+    if (employee._id && employee.Role && employee.Role !== user.Role) {
       await users.updateOne({ Email: email }, { $set: { Role: employee.Role } });
       user.Role = employee.Role;
     }
 
     const token = jwt.sign(
-      { id: user._id, email: user.Email, role: finalRole, company: user.Company }, 
+      { id: user._id, email: user.Email, role: finalRole, company: user.Company || employee.Company }, 
       JWT_SECRET, { expiresIn: "1h" }
     );
 
@@ -353,9 +368,11 @@ app.post("/api/verify-otp", async (req, res) => {
     await otps.deleteMany({ Email: email });
 
     return res.json({ success: true, token, role: finalRole });
-  } catch (err) { res.status(500).json({ message: "Internal server error" }); }
+  } catch (err) { 
+    console.error("VERIFY_OTP_ERROR:", err);
+    res.status(500).json({ message: "Internal server error" }); 
+  }
 });
-
 const addEmployeeSchema = Joi.object({
 
   Name: Joi.string()
