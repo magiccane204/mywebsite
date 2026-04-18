@@ -113,11 +113,23 @@ async function auth(req, res, next) {
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     
-    // Check database for the LATEST role and lock status
-    const employee = await EmployeesModel.findOne({ 
-      Email: decoded.email.toLowerCase(), 
+    // FIX 1: Case-insensitive Regex search
+    let employee = await EmployeesModel.findOne({ 
+      Email: { $regex: new RegExp(`^${decoded.email}$`, "i") }, 
       Company: decoded.company 
     });
+
+    // FIX 2: SuperAdmin Anti-Lockout (Middleware Version)
+    // If you are a SuperAdmin but don't exist in the Employee table, let the request through.
+    if (!employee && decoded.role === "SuperAdmin") {
+        req.user = {
+            id: decoded.id,
+            email: decoded.email.toLowerCase(),
+            role: "SuperAdmin",
+            company: decoded.company || "Apple"
+        };
+        return next();
+    }
 
     if (!employee) return res.status(403).json({ message: "User record not found" });
     if (employee.locked) return res.status(403).json({ message: "Account is locked" });
