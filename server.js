@@ -55,6 +55,22 @@ function logAudit(action, email, meta = {}) {
     timestamp: new Date(),
   });
 }
+// ================== RATE LIMITING ==================
+const rateMap = new Map();
+
+function rateLimit(req, res, next) {
+  const ip = req.ip;
+  const now = Date.now();
+  const last = rateMap.get(ip) || 0;
+
+  // 800ms window to prevent spamming
+  if (now - last < 800) {
+    return res.status(429).json({ message: "Too fast" });
+  }
+
+  rateMap.set(ip, now);
+  next();
+}
 // ================== AUTH MIDDLEWARE (INSTANT RBAC) ==================
 async function auth(req, res, next) {
   const raw = req.headers.authorization;
