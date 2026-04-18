@@ -380,54 +380,59 @@ app.post("/api/verify-otp", async (req, res) => {
     }
 
     // Check latest role from EmployeesModel (source of truth for roles)
-    const employee = await EmployeesModel.findOne({ 
-      Email: email, 
-     const employee = await EmployeesModel.findOne({ Email: email });
+ // Get employee (source of truth)
+const employee = await EmployeesModel.findOne({ Email: email });
 
-const finalCompany = employee?.Company || user.Company;
+const finalRole = employee && employee.Role ? employee.Role : user.Role;
 
-const token = jwt.sign({
-  id: user._id,
-  email: user.Email,
-  role: finalRole,
-  company: finalCompany
-}, JWT_SECRET);
-    });
+// 🔥 Sync role FIRST
+if (employee && employee.Role && employee.Role !== user.Role) {
+  console.log(`🔄 Syncing role for ${email}: ${user.Role} → ${employee.Role}`);
 
-    const finalRole = employee && employee.Role ? employee.Role : user.Role;
+  await users.updateOne(
+    { Email: email },
+    { $set: { Role: employee.Role } }
+  );
 
-    // Optional: Sync back to users collection if they differ (safety net)
-    if (employee && employee.Role && employee.Role !== user.Role) {
-      console.log(`🔄 Syncing role for ${email}: ${user.Role} → ${employee.Role}`);
-      await users.updateOne(
-        { Email: email },
-        { $set: { Role: employee.Role } }
-      );
-      user.Role = employee.Role; // update local object
-    }
+  user.Role = employee.Role;
+}
 
-    // ✅ Create new token with the FINAL role
-const token = jwt.sign({
-  id: user._id,
-  email: user.Email,
-  role: finalRole,
-  company: employee?.Company || user.Company
-}, JWT_SECRET)
+// 🔥 Sync company
+if (employee && employee.Company !== user.Company) {
+  console.log(`🔄 Syncing company for ${email}: ${user.Company} → ${employee.Company}`);
 
+  await users.updateOne(
+    { Email: email },
+    { $set: { Company: employee.Company } }
+  );
+
+  user.Company = employee.Company;
+}
+
+// 🔥 THEN create token
+const token = jwt.sign(
+  {
+    id: user._id,
+    email: user.Email,
+    role: finalRole,
+    company: employee?.Company || user.Company
+  },
+  JWT_SECRET,
+  { expiresIn: "1h" }
+);
     await sessions.insertOne({
-      email,
-      token: hashToken(token),
-      createdAt: new Date(),
-    });
+  email,
+  token: hashToken(token),
+  createdAt: new Date(),
+});
 
-    await otps.deleteMany({ Email: email });
+await otps.deleteMany({ Email: email });
 
-    return res.json({
-      success: true,
-      token,
-      role: finalRole   // ← Return the correct role
-    });
-
+return res.json({
+  success: true,
+  token,
+  role: finalRole
+});
   } catch (err) {
     console.error("VERIFY_OTP_ERROR", err);
     return res.status(500).json({ message: "Internal server error" });
