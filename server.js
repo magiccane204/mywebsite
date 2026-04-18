@@ -55,8 +55,8 @@ function logAudit(action, email, meta = {}) {
     timestamp: new Date(),
   });
 }
-// ================== AUTH MIDDLEWARE (Improved) ==================
-function auth(req, res, next) {
+// ================== AUTH MIDDLEWARE (INSTANT RBAC) ==================
+async function auth(req, res, next) {
   const raw = req.headers.authorization;
   if (!raw) return res.sendStatus(401);
 
@@ -66,85 +66,51 @@ function auth(req, res, next) {
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     
-    // Critical: Always enforce company from token
+    // Check database for the LATEST role and lock status
+    const employee = await EmployeesModel.findOne({ 
+      Email: decoded.email.toLowerCase(), 
+      Company: decoded.company 
+    });
+
+    if (!employee) return res.status(403).json({ message: "User record not found" });
+    if (employee.locked) return res.status(403).json({ message: "Account is locked" });
+
     req.user = {
       id: decoded.id,
-      email: decoded.email.toLowerCase(),
-      role: decoded.role,
-      company: decoded.company   // ← This is the source of truth
+      email: employee.Email.toLowerCase(),
+      role: employee.Role,    // Source of truth
+      company: employee.Company
     };
 
-    console.log("✅ AUTH SUCCESS:", req.user.email, "| Company:", req.user.company, "| Role:", req.user.role);
+    console.log("✅ AUTH SUCCESS:", req.user.email, "| Role:", req.user.role);
     next();
   } catch (err) {
     console.log("❌ JWT ERROR:", err.message);
     return res.sendStatus(403);
   }
 }
-// Add this in ALL routes that use auth (example shown for /api/employees)
-app.post("/api/employees", auth, async (req, res) => {
-  if (req.user.role === "Employee")
-    return res.status(403).json({ message: "Forbidden" });
 
-  // ←←← ADD THIS SAFETY CHECK
-  if (!req.user.company || req.user.company.trim() === "") {
-    return res.status(403).json({ message: "Company not set in session. Please login again." });
-  }
-
-  // ... rest of your code
-//const mockAuth = (req, res, next) => {
-
-  //req.user = {
-   // email: "admin@company.com",
-   // role: "SuperAdmin",
-    //company: "YourCompany Pvt Ltd",
- // };
-
- // next();
-//};
-const rateMap = new Map();
-
-function rateLimit(req, res, next) {
-
-  const ip = req.ip;
-
-  const now = Date.now();
-
-  const last = rateMap.get(ip) || 0;
-
-  if (now - last < 800)
-    return res.status(429).json({ message: "Too fast" });
-
-  rateMap.set(ip, now);
-
-  next();
-}
+// ================== SIGNUP (SECURE INVITE ONLY) ==================
 app.post("/api/signup", async (req, res) => {
-
   try {
-
     const { email, password, company } = req.body;
 
     if (!email || !password || !company)
       return res.status(400).json({ message: "Missing fields" });
 
-// ADD THIS inside your try block, right after const { email, password, company } = req.body;
+    // Ensure they exist in the Employee table for this specific company
+    const employee = await EmployeesModel.findOne({
+      Email: email.toLowerCase(),
+      Company: company
+    });
 
-const employee = await EmployeesModel.findOne({
-  Email: email.toLowerCase(),
-  Company: company // This ensures they are actually invited by this specific company
-});
+    if (!employee) {
+      return res.status(403).json({ message: "No invitation found for this email at this company." });
+    }
 
-if (!employee) {
-  return res.status(403).json({ message: "No invitation found for this email at this company." });
-}
-
-    const existingUser = await users.findOne({ Email: email });
-
+    const existingUser = await users.findOne({ Email: email.toLowerCase() });
     if (existingUser)
-      return res.status(409).json({
-        message: "Account already activated"
-      });
+      return res.status(409).json({ message: "Account already activated" });
 
     const hashed = await bcrypt.hash(password, 10);
 
@@ -158,29 +124,15 @@ if (!employee) {
       createdAt: new Date()
     });
 
-    logAudit("ACCOUNT_ACTIVATED", email, {
-      company: employee.Company
-    });
+    logAudit("ACCOUNT_ACTIVATED", email, { company: employee.Company });
 
-    res.json({
-      success: true,
-      message: "Account activated successfully"
-    });
+    res.json({ success: true, message: "Account activated successfully" });
 
   } catch (err) {
-
     console.error("SIGNUP_ERROR", err);
-
-    res.status(500).json({
-      message: "Internal server error"
-    });
-
+    res.status(500).json({ message: "Internal server error" });
   }
-
 });
-// Change Role - SuperAdmin Only + Temporary
-// Change Role - SuperAdmin Only + Temporary
-// Change Role - SuperAdmin Only + Temporary
 app.put("/api/employees/change-role", auth, async (req, res) => {
   if (req.user.role !== "SuperAdmin") {
     return res.status(403).json({ message: "Only SuperAdmin can change roles" });
