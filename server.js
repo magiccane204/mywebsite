@@ -381,7 +381,10 @@ app.post("/api/verify-otp", async (req, res) => {
 
     // Check latest role from EmployeesModel (source of truth for roles)
  // Get employee (source of truth)
-const employee = await EmployeesModel.findOne({ Email: email });
+const employee = await EmployeesModel.findOne({ 
+  Email: email,
+  Company: user.Company
+});
 
 const finalRole = employee && employee.Role ? employee.Role : user.Role;
 
@@ -397,17 +400,7 @@ if (employee && employee.Role && employee.Role !== user.Role) {
   user.Role = employee.Role;
 }
 
-// 🔥 Sync company
-if (employee && employee.Company !== user.Company) {
-  console.log(`🔄 Syncing company for ${email}: ${user.Company} → ${employee.Company}`);
 
-  await users.updateOne(
-    { Email: email },
-    { $set: { Company: employee.Company } }
-  );
-
-  user.Company = employee.Company;
-}
 
 // 🔥 THEN create token
 const token = jwt.sign(
@@ -415,7 +408,7 @@ const token = jwt.sign(
     id: user._id,
     email: user.Email,
     role: finalRole,
-    company: employee?.Company || user.Company
+    company: user.Company
   },
   JWT_SECRET,
   { expiresIn: "1h" }
