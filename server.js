@@ -382,7 +382,16 @@ app.post("/api/verify-otp", async (req, res) => {
     // Check latest role from EmployeesModel (source of truth for roles)
     const employee = await EmployeesModel.findOne({ 
       Email: email, 
-      Company: user.Company 
+     const employee = await EmployeesModel.findOne({ Email: email });
+
+const finalCompany = employee?.Company || user.Company;
+
+const token = jwt.sign({
+  id: user._id,
+  email: user.Email,
+  role: finalRole,
+  company: finalCompany
+}, JWT_SECRET);
     });
 
     const finalRole = employee && employee.Role ? employee.Role : user.Role;
@@ -398,16 +407,12 @@ app.post("/api/verify-otp", async (req, res) => {
     }
 
     // ✅ Create new token with the FINAL role
-    const token = jwt.sign(
-      {
-        id: user._id,
-        email: user.Email,
-        role: finalRole,           // ← Use finalRole here
-        company: user.Company
-      },
-      JWT_SECRET,
-      { expiresIn: "1h" }
-    );
+const token = jwt.sign({
+  id: user._id,
+  email: user.Email,
+  role: finalRole,
+  company: employee?.Company || user.Company
+}, JWT_SECRET)
 
     await sessions.insertOne({
       email,
