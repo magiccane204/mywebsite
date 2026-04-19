@@ -14,7 +14,7 @@
   font-family: 'Inter', sans-serif;
 }
 
-/* TOOLBAR */
+
 .crm-toolbar {
   height: 56px;
   display: flex;
@@ -45,7 +45,7 @@
 .tool-btn.primary { background: var(--primary-green); color: white; border: none; }
 .tool-btn.danger { color: #ef4444; border: none; }
 
-/* FORMULA BAR */
+
 .formula-bar {
   display: flex;
   align-items: center;
@@ -58,7 +58,7 @@
 .fx-label { width: 40px; text-align: center; font-style: italic; color: #94a3b8; font-family: serif; }
 .formula-input { flex: 1; border: none; outline: none; padding: 0 10px; font-size: 13px; }
 
-/* TABLE GRID */
+
 .grid-viewport { flex: 1; overflow: auto; background: #f1f5f9; padding: 8px; }
 
 .excel-table { border-collapse: separate; border-spacing: 0; background: white; table-layout: fixed; }
@@ -70,7 +70,6 @@
   position: relative;
 }
 
-/* HEADER STYLING */
 .header-cell {
   background: var(--header-bg);
   padding: 6px;
@@ -105,7 +104,7 @@ th:hover .header-actions { opacity: 1; }
   cursor: pointer;
 }
 
-/* CELL STYLING */
+
 .cell-editor {
   width: 100%;
   height: 32px;
@@ -126,7 +125,7 @@ th:hover .header-actions { opacity: 1; }
   color: #94a3b8;
 }
 
-/* RESIZE HANDLE */
+
 .react-resizable-handle {
   position: absolute;
   right: 0;
@@ -136,10 +135,9 @@ th:hover .header-actions { opacity: 1; }
   cursor: col-resize;
   z-index: 20;
 }
-/* Multivariate Selected Header */
 .selected-column-header {
-  background-color: #f0fdf4 !important; /* Light green */
-  border-bottom: 3px solid #107c41 !important; /* Strong Excel Green */
+  background-color: #f0fdf4 !important; 
+  border-bottom: 3px solid #107c41 !important; 
 }
 
 .selected-column-header .header-edit-input {
@@ -147,14 +145,13 @@ th:hover .header-actions { opacity: 1; }
   font-weight: bold;
 }
 
-/* Stop input clicking from toggling the graph */
+
 .header-edit-input:focus {
   background: white;
   outline: none;
 }
 .react-resizable-handle:hover { background: var(--primary-green); }
 
-/* STATUS & MODAL */
 .status-tag { display: flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; padding: 4px 8px; border-radius: 12px; }
 .status-tag.saved { background: #dcfce7; color: #166534; }
 .status-tag.saving { background: #fef9c3; color: #854d0e; }
