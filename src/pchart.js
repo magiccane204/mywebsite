@@ -1,48 +1,45 @@
 import { Pie } from "react-chartjs-2";
-import { Chart as ChartJS, ArcElement, Tooltip, Legend, Title } from "chart.js";
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 
-ChartJS.register(ArcElement, Tooltip, Legend, Title);
+ChartJS.register(ArcElement, Tooltip, Legend);
 
 const COLORS = [
-  "rgba(255, 99, 132, 0.7)",
-  "rgba(54, 162, 235, 0.7)",
-  "rgba(255, 206, 86, 0.7)",
-  "rgba(75, 192, 192, 0.7)",
-  "rgba(153, 102, 255, 0.7)",
-  "rgba(255, 159, 64, 0.7)",
-  "rgba(201, 203, 207, 0.7)",
-  "rgba(139, 92, 246, 0.7)",
-  "rgba(16, 185, 129, 0.7)",
-  "rgba(239, 68, 68, 0.7)",
+  "rgba(124, 58, 237, 0.8)", 
+  "rgba(59, 130, 246, 0.8)",  
+  "rgba(16, 124, 65, 0.8)",  
+  "rgba(245, 158, 11, 0.8)",  
+  "rgba(239, 68, 68, 0.8)",   
+  "rgba(14, 165, 233, 0.8)",  
 ];
 
-function MyPieChart({ chartData, labels, title }) {
+const BORDER_COLORS = [
+  "rgb(124, 58, 237)",
+  "rgb(59, 130, 246)",
+  "rgb(16, 124, 65)",
+  "rgb(245, 158, 11)",
+  "rgb(239, 68, 68)",
+  "rgb(14, 165, 233)",
+];
 
+function MyPieChart({ chartData, labels }) {
   if (!chartData || chartData.length === 0 || !labels || labels.length === 0) {
-    return (
-      <div style={{ textAlign: "center", padding: "40px", color: "#64748b" }}>
-        Select a numeric column to see distribution
-      </div>
-    );
+    return null;
   }
 
-
-  const activeMetric = labels[0];
-  
-  const sliceLabels = chartData.map((item) => item.name);
-  
-  
-  const sliceValues = chartData.map((item) => item[activeMetric]);
+  // Ensure we extract a 1D array even if the user clicks multiple table columns
+  const isMultiDimensional = Array.isArray(chartData[0]);
+  const pieDataArray = isMultiDimensional 
+    ? chartData.map(row => row[0]) 
+    : chartData;
 
   const data = {
-    labels: sliceLabels,
+    labels: labels,
     datasets: [
       {
-        label: `${activeMetric} Distribution`,
-        data: sliceValues,
+        data: pieDataArray,
         backgroundColor: COLORS,
-        borderColor: "#fff",
-        borderWidth: 2,
+        borderColor: BORDER_COLORS,
+        borderWidth: 1,
       },
     ],
   };
@@ -53,34 +50,21 @@ function MyPieChart({ chartData, labels, title }) {
     plugins: {
       legend: {
         position: "right",
-        labels: {
-          padding: 20,
-          usePointStyle: true,
-          font: { size: 11 }
-        }
-      },
-      title: {
-        display: true,
-        text: title || `Distribution of ${activeMetric}`,
-        font: { size: 16, weight: "bold" },
-        padding: { bottom: 20 }
+        labels: { usePointStyle: true, boxWidth: 8, color: "#cbd5e1" }
       },
       tooltip: {
-        callbacks: {
-          label: (context) => {
-            const label = context.label || '';
-            const value = context.parsed || 0;
-            const total = context.dataset.data.reduce((a, b) => a + b, 0);
-            const percentage = ((value / total) * 100).toFixed(1);
-            return `${label}: ${value} (${percentage}%)`;
-          }
-        }
+        backgroundColor: "rgba(15, 23, 42, 0.9)",
+        titleColor: "#f8fafc",
+        bodyColor: "#cbd5e1",
+        borderColor: "#334155",
+        borderWidth: 1,
+        padding: 10,
       }
     },
   };
 
   return (
-    <div style={{ height: "300px", width: "100%", padding: "10px" }}>
+    <div style={{ height: "300px", width: "100%", display: "flex", justifyContent: "center" }}>
       <Pie data={data} options={options} />
     </div>
   );
