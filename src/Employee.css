@@ -1,4 +1,4 @@
-/* ==================== MODERN DARK/LIGHT EMPLOYEE MANAGEMENT ==================== */
+
 
 .Employee-wrapper {
   padding: 32px 24px;
@@ -15,7 +15,7 @@
   margin-bottom: 32px;
 }
 
-/* Cards */
+
 .Employee-card {
   background: var(--bg-card);
   border-radius: 20px;
@@ -25,7 +25,7 @@
   border: 1px solid var(--border-color);
 }
 
-/* ==================== ADD EMPLOYEE FORM ==================== */
+
 .Employee-form {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -64,7 +64,7 @@
   box-shadow: 0 10px 25px rgba(139, 92, 246, 0.35);
 }
 
-/* ==================== TABLE - FIXED CONTRAST ==================== */
+
 .table-container {
   border-radius: 16px;
   overflow: hidden;
@@ -96,11 +96,11 @@ th {
 td {
   padding: 19px 18px;
   border-bottom: 1px solid var(--border-color);
-  color: var(--text-primary);        /* ← Most important fix */
+  color: var(--text-primary);        
   font-weight: 500;
 }
 
-/* Row Backgrounds */
+
 tbody tr {
   background-color: var(--bg-table);
   transition: background-color 0.25s ease;
@@ -118,7 +118,7 @@ tbody tr.locked-row {
   background-color: var(--locked-bg) !important;
 }
 
-/* Badges */
+
 .status {
   padding: 7px 16px;
   border-radius: 9999px;
@@ -155,7 +155,7 @@ tbody tr.locked-row {
   color: #e2e8f0;
 }
 
-/* Actions */
+
 .actions-wrapper {
   display: flex;
   gap: 7px;
@@ -189,7 +189,7 @@ tbody tr.locked-row {
   margin-right: 7px;
 }
 
-/* ==================== CSS VARIABLES ==================== */
+
 :root {
   --bg-primary: #f8fafc;
   --bg-card: #ffffff;
@@ -207,7 +207,7 @@ body.dark {
   --bg-primary: #0f172a;
   --bg-card: #1e2937;
   --bg-table: #1e2937;
-  --text-primary: #f1f5f9;     /* Bright white - visible on dark rows */
+  --text-primary: #f1f5f9;     
   --text-secondary: #94a3b8;
   --border-color: #334155;
   --header-bg: #1e2937;
