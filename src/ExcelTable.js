@@ -18,7 +18,7 @@ export default function ExcelTable({ onColumnSelect }) {
   const [formatConfirmText, setFormatConfirmText] = useState("");
   const [isAutoSaving, setIsAutoSaving] = useState(false);
 
-  // Load from localStorage
+  
   useEffect(() => {
     const savedData = localStorage.getItem("crm-data");
     const savedHeaders = localStorage.getItem("crm-headers");
@@ -35,7 +35,6 @@ export default function ExcelTable({ onColumnSelect }) {
     if (savedWidths) setColWidths(JSON.parse(savedWidths));
   }, []);
 
-  // Auto-save
   useEffect(() => {
     setIsAutoSaving(true);
     const timer = setTimeout(() => {
@@ -47,7 +46,7 @@ export default function ExcelTable({ onColumnSelect }) {
     return () => clearTimeout(timer);
   }, [tableData, colHeaders, colWidths]);
 
-  // --- NEWLY IMPLEMENTED HANDLER FUNCTIONS ---
+
 
   const addRow = () => {
     const newRow = Array(colHeaders.length).fill("");
@@ -59,12 +58,12 @@ export default function ExcelTable({ onColumnSelect }) {
   };
 
   const insertColumn = (colIndex) => {
-    // Add to headers
+   
     const newHeaders = [...colHeaders];
     newHeaders.splice(colIndex + 1, 0, `New Field`);
     setColHeaders(newHeaders);
 
-    // Add to each row
+    
     const newData = tableData.map(row => {
       const newRow = [...row];
       newRow.splice(colIndex + 1, 0, "");
@@ -74,7 +73,7 @@ export default function ExcelTable({ onColumnSelect }) {
   };
 
   const deleteColumn = (colIndex) => {
-    if (colHeaders.length <= 1) return; // Prevent deleting the last column
+    if (colHeaders.length <= 1) return; 
     setColHeaders(prev => prev.filter((_, i) => i !== colIndex));
     setTableData(prev => prev.map(row => row.filter((_, i) => i !== colIndex)));
   };
@@ -124,13 +123,13 @@ export default function ExcelTable({ onColumnSelect }) {
       
       if (data.length > 0) {
         setColHeaders(data[0]);
-        // If there's data below headers, use it; otherwise create one empty row
+        
         const rows = data.slice(1);
         setTableData(rows.length > 0 ? rows : [Array(data[0].length).fill("")]);
       }
     };
     reader.readAsBinaryString(file);
-    e.target.value = null; // reset input
+    e.target.value = null; 
   };
 
   const handleAiResumeUpload = (e) => {
@@ -139,19 +138,19 @@ export default function ExcelTable({ onColumnSelect }) {
     
     setIsParsing(true);
     
-    // Simulate API call for resume parsing
+    
     setTimeout(() => {
       const newRows = Array.from(files).map((file) => {
         const row = Array(colHeaders.length).fill("");
-        row[0] = file.name.replace(/\.[^/.]+$/, ""); // Name
-        row[1] = "parsed@example.com";               // Email
-        row[4] = "React, Node.js";                   // Skills
+        row[0] = file.name.replace(/\.[^/.]+$/, ""); 
+        row[1] = "parsed@example.com";               
+        row[4] = "React, Node.js";                
         return row;
       });
       
       setTableData(prev => [...prev, ...newRows]);
       setIsParsing(false);
-      e.target.value = null; // reset input
+      e.target.value = null; 
     }, 2000);
   };
 
@@ -421,7 +420,7 @@ export default function ExcelTable({ onColumnSelect }) {
         }
       `}</style>
 
-      {/* Toolbar */}
+      
       <header className="crm-toolbar">
         <div className="toolbar-left">
           <div className="brand" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold' }}>
@@ -457,7 +456,7 @@ export default function ExcelTable({ onColumnSelect }) {
         </div>
       </header>
 
-      {/* Formula Bar */}
+
       <div className="formula-bar">
         <div className="cell-id" style={{ fontWeight: '600', minWidth: '40px' }}>
           {String.fromCharCode(65 + selectedCell.c)}{selectedCell.r + 1}
@@ -470,7 +469,7 @@ export default function ExcelTable({ onColumnSelect }) {
         />
       </div>
 
-      {/* Table - Fixed Alignment */}
+      
       <div className="grid-viewport">
         <table className="excel-table">
           <thead>
@@ -547,7 +546,7 @@ export default function ExcelTable({ onColumnSelect }) {
         </table>
       </div>
 
-      {/* Reset Modal */}
+     
       {isFormatModalOpen && (
         <div className="modal-overlay">
           <div className="modal-card">
