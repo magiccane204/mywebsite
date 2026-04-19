@@ -99,29 +99,20 @@ export default function Employee() {
 
   const editEmployee = (emp) => {
     if (role === "Employee") return;
-    if (emp.locked) {
-      showMessage("This employee is locked and cannot be edited", "error");
-      return;
-    }
-    setEditingId(emp._id || emp.Id);
-    setName(emp.Name || emp.name);
-    setEmail(emp.Email || emp.email);
+    const id = emp._id || emp.Id || emp.id;
+    setEditingId(id);
+    setName(emp.Name || emp.name || "");
+    setEmail(emp.Email || emp.email || "");
     setPosition(emp["Applied Position"] || emp.position || "");
     setSalary(emp.Salary || emp.salary || "");
   };
 
   const deleteEmployee = async (id) => {
     if (role !== "SuperAdmin") return;
-    const emp = employees.find((c) => (c._id || c.Id) === id);
-    if (emp?.locked) {
-      showMessage("Locked employees cannot be deleted", "error");
-      return;
-    }
     if (!window.confirm("Delete this employee permanently?")) return;
-
     try {
       await api.delete(`/api/Employees/${id}`);
-      showMessage("Employee deleted & Termination Letter sent");
+      showMessage("Employee deleted");
       loadEmployees();
     } catch {
       showMessage("Delete failed", "error");
@@ -132,34 +123,30 @@ export default function Employee() {
     if (role === "Employee") return;
     try {
       await api.put(`/api/Employees/lock/${id}`);
-      showMessage("Lock status updated");
       loadEmployees();
     } catch {
-      showMessage("Failed to update lock status", "error");
+      showMessage("Lock update failed", "error");
     }
   };
 
   const openRoleModal = (emp) => {
     if (role !== "SuperAdmin") return;
     setSelectedEmployee(emp);
-    setNewRole(emp.Role || "Employee");
-    setRoleDuration(30);
+    setNewRole(emp.Role || emp.role || "Employee");
     setShowRoleModal(true);
   };
 
   const changeRole = async () => {
-    if (role !== "SuperAdmin" || !selectedEmployee) return;
     try {
       await api.put("/api/employees/change-role", {
         employeeId: selectedEmployee._id || selectedEmployee.Id,
         newRole,
         durationDays: Number(roleDuration),
       });
-      showMessage(`Role changed to ${newRole} for ${roleDuration} days`);
       setShowRoleModal(false);
       loadEmployees();
     } catch {
-      showMessage("Failed to change role", "error");
+      showMessage("Role change failed", "error");
     }
   };
 
@@ -169,186 +156,123 @@ export default function Employee() {
   );
 
   const isEmployee = role === "Employee";
-  const isAdmin = role === "Admin";
   const isSuperAdmin = role === "SuperAdmin";
 
-  if (!role) return <div style={{ background: '#0a0b14', color: 'white', height: '100vh', padding: '20px' }}>Loading...</div>;
+  if (!role) return <div style={{ background: '#0a0b14', color: 'white', minHeight: '100vh', padding: '20px' }}>Loading Access...</div>;
 
   return (
     <div className="Employee-wrapper">
       <style>
         {`
           .Employee-wrapper {
-            background-color: #0d0e12;
+            background-color: #0a0b14 !important;
             min-height: 100vh;
-            padding: 20px 40px;
-            color: #e0e0e0;
+            padding: 40px;
+            color: #ffffff;
             font-family: 'Inter', sans-serif;
           }
-          .Employee-title {
-            color: #fff;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-bottom: 30px;
-            font-size: 1.4rem;
-          }
-          .user-role { color: #646cff; }
-
-          /* Card Styling */
           .Employee-card {
-            background: #15171e;
+            background: #111322 !important;
             border: 1px solid #2e324d;
-            border-radius: 8px;
+            border-radius: 12px;
             padding: 24px;
             margin-bottom: 24px;
           }
-
-          /* Form & Input Styling */
-          .Employee-form-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 16px;
-            margin-bottom: 20px;
-          }
-          .Employee-form-grid input {
-            background: #1a1b23;
-            border: 1px solid #3a3f58;
-            padding: 12px;
-            color: #fff;
-            border-radius: 6px;
-            outline: none;
-          }
-          .Employee-form-grid input:focus { border-color: #8a2be2; }
-
-          /* Header area with Search */
           .table-header-flex {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
           }
-          .section-title-blue {
-            color: #5d5fef;
-            font-weight: 800;
-            text-transform: uppercase;
-            font-size: 0.9rem;
-          }
-          .search-bar-rounded {
-            background: #0d0e12;
-            border: 1px solid #2e324d;
-            color: #fff;
-            padding: 8px 24px;
-            border-radius: 20px;
-            width: 300px;
-          }
-
-          /* Table Styling matching screenshot */
           .scheme-table-container {
-            border: 1px solid #8a2be2;
-            border-radius: 8px;
+            border: 2px solid #8a2be2;
+            border-radius: 12px;
             overflow: hidden;
-            background: #15171e;
+            background: #111322 !important;
           }
-          .scheme-table { width: 100%; border-collapse: collapse; }
+          .scheme-table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            background: #111322 !important;
+          }
+          .scheme-table tr {
+            background: #111322 !important; /* Forces the dark row */
+          }
           .scheme-table th {
-            background: #1e1f29;
-            color: #a0a0a0;
+            background: #1e1f29 !important;
+            color: #8c92ac;
             font-size: 0.75rem;
             padding: 16px;
-            text-align: center;
             border-bottom: 2px solid #8a2be2;
           }
           .scheme-table td {
-            padding: 16px;
+            background: #111322 !important; /* Forces the dark cell */
+            padding: 18px;
             text-align: center;
             border-bottom: 1px solid #2e324d;
             border-right: 1px solid #2e324d;
-            color: #d1d1d1;
+            color: #ffffff;
             font-size: 0.85rem;
           }
           .scheme-table td:last-child { border-right: none; }
           
-          /* Status Pills */
-          .status-pill-outline {
-            border: 1.5px solid #00ff88;
+          .role-badge {
+            background: #4834d4;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            color: white;
+          }
+          .status-pill {
+            border: 1px solid #00ff88;
             color: #00ff88;
             padding: 4px 16px;
             border-radius: 20px;
             font-size: 0.7rem;
-            font-weight: 800;
-            background: transparent;
+            font-weight: bold;
           }
-          .status-pill-locked {
-            border: 1.5px solid #ff4d4d;
-            color: #ff4d4d;
-            padding: 4px 16px;
-            border-radius: 20px;
-            font-size: 0.7rem;
-            font-weight: 800;
+          .search-directory {
+            background: #0d0e12;
+            border: 1px solid #2e324d;
+            padding: 10px 20px;
+            border-radius: 25px;
+            color: white;
+            width: 300px;
           }
-          .role-tag {
-            background: #4834d4;
-            color: #fff;
-            padding: 4px 12px;
-            border-radius: 4px;
-            font-size: 0.7rem;
-          }
-          .role-tag.employee { background: #2f3542; }
-
-          /* Action Buttons */
-          .action-btn-box {
+          .action-btn {
             background: #1a1b23;
             border: 1px solid #3a3f58;
-            color: #fff;
+            color: white;
             padding: 6px 10px;
             margin: 0 4px;
             border-radius: 4px;
             cursor: pointer;
           }
-          .action-btn-box:hover:not(:disabled) { background: #2e324d; border-color: #8a2be2; }
-          .action-btn-box:disabled { opacity: 0.3; cursor: not-allowed; }
-
-          .btn-primary {
-            background: #8a2be2;
-            border: none;
-            color: white;
-            padding: 12px 30px;
-            border-radius: 6px;
-            font-weight: 700;
-            cursor: pointer;
-          }
-          .btn-primary:disabled { opacity: 0.3; }
         `}
       </style>
 
-      <h2 className="Employee-title">
-        Employee Management — <span className="user-role">{role}</span>
+      <h2 style={{ marginBottom: '30px', textTransform: 'uppercase', letterSpacing: '2px' }}>
+        Employee Portal — <span style={{ color: '#8a2be2' }}>{role}</span>
       </h2>
 
       {!isEmployee && (
         <div className="Employee-card">
-          <div className="Employee-form-grid">
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Full Name" />
-            <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email Address" type="email" />
-            <input value={position} onChange={(e) => setPosition(e.target.value)} placeholder="Position" />
-            <input type="number" value={salary} onChange={(e) => setSalary(e.target.value)} placeholder="Salary" />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginBottom: '20px' }}>
+            <input style={{ padding: '12px', background: '#0a0b14', border: '1px solid #2e324d', color: 'white', borderRadius: '8px' }} value={name} onChange={(e) => setName(e.target.value)} placeholder="Full Name" />
+            <input style={{ padding: '12px', background: '#0a0b14', border: '1px solid #2e324d', color: 'white', borderRadius: '8px' }} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" />
+            <input style={{ padding: '12px', background: '#0a0b14', border: '1px solid #2e324d', color: 'white', borderRadius: '8px' }} value={position} onChange={(e) => setPosition(e.target.value)} placeholder="Position" />
+            <input style={{ padding: '12px', background: '#0a0b14', border: '1px solid #2e324d', color: 'white', borderRadius: '8px' }} type="number" value={salary} onChange={(e) => setSalary(e.target.value)} placeholder="Salary" />
           </div>
-          <button onClick={submitEmployee} className="btn-primary">
-            {editingId ? "UPDATE EMPLOYEE" : "ADD EMPLOYEE"}
+          <button onClick={submitEmployee} style={{ background: '#8a2be2', color: 'white', padding: '12px 30px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>
+            {editingId ? "UPDATE" : "ADD EMPLOYEE"}
           </button>
-          {message && <p style={{ color: messageType === 'error' ? '#ff4d4d' : '#00ff88', marginTop: '10px' }}>{message}</p>}
         </div>
       )}
 
       <div className="Employee-card">
         <div className="table-header-flex">
-          <div className="section-title-blue">Active Directory ({filteredEmployees.length})</div>
-          <input 
-            className="search-bar-rounded" 
-            placeholder="Search directory..." 
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+          <h3 style={{ fontSize: '0.9rem', color: '#646cff' }}>ACTIVE DIRECTORY ({filteredEmployees.length})</h3>
+          <input className="search-directory" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
 
         <div className="scheme-table-container">
@@ -367,35 +291,17 @@ export default function Employee() {
             <tbody>
               {filteredEmployees.map((emp) => (
                 <tr key={emp._id || emp.Id}>
-                  <td style={{ fontWeight: '700', color: '#fff' }}>
-                    {emp.locked && "🔒 "}{emp.Name || emp.name || "—"}
-                  </td>
-                  <td>{emp.Email || emp.email}</td>
-                  <td style={{ color: '#a0a0a0' }}>{emp["Applied Position"] || emp.position || "—"}</td>
-                  <td style={{ color: '#fff' }}>
-                    {emp.Salary || emp.salary ? `₹${Number(emp.Salary || emp.salary).toLocaleString("en-IN")}` : "—"}
-                  </td>
-                  <td>
-                    <span className={`role-tag ${(emp.Role || emp.role || "Employee").toLowerCase()}`}>
-                      {emp.Role || emp.role || "Employee"}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={emp.locked ? "status-pill-locked" : "status-pill-outline"}>
-                      {emp.locked ? "LOCKED" : "ACTIVE"}
-                    </span>
-                  </td>
+                  <td style={{ color: '#fff', fontWeight: 'bold' }}>{emp.Name || emp.name || "N/A"}</td>
+                  <td style={{ color: '#8c92ac' }}>{emp.Email || emp.email}</td>
+                  <td>{emp["Applied Position"] || emp.position || "Staff"}</td>
+                  <td style={{ color: '#fff' }}>₹{Number(emp.Salary || emp.salary || 0).toLocaleString("en-IN")}</td>
+                  <td><span className="role-badge">{emp.Role || emp.role || "Employee"}</span></td>
+                  <td><span className="status-pill">{emp.locked ? "LOCKED" : "ACTIVE"}</span></td>
                   {!isEmployee && (
                     <td>
-                      <button onClick={() => editEmployee(emp)} disabled={emp.locked} className="action-btn-box" title="Edit">✏️</button>
-                      <button onClick={() => toggleLock(emp._id || emp.Id)} className="action-btn-box" title="Lock">{emp.locked ? "🔓" : "🔒"}</button>
-                      
-                      {isSuperAdmin && (
-                        <>
-                          <button onClick={() => openRoleModal(emp)} className="action-btn-box" title="Role">👤</button>
-                          <button onClick={() => deleteEmployee(emp._id || emp.Id)} disabled={emp.locked} className="action-btn-box" title="Delete">🗑</button>
-                        </>
-                      )}
+                      <button className="action-btn" onClick={() => editEmployee(emp)}>✏️</button>
+                      <button className="action-btn" onClick={() => toggleLock(emp._id || emp.Id)}>{emp.locked ? "🔓" : "🔒"}</button>
+                      {isSuperAdmin && <button className="action-btn" onClick={() => deleteEmployee(emp._id || emp.Id)}>🗑</button>}
                     </td>
                   )}
                 </tr>
@@ -404,27 +310,6 @@ export default function Employee() {
           </table>
         </div>
       </div>
-
-      {showRoleModal && selectedEmployee && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div className="Employee-card" style={{ width: '400px' }}>
-            <h3 className="section-title-blue">Change Role: {selectedEmployee.Name || selectedEmployee.name}</h3>
-            <select 
-              style={{ width: '100%', padding: '10px', background: '#0d0e12', color: '#fff', border: '1px solid #2e324d', margin: '20px 0' }}
-              value={newRole} 
-              onChange={(e) => setNewRole(e.target.value)}
-            >
-              <option value="Employee">Employee</option>
-              <option value="Admin">Admin</option>
-              <option value="SuperAdmin">SuperAdmin</option>
-            </select>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button onClick={changeRole} className="btn-primary" style={{ flex: 1 }}>SAVE</button>
-              <button onClick={() => setShowRoleModal(false)} className="btn-primary" style={{ flex: 1, background: '#3a3f58' }}>CANCEL</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
