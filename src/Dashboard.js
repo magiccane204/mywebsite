@@ -3,6 +3,7 @@ import {
   PieChart, Pie, Cell, 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer 
 } from "recharts";
+import Payroll from "./Payroll";
 import ChatWidget from "./ChatWidget";
 import Employee from "./Employee";
 import TasksWorkspace from "./TasksWorkspace";
@@ -284,6 +285,9 @@ const Dashboard = ({ setMode }) => {
 
           <div className="nav-group">
             {!isCollapsed && <div className="nav-label">Personnel</div>}
+              <button className={`nav-btn ${activePage === 'payroll' ? 'active' : ''}`} onClick={() => setActivePage('payroll')}>
+              💰 {!isCollapsed && "Payroll & Attendance"}
+                </button>
             <button className={`nav-btn ${activePage === 'employees' ? 'active' : ''}`} onClick={() => setActivePage('employees')}>
               👥 {!isCollapsed && "Staff Directory"}
             </button>
@@ -353,7 +357,6 @@ const Dashboard = ({ setMode }) => {
                 <p style={{color: 'var(--text-dim)', marginTop: '8px'}}>Real-time overview of <strong>{user?.Company || "Operations"}</strong> telemetry and analytics</p>
               </div>
 
-             
               <div className="widget-grid">
                 <div className="card-stat">
                   <div className="stat-label">Total Personnel</div>
@@ -464,6 +467,7 @@ const Dashboard = ({ setMode }) => {
           {activePage === "reports" && <Reports user={user} />}
           {activePage === "settings" && <Settings user={user} refresh={syncSystem} />}
           {activePage === "crm" && <CRM setMode={setMode} />}
+          {activePage === "payroll" && <Payroll user={user} />}
         </section>
 
         <ChatWidget user={user} />
