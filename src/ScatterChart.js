@@ -5,83 +5,68 @@ import {
   PointElement,
   Tooltip,
   Legend,
-  Title,
 } from "chart.js";
 
-ChartJS.register(LinearScale, PointElement, Tooltip, Legend, Title);
+ChartJS.register(LinearScale, PointElement, Tooltip, Legend);
 
-function ScatterChart({ chartData, labels, title }) {
-
-  if (!chartData || chartData.length === 0 || !labels || labels.length < 2) {
-    return (
-      <div style={{ textAlign: "center", padding: "40px", color: "#64748b", fontWeight: "500" }}>
-        Select at least TWO numeric columns to see correlation (X vs Y).
-      </div>
-    );
+function ScatterChart({ chartData, labels }) {
+  // Scatter needs at least 2 columns selected to compare X vs Y
+  if (!chartData || chartData.length === 0 || !Array.isArray(chartData[0]) || chartData[0].length < 2) {
+    return null;
   }
 
-
-  const xLabel = labels[0];
-  const yLabel = labels[1];
-
-
-  const dataPoints = chartData.map((item) => ({
-    x: parseFloat(item[xLabel]) || 0,
-    y: parseFloat(item[yLabel]) || 0,
-    name: item.name 
+  // Format data specifically for Scatter plots: [{x, y}]
+  const scatterPoints = chartData.map((row) => ({
+    x: row[0],
+    y: row[1]
   }));
 
   const data = {
     datasets: [
       {
-        label: `${xLabel} vs ${yLabel}`,
-        data: dataPoints,
-        backgroundColor: "rgba(244, 63, 94, 0.6)", 
-        borderColor: "#be123c",
-        borderWidth: 1,
+        label: "Correlation",
+        data: scatterPoints,
+        backgroundColor: "rgba(239, 68, 68, 0.8)", // Red dots
         pointRadius: 6,
-        pointHoverRadius: 9,
-        pointHitRadius: 10,
-      },
-    ],
+        hoverRadius: 8,
+      }
+    ]
   };
 
   const options = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { position: "top" },
-      title: {
-        display: true,
-        text: title || `Correlation: ${xLabel} vs ${yLabel}`,
-        font: { size: 16, weight: "bold" },
-        padding: { bottom: 20 }
-      },
+      legend: { display: false }, // Hide legend to save space
       tooltip: {
+        backgroundColor: "rgba(15, 23, 42, 0.9)",
+        titleColor: "#f8fafc",
+        bodyColor: "#cbd5e1",
         callbacks: {
-         
           label: (context) => {
-            const point = context.raw;
-            return `${point.name}: (${xLabel}: ${point.x}, ${yLabel}: ${point.y})`;
+             // Show the row name (MongoDB ID) when hovering over a dot
+             const rowName = labels[context.dataIndex] || `Row ${context.dataIndex + 1}`;
+             return `${rowName}: (${context.parsed.x}, ${context.parsed.y})`;
           }
         }
       }
     },
     scales: {
-      x: {
-        title: { display: true, text: xLabel, font: { weight: 'bold' } },
-        grid: { color: "#f1f5f9" }
+      x: { 
+        title: { display: true, text: "Metric 1", color: "#94a3b8" },
+        ticks: { color: "#94a3b8" }, 
+        grid: { color: "rgba(255,255,255,0.05)" } 
       },
-      y: {
-        beginAtZero: true,
-        title: { display: true, text: yLabel, font: { weight: 'bold' } },
-        grid: { color: "#f1f5f9" }
+      y: { 
+        title: { display: true, text: "Metric 2", color: "#94a3b8" },
+        ticks: { color: "#94a3b8" }, 
+        grid: { color: "rgba(255,255,255,0.05)" } 
       },
     },
   };
 
   return (
-    <div style={{ height: "300px", width: "100%", padding: "10px" }}>
+    <div style={{ height: "300px", width: "100%" }}>
       <Scatter data={data} options={options} />
     </div>
   );
