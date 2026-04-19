@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 
-// MODULE IMPORTS
+
 import Signup from "./SignUp.js";
 import Otp from "./otp.js";
 import Dashboard from "./Dashboard.js";
 
-// CSS IMPORT
+
 import "./App.css";
 
-// API CONFIGURATION
+
 const api = axios.create({
   baseURL: "https://mywebsite-im3c.onrender.com",
   headers: {
@@ -23,7 +23,7 @@ function App() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // --- PERSISTENT SESSION CHECK ---
+ 
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) return;
@@ -33,7 +33,7 @@ function App() {
     async function loadUser() {
       try {
         const res = await api.get("/api/me");
-        // Initial Theme Sync
+      
         if (res.data.DarkMode) {
           document.body.classList.add("dark-theme");
         } else {
@@ -49,7 +49,7 @@ function App() {
     loadUser();
   }, []);
 
-  // --- AUTHENTICATION HANDLER ---
+
   const handleLogin = async () => {
     if (!email || !password) {
       alert("Please enter credentials.");
@@ -80,7 +80,7 @@ function App() {
     }
   };
 
-  // --- ROUTING ENGINE ---
+
   if (mode === "signup") return <Signup setMode={setMode} />;
   
   if (mode === "otp") {
@@ -89,7 +89,7 @@ function App() {
 
   if (mode === "crm") return <Dashboard setMode={setMode} />;
 
-  // --- LOGIN UI (WELCOME BACK CARD) ---
+
   return (
     <div className="auth-page">
       <div className="floating-card">
