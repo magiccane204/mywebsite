@@ -17,7 +17,7 @@ const COLORS = [
 ];
 
 function MyPieChart({ chartData, labels, title }) {
-  // 1. Validation
+
   if (!chartData || chartData.length === 0 || !labels || labels.length === 0) {
     return (
       <div style={{ textAlign: "center", padding: "40px", color: "#64748b" }}>
@@ -26,14 +26,12 @@ function MyPieChart({ chartData, labels, title }) {
     );
   }
 
-  // 2. Logic: Pie charts show ONE variable at a time.
-  // We will show the distribution of the FIRST selected column (labels[0])
+
   const activeMetric = labels[0];
   
-  // X-Axis equivalent: The names of the people/rows
   const sliceLabels = chartData.map((item) => item.name);
   
-  // Values: The data points for the specific metric
+  
   const sliceValues = chartData.map((item) => item[activeMetric]);
 
   const data = {
@@ -69,7 +67,6 @@ function MyPieChart({ chartData, labels, title }) {
       },
       tooltip: {
         callbacks: {
-          // Adds a percentage calculation to the tooltip
           label: (context) => {
             const label = context.label || '';
             const value = context.parsed || 0;
@@ -80,7 +77,6 @@ function MyPieChart({ chartData, labels, title }) {
         }
       }
     },
-    // No scales for Pie Charts!
   };
 
   return (
