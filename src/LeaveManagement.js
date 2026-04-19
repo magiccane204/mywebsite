@@ -13,10 +13,9 @@ function LeaveManagement() {
   const [leaves, setLeaves] = useState([]);
   const [formData, setFormData] = useState({ Date: "", Reason: "" });
   const [loading, setLoading] = useState(false);
-  const [updatingId, setUpdatingId] = useState(null);
-  const [isDarkMode, setIsDarkMode] = useState(true);
-
-  const userRole = localStorage.getItem("userRole");
+  const [updatingId, setUpdatingId] = useState(null); 
+  
+  const userRole = localStorage.getItem("userRole"); 
 
   const fetchLeaves = useCallback(async () => {
     try {
@@ -37,7 +36,7 @@ function LeaveManagement() {
     try {
       await api.post("/leaves", formData);
       setFormData({ Date: "", Reason: "" });
-      await fetchLeaves();
+      fetchLeaves();
       alert("Leave applied successfully!");
     } catch (err) {
       alert("Error applying for leave.");
@@ -50,7 +49,7 @@ function LeaveManagement() {
     setUpdatingId(leaveId);
     try {
       await api.put(`/leaves/status/${leaveId}`, { status: newStatus });
-      await fetchLeaves();
+      await fetchLeaves(); 
     } catch (err) {
       alert("Failed to update status.");
     } finally {
@@ -58,126 +57,81 @@ function LeaveManagement() {
     }
   };
 
-  const toggleTheme = () => setIsDarkMode(!isDarkMode);
-
-  const themeStyles = {
-    background: isDarkMode ? "#0b0a1a" : "#f1f5f9",
-    cardBg: isDarkMode ? "#12112a" : "#ffffff",
-    border: isDarkMode ? "1px solid #7c3aed" : "1px solid #ddd",
-    text: isDarkMode ? "#f8fafc" : "#1e293b",
-    inputBg: isDarkMode ? "#0b0a1a" : "#fff",
-    tableRow: isDarkMode ? "transparent" : "#f8fafc",
-    subText: isDarkMode ? "#94a3b8" : "#64748b",
-    accent: "#7c3aed"
-  };
-
   return (
-    <div className="leave-mgmt-wrapper">
+    <div className="leave-mgmt-container">
       <style>{`
-        .leave-mgmt-wrapper { 
-            min-height: 100vh; 
-            background: ${themeStyles.background}; 
-            padding: 40px; 
-            color: ${themeStyles.text}; 
-            font-family: 'Inter', sans-serif;
-            transition: all 0.3s ease;
-        }
-        .theme-toggle {
-            position: absolute;
-            top: 20px;
-            right: 40px;
-            padding: 8px 16px;
-            border-radius: 20px;
-            cursor: pointer;
-            background: ${themeStyles.accent};
-            color: white;
-            border: none;
-            font-size: 12px;
-            font-weight: bold;
+        .leave-mgmt-container { 
+          padding: 40px; 
+          color: #f8fafc; 
+          font-family: sans-serif; 
+          background-color: #0b0a1a;
+          min-height: 100vh;
         }
         .leave-form-card, .leave-table-card { 
-            background: ${themeStyles.cardBg}; 
-            border: ${themeStyles.border}; 
-            padding: 30px; 
-            border-radius: 12px; 
-            margin-bottom: 30px; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+          background: #12112a; 
+          border: 1px solid #7c3aed; 
+          padding: 30px; 
+          border-radius: 20px; 
+          margin-bottom: 30px; 
         }
         .form-grid { display: grid; grid-template-columns: 1fr 2fr 150px; gap: 20px; align-items: flex-end; }
-        .input-group label { font-size: 11px; font-weight: 800; color: ${themeStyles.subText}; text-transform: uppercase; margin-bottom: 8px; display: block; }
-        .leave-input { 
-            background: ${themeStyles.inputBg}; 
-            border: 1px solid ${isDarkMode ? '#2d2b55' : '#cbd5e1'}; 
-            color: ${themeStyles.text}; 
-            padding: 12px; 
-            border-radius: 8px; 
-            width: 100%; 
-            box-sizing: border-box; 
-        }
-        .custom-table { width: 100%; border-collapse: collapse; }
+        .input-group label { font-size: 11px; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px; display: block; }
+        .leave-input { background: #0b0a1a; border: 1px solid #2d2b55; color: white; padding: 12px; border-radius: 8px; width: 100%; box-sizing: border-box; }
+        
+        .custom-table { width: 100%; border-collapse: collapse; table-layout: auto; }
         .custom-table th { 
-            text-align: left; 
-            padding: 18px 15px; 
-            font-size: 11px; 
-            color: ${themeStyles.subText}; 
-            text-transform: uppercase; 
-            border-bottom: 2px solid ${isDarkMode ? '#2d2b55' : '#e2e8f0'}; 
+          text-align: left; 
+          padding: 15px; 
+          font-size: 11px; 
+          color: #94a3b8; 
+          text-transform: uppercase; 
+          border-bottom: 1px solid #7c3aed; 
+          background-color: #12112a;
         }
         .custom-table td { 
-            padding: 15px; 
-            font-size: 14px; 
-            border-bottom: 1px solid ${isDarkMode ? '#1e1c3a' : '#f1f5f9'}; 
-            color: ${themeStyles.text}; 
-            background: ${themeStyles.tableRow};
+          padding: 15px; 
+          font-size: 14px; 
+          border-bottom: 1px solid #2d2b55; 
+          color: #e2e8f0; 
+          vertical-align: middle;
+          background-color: #12112a;
         }
-        .status-badge { padding: 6px 14px; border-radius: 20px; font-size: 10px; font-weight: 800; text-transform: uppercase; display: inline-block; min-width: 80px; text-align: center; }
+        .custom-table tr:hover td {
+          background-color: #1a1935;
+        }
+        
+        .status-badge { padding: 6px 14px; border-radius: 20px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; display: inline-block; min-width: 80px; text-align: center; }
         .status-submitted { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
         .status-approved { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
         .status-rejected { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
-        .action-btn { border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-size: 10px; font-weight: 900; text-transform: uppercase; transition: all 0.2s ease; }
-        .btn-submit { background: #7c3aed; color: white; width: 100%; padding: 14px; }
-        .btn-approve { background: #10b981; color: white; margin-right: 8px; }
-        .btn-reject { background: #ef4444; color: white; }
-        .action-btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
+
+        .admin-actions { display: flex; gap: 8px; justify-content: flex-start; }
+        .action-btn { border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-size: 10px; font-weight: 900; text-transform: uppercase; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; }
+        .btn-approve { background: #10b981; color: white; box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.3); }
+        .btn-reject { background: #ef4444; color: white; box-shadow: 0 4px 14px 0 rgba(239, 68, 68, 0.3); }
+        .action-btn:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.1); }
         .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
       `}</style>
 
-      <button className="theme-toggle" onClick={toggleTheme}>
-        {isDarkMode ? "LIGHT MODE" : "DARK MODE"}
-      </button>
-
       <div className="leave-form-card">
-        <h3 style={{marginTop: 0, marginBottom: '20px'}}>Apply for Leave</h3>
+        <h3>Apply for Leave</h3>
         <form onSubmit={handleSubmit} className="form-grid">
           <div className="input-group">
             <label>Leave Date</label>
-            <input 
-              type="date" 
-              className="leave-input" 
-              value={formData.Date} 
-              onChange={(e) => setFormData({...formData, Date: e.target.value})} 
-              required 
-            />
+            <input type="date" className="leave-input" value={formData.Date} onChange={(e) => setFormData({...formData, Date: e.target.value})} required />
           </div>
           <div className="input-group">
             <label>Reason for Absence</label>
-            <input 
-              type="text" 
-              className="leave-input" 
-              placeholder="e.g. Family Emergency" 
-              value={formData.Reason} 
-              onChange={(e) => setFormData({...formData, Reason: e.target.value})} 
-              required 
-            />
+            <input type="text" className="leave-input" placeholder="e.g. Family Emergency" value={formData.Reason} onChange={(e) => setFormData({...formData, Reason: e.target.value})} required />
           </div>
-          <button type="submit" className="action-btn btn-submit" disabled={loading}>
-            {loading ? "PROCESSING..." : "SUBMIT"}
+          <button type="submit" className="action-btn" style={{background: '#7c3aed', padding: '12px', width: '100%'}} disabled={loading}>
+            {loading ? "WAIT..." : "SUBMIT"}
           </button>
         </form>
       </div>
 
       <div className="leave-table-card">
-        <h3 style={{marginTop: 0, marginBottom: '20px'}}>Leave History & Requests</h3>
+        <h3>Leave History & Requests</h3>
         <table className="custom-table">
           <thead>
             <tr>
@@ -192,7 +146,7 @@ function LeaveManagement() {
             {leaves.map((leave) => (
               <tr key={leave._id}>
                 <td style={{fontWeight: 'bold'}}>{leave.Date}</td>
-                <td style={{color: themeStyles.subText}}>{leave.EmployeeEmail}</td>
+                <td style={{color: '#94a3b8'}}>{leave.EmployeeEmail}</td>
                 <td>{leave.Reason}</td>
                 <td>
                   <span className={`status-badge status-${(leave.Status || 'submitted').toLowerCase()}`}>
@@ -202,7 +156,7 @@ function LeaveManagement() {
                 {(userRole === "Admin" || userRole === "SuperAdmin") && (
                   <td>
                     {(!leave.Status || leave.Status === "Submitted") ? (
-                      <div style={{display: 'flex'}}>
+                      <div className="admin-actions">
                         <button 
                           disabled={updatingId === leave._id}
                           onClick={() => handleStatusUpdate(leave._id, 'Approved')} 
@@ -217,7 +171,7 @@ function LeaveManagement() {
                         </button>
                       </div>
                     ) : (
-                      <span style={{color: themeStyles.subText, fontSize: '11px', fontStyle: 'italic'}}>Processed</span>
+                      <span style={{color: '#94a3b8', fontSize: '11px', fontStyle: 'italic'}}>Processed</span>
                     )}
                   </td>
                 )}
