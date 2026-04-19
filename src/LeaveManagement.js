@@ -69,32 +69,36 @@ function LeaveManagement() {
         }
         .leave-form-card, .leave-table-card { 
           background: #12112a; 
-          border: 1px solid #7c3aed; 
+          border: 2px solid #8b5cf6; 
           padding: 30px; 
           border-radius: 20px; 
           margin-bottom: 30px; 
+          box-shadow: 0 0 15px rgba(139, 92, 246, 0.2);
         }
         .form-grid { display: grid; grid-template-columns: 1fr 2fr 150px; gap: 20px; align-items: flex-end; }
         .input-group label { font-size: 11px; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px; display: block; }
         .leave-input { background: #0b0a1a; border: 1px solid #2d2b55; color: white; padding: 12px; border-radius: 8px; width: 100%; box-sizing: border-box; }
         
-        .custom-table { width: 100%; border-collapse: collapse; table-layout: auto; }
+        .custom-table { width: 100%; border-collapse: collapse; table-layout: auto; border: 1px solid #8b5cf6; border-radius: 12px; overflow: hidden; }
         .custom-table th { 
           text-align: left; 
           padding: 15px; 
           font-size: 11px; 
           color: #94a3b8; 
           text-transform: uppercase; 
-          border-bottom: 1px solid #7c3aed; 
+          border-bottom: 2px solid #8b5cf6; 
           background-color: #12112a;
         }
         .custom-table td { 
           padding: 15px; 
           font-size: 14px; 
-          border-bottom: 1px solid #2d2b55; 
+          border-bottom: 1px solid rgba(139, 92, 246, 0.3); 
           color: #e2e8f0; 
           vertical-align: middle;
           background-color: #12112a;
+        }
+        .custom-table tr:last-child td {
+          border-bottom: none;
         }
         .custom-table tr:hover td {
           background-color: #1a1935;
@@ -124,7 +128,7 @@ function LeaveManagement() {
             <label>Reason for Absence</label>
             <input type="text" className="leave-input" placeholder="e.g. Family Emergency" value={formData.Reason} onChange={(e) => setFormData({...formData, Reason: e.target.value})} required />
           </div>
-          <button type="submit" className="action-btn" style={{background: '#7c3aed', padding: '12px', width: '100%'}} disabled={loading}>
+          <button type="submit" className="action-btn" style={{background: '#8b5cf6', padding: '12px', width: '100%'}} disabled={loading}>
             {loading ? "WAIT..." : "SUBMIT"}
           </button>
         </form>
