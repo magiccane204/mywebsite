@@ -94,11 +94,37 @@ export default function ExcelTable({ onColumnSelect }) {
     });
   };
 
-  const handleColumnHeaderClick = (colIndex) => {
-    setSelectedCols(prev => 
-      prev.includes(colIndex) ? prev.filter(c => c !== colIndex) : [...prev, colIndex]
-    );
-    if (onColumnSelect) onColumnSelect(colIndex);
+const handleColumnHeaderClick = (colIndex) => {
+    setSelectedCols(prev => {
+     
+      const newCols = prev.includes(colIndex) 
+        ? prev.filter(c => c !== colIndex) 
+        : [...prev, colIndex];
+
+  
+      if (onColumnSelect) {
+        
+        const columnsInfo = newCols.map(c => colHeaders[c]);
+
+   
+        const data = tableData.map(row => {
+          if (newCols.length === 1) {
+
+            return Number(row[newCols[0]]) || 0; 
+          }
+         
+          return newCols.map(c => Number(row[c]) || 0); 
+        });
+
+       
+        const labels = tableData.map((_, i) => `Row ${i + 1}`);
+
+       
+        onColumnSelect(data, labels, columnsInfo);
+      }
+
+      return newCols;
+    });
   };
 
   const exportToExcel = () => {
