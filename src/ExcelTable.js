@@ -101,34 +101,54 @@ const handleColumnHeaderClick = (colIndex) => {
         : [...prev, colIndex];
 
       if (onColumnSelect) {
-        const columnsInfo = newCols.map(c => colHeaders[c]);
+        const columnsInfo = newCols.map(c => colHeaders[c] || `Column ${c}`);
 
-        // 1. Clean the data: Filter out completely empty rows to prevent "undefined" UI bugs
-        const validRows = tableData.filter(row => 
-          row.some(cell => String(cell).trim() !== "")
-        );
-
-        // 2. Smart Labels: Use the first column (Name) for chart labels. Fallback to "Entry #" if blank.
-        const labels = validRows.map((row, i) => {
-          const firstCell = String(row[0]).trim();
-          return firstCell ? firstCell : `Entry ${i + 1}`;
+        // 1. STRICT FILTER: Eliminate empty rows and rows where the target data isn't a number
+        const validRows = tableData.filter(row => {
+          return newCols.some(c => {
+            const rawValue = row[c];
+            if (rawValue === null || rawValue === undefined || String(rawValue).trim() === "") return false;
+            
+            // Check if it's actually a valid number
+            const numValue = Number(rawValue);
+            return !isNaN(numValue);
+          });
         });
 
-        // 3. Safe Parsing: Convert to numbers, and default to 0 if the cell has invalid text
+        // 2. DATA EXTRACTION: Force strict numeric conversion
         const data = validRows.map(row => {
           if (newCols.length === 1) {
-            const val = parseFloat(row[newCols[0]]);
+            const val = Number(row[newCols[0]]);
             return isNaN(val) ? 0 : val;
           }
-          // Handle multiple columns for Scatter/Line charts
           return newCols.map(c => {
-            const val = parseFloat(row[c]);
+            const val = Number(row[c]);
             return isNaN(val) ? 0 : val;
           });
         });
 
-        // Send the cleaned data up to CRM.jsx
-        onColumnSelect(data, labels, columnsInfo);
+        // 3. SMART LABELS: Use the first column ("Name"), fallback gracefully
+        const labels = validRows.map((row, i) => {
+          const firstCell = String(row[0] || "").trim();
+          return firstCell ? firstCell : `Record ${i + 1}`;
+        });
+
+        // 4. PRE-DEPLOYMENT DEBUGGER
+        console.group("🚀 CRM Data Payload Verification");
+        console.log("Labels (X-Axis):", labels);
+        console.log("Data (Y-Axis):", data);
+        console.log("Columns Selected:", columnsInfo);
+        console.groupEnd();
+
+        // 5. SEND TO DASHBOARD
+        // Prevent sending empty arrays which crash some chart libraries
+        if (data.length > 0) {
+            onColumnSelect(data, labels, columnsInfo);
+        } else {
+            console.warn("No valid numeric data found in selected columns. Aborting chart update.");
+            // Optionally, pass empty arrays to clear the charts instead of crashing them
+            onColumnSelect([], [], columnsInfo); 
+        }
       }
 
       return newCols;
