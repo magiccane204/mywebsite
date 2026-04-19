@@ -16,23 +16,28 @@ export default function Settings() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
 
-
-
-useEffect(() => {
+  useEffect(() => {
     const fetchUserData = async () => {
       try {
         setLoading(true);
-        
-
         const response = await api.get('/api/me'); 
         
-
         setUser({
           Email: response.data.Email,
           Role: response.data.Role,
           Company: response.data.Company 
         });
-        setName(response.data.Name);
+        
+        // Load all preferences from the database
+        setName(response.data.Name || "");
+        setLanguage(response.data.Language || "English");
+        setTimezone(response.data.Timezone || "UTC");
+        
+        // Use ?? to ensure boolean values default correctly if undefined
+        setDarkMode(response.data.DarkMode ?? true);
+        setEmailNotif(response.data.EmailNotifications ?? true);
+        setPublicProfile(response.data.PublicProfile ?? false);
+        setAutoLogout(response.data.AutoLogout ?? false);
         
       } catch (error) {
         console.error("Failed to fetch user data:", error);
@@ -51,25 +56,57 @@ useEffect(() => {
 
   const saveSettings = async () => {
     setMessage("Saving...");
-    setTimeout(() => setMessage("Settings saved successfully."), 1000);
+    try {
+      await api.put('/api/me/settings', {
+        Name: name,
+        Language: language,
+        Timezone: timezone,
+        DarkMode: darkMode,
+        EmailNotifications: emailNotif,
+        PublicProfile: publicProfile,
+        AutoLogout: autoLogout
+      });
+      setMessage("Settings saved successfully.");
+    } catch (err) {
+      console.error(err);
+      setMessage("Failed to save settings.");
+    }
   };
 
   const changePassword = async () => {
-    if (!password) return;
+    if (!password) {
+      setMessage("Please enter a new password.");
+      return;
+    }
     setMessage("Updating password...");
-    setTimeout(() => { setPassword(""); setMessage("Password updated."); }, 1000);
+    try {
+      await api.put('/api/me/password', { password });
+      setPassword(""); 
+      setMessage("Password updated successfully.");
+    } catch (err) {
+      console.error(err);
+      setMessage("Failed to update password.");
+    }
   };
 
   const deleteAccount = async () => {
     if (!window.confirm("Are you sure? This action cannot be undone.")) return;
     setMessage("Deleting account...");
+    try {
+      await api.delete('/api/me');
+      // Clear token and redirect to login after deletion
+      localStorage.removeItem("token"); 
+      window.location.href = "/login"; 
+    } catch (err) {
+      console.error(err);
+      setMessage("Failed to delete account.");
+    }
   };
 
   if (loading) return <div style={{ padding: "40px", fontFamily: "sans-serif" }}>Loading your workspace...</div>;
 
   return (
     <div id="settings-root" className={darkMode ? "dark-theme" : "light-theme"}>
-
       <style>{`
         #settings-root {
           --bg-main: #f2f3f5;
@@ -94,107 +131,39 @@ useEffect(() => {
           transition: background-color 0.2s ease, color 0.2s ease;
         }
 
-#settings-root.dark-theme {
-  /* Change these three to match your website */
-  --bg-main: #1e1f22;       /* The deep background behind everything */
-  --bg-card: #2b2d31;       /* The color of the actual settings boxes */
-  --border-color: #3f4147;  /* The lines separating sections */
-
-  --text-main: #f2f3f5;
-  --text-muted: #b5bac1;
-  --danger-bg: rgba(218, 55, 60, 0.1);
-  --input-bg: #1e1f22;
-  --input-text: #dbdee1;
-}
-
-        #settings-root * {
-          box-sizing: border-box;
+        #settings-root.dark-theme {
+          --bg-main: #1e1f22;       
+          --bg-card: #2b2d31;       
+          --border-color: #3f4147;  
+          --text-main: #f2f3f5;
+          --text-muted: #b5bac1;
+          --danger-bg: rgba(218, 55, 60, 0.1);
+          --input-bg: #1e1f22;
+          --input-text: #dbdee1;
         }
 
-        #settings-root .settings-container {
-          max-width: 900px;
-          margin: 0 auto;
-          display: flex;
-          flex-direction: column;
-          gap: 24px;
-        }
+        #settings-root * { box-sizing: border-box; }
+        #settings-root .settings-container { max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
+        #settings-root .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        @media (max-width: 768px) { #settings-root .settings-grid { grid-template-columns: 1fr; } }
 
-        #settings-root .settings-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 24px;
-        }
-
-        @media (max-width: 768px) {
-          #settings-root .settings-grid { grid-template-columns: 1fr; }
-        }
-
-        #settings-root .settings-header {
-          display: flex;
-          align-items: center;
-          gap: 20px;
-          padding-bottom: 20px;
-          border-bottom: 1px solid var(--border-color);
-        }
-
-        #settings-root .user-avatar-large {
-          width: 80px;
-          height: 80px;
-          border-radius: 50%;
-          background: linear-gradient(135deg, var(--accent-color), #904cfa);
-          color: white;
-          font-size: 32px;
-          font-weight: bold;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        }
-
+        #settings-root .settings-header { display: flex; align-items: center; gap: 20px; padding-bottom: 20px; border-bottom: 1px solid var(--border-color); }
+        #settings-root .user-avatar-large { width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-color), #904cfa); color: white; font-size: 32px; font-weight: bold; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
         #settings-root .user-title-info h2 { margin: 0 0 8px 0; font-size: 24px; }
         #settings-root .user-badge-row { display: flex; gap: 10px; margin: 0; }
         #settings-root .badge { padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; text-transform: uppercase; }
         #settings-root .role-badge { background-color: rgba(88, 101, 242, 0.2); color: var(--accent-color); }
         #settings-root .company-badge { background-color: var(--border-color); color: var(--text-main); }
 
-        #settings-root .settings-card {
-          background-color: var(--bg-card);
-          border: 1px solid var(--border-color);
-          border-radius: 12px;
-          padding: 24px;
-          margin-bottom: 24px;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-        }
-
-        #settings-root .settings-card h3 {
-          margin-top: 0; margin-bottom: 20px; font-size: 16px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px;
-        }
+        #settings-root .settings-card { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 24px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        #settings-root .settings-card h3 { margin-top: 0; margin-bottom: 20px; font-size: 16px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px; }
 
         #settings-root .input-group { display: flex; flex-direction: column; margin-bottom: 16px; }
         #settings-root .input-group label { font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; }
-        
-        #settings-root .input-group input, 
-        #settings-root .input-group select, 
-        #settings-root .danger-input {
-          background-color: var(--input-bg);
-          border: 1px solid transparent;
-          color: var(--input-text);
-          padding: 12px 14px;
-          border-radius: 8px;
-          font-size: 15px;
-          outline: none;
-          transition: border 0.2s;
-        }
-
-        #settings-root .input-group input:focus, 
-        #settings-root .input-group select:focus, 
-        #settings-root .danger-input:focus {
-          border: 1px solid var(--accent-color);
-        }
-
+        #settings-root .input-group input, #settings-root .input-group select, #settings-root .danger-input { background-color: var(--input-bg); border: 1px solid transparent; color: var(--input-text); padding: 12px 14px; border-radius: 8px; font-size: 15px; outline: none; transition: border 0.2s; }
+        #settings-root .input-group input:focus, #settings-root .input-group select:focus, #settings-root .danger-input:focus { border: 1px solid var(--accent-color); }
         #settings-root .disabled-input { opacity: 0.6; cursor: not-allowed; }
         #settings-root .input-hint { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
-        
         #settings-root .row-group { flex-direction: row; gap: 16px; }
         #settings-root .half-width { flex: 1; display: flex; flex-direction: column; }
 
@@ -212,13 +181,10 @@ useEffect(() => {
 
         #settings-root button { font-family: inherit; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; transition: background-color 0.2s, transform 0.1s; }
         #settings-root button:active { transform: translateY(1px); }
-
         #settings-root .btn-primary { width: 100%; background-color: var(--accent-color); color: white; padding: 14px; font-size: 16px; margin-top: auto; }
         #settings-root .btn-primary:hover { background-color: var(--accent-hover); }
-        
         #settings-root .btn-secondary { background-color: var(--border-color); color: var(--text-main); padding: 10px 20px; }
         #settings-root .btn-secondary:hover { opacity: 0.8; }
-        
         #settings-root .btn-danger { background-color: transparent; border: 1px solid var(--danger-color); color: var(--danger-color); padding: 10px 20px; }
         #settings-root .btn-danger:hover { background-color: var(--danger-color); color: white; }
 
@@ -235,7 +201,6 @@ useEffect(() => {
 
       <div className="settings-container">
         
-
         <div className="settings-header">
           <div className="user-avatar-large">
             {name ? name.charAt(0).toUpperCase() : "U"}
@@ -248,10 +213,10 @@ useEffect(() => {
             </p>
           </div>
         </div>
+        
         {message && <div className="settings-alert">{message}</div>}
 
         <div className="settings-grid">
-
           <div className="settings-column">
             
             <div className="settings-card">
@@ -355,7 +320,6 @@ useEffect(() => {
 
           </div>
         </div>
-
 
         <div className="settings-card danger-zone">
           <div className="danger-header">
