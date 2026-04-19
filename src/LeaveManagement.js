@@ -13,7 +13,7 @@ function LeaveManagement() {
   const [leaves, setLeaves] = useState([]);
   const [formData, setFormData] = useState({ Date: "", Reason: "" });
   const [loading, setLoading] = useState(false);
-  const [updatingId, setUpdatingId] = useState(null); // Track which row is updating
+  const [updatingId, setUpdatingId] = useState(null); 
   
   const userRole = localStorage.getItem("userRole"); 
 
@@ -48,7 +48,7 @@ function LeaveManagement() {
   const handleStatusUpdate = async (leaveId, newStatus) => {
     setUpdatingId(leaveId);
     try {
-      // Logic fix: Ensure status string matches backend expectations
+     
       await api.put(`/leaves/status/${leaveId}`, { status: newStatus });
       await fetchLeaves(); 
     } catch (err) {
@@ -129,7 +129,7 @@ function LeaveManagement() {
                 </td>
                 {(userRole === "Admin" || userRole === "SuperAdmin") && (
                   <td>
-                    {/* Only show buttons if the status is still 'Submitted' */}
+                    
                     {(!leave.Status || leave.Status === "Submitted") ? (
                       <div className="admin-actions">
                         <button 
