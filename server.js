@@ -1251,26 +1251,48 @@ res.status(500).json({message:"Failed to apply leave"});
 
 
 // GET LEAVES (ADMIN ONLY)
-app.get("/api/leaves", auth, async (req,res)=>{
-try{
+// GET LEAVES (ADMIN ONLY)
+app.get("/api/leaves", auth, async (req, res) => {
+  try {
+    let filter = { Company: req.user.company };
 
-let filter = { Company: req.user.company };
+    // employees only see their own
+    if (req.user.role === "Employee") {
+      filter.EmployeeEmail = req.user.email;
+    }
 
-// employees only see their own
-if(req.user.role === "Employee"){
-filter.EmployeeEmail = req.user.email;
-}
+    // Using aggregation to merge the Employee's Name into the Leave data
+    const leaves = await Leave.aggregate([
+      { $match: filter },
+      { $sort: { createdAt: -1 } },
+      {
+        $lookup: {
+          from: "Employee", // Looks inside your Employee collection
+          localField: "EmployeeEmail",
+          foreignField: "Email",
+          as: "employeeData"
+        }
+      },
+      {
+        // Extracts the Name from the matched employee and calls it 'employeeName'
+        $addFields: {
+          employeeName: { $arrayElemAt: ["$employeeData.Name", 0] }
+        }
+      },
+      {
+        // Cleans up the response by removing the bulky joined array
+        $project: {
+          employeeData: 0 
+        }
+      }
+    ]);
 
-const leaves = await Leave.find(filter)
-.sort({createdAt:-1})
-.lean();
+    res.json(leaves);
 
-res.json(leaves);
-
-}catch(err){
-console.error("GET_LEAVES_ERROR",err);
-res.status(500).json({message:"Failed to fetch leaves"});
-}
+  } catch (err) {
+    console.error("GET_LEAVES_ERROR", err);
+    res.status(500).json({ message: "Failed to fetch leaves" });
+  }
 });
 // UPDATE LEAVE STATUS (Admin/SuperAdmin Only)
 app.put("/api/leaves/status/:id", auth, async (req, res) => {
