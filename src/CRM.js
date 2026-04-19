@@ -14,7 +14,7 @@ function CRM({ setMode }) {
   const [activeLabels, setActiveLabels] = useState([]);
   const [expandedChart, setExpandedChart] = useState(null);
 
-  // Authentication check
+
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -22,7 +22,7 @@ function CRM({ setMode }) {
     }
   }, [setMode]);
 
-  // Escape key to close modal
+
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === "Escape") setExpandedChart(null);
@@ -156,7 +156,7 @@ function CRM({ setMode }) {
         <p className="crm-subtitle">Advanced data visualization and workforce insights</p>
       </div>
 
-      {/* Charts Grid */}
+      
       <div className="charts-container">
         <div className="chart-card" onClick={() => setExpandedChart("bar")}>
           <div className="chart-title">Distribution Analysis</div>
@@ -192,7 +192,7 @@ function CRM({ setMode }) {
         </div>
       </div>
 
-      {/* Table Section */}
+     
       <div className="table-section">
         <div className="table-toolbar">
           <button 
@@ -223,7 +223,7 @@ function CRM({ setMode }) {
         </div>
       </div>
 
-      {/* Expanded Chart Modal */}
+      
       {expandedChart && (
         <div className="chart-modal" onClick={() => setExpandedChart(null)}>
           <div className="chart-modal-content" onClick={(e) => e.stopPropagation()}>
