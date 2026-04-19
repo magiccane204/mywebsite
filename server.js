@@ -1222,7 +1222,129 @@ app.post("/api/tasks", auth, async (req, res) => {
   }
 
 });
+// ================= ATTENDANCE & PAYROLL SCHEMAS =================
+const attendanceSchema = new mongoose.Schema({
+  EmployeeEmail: { type: String, required: true },
+  Company: { type: String, required: true },
+  Date: { type: String, required: true }, // Format: YYYY-MM-DD
+  Status: { type: String, default: "Present" },
+  createdAt: { type: Date, default: Date.now }
+});
+// Ensure an employee can only mark present once per day
+attendanceSchema.index({ EmployeeEmail: 1, Date: 1 }, { unique: true });
+const Attendance = mongoose.model("Attendance", attendanceSchema, "attendance");
 
+const payrollSchema = new mongoose.Schema({
+  EmployeeEmail: { type: String, required: true },
+  Company: { type: String, required: true },
+  Amount: { type: Number, required: true },
+  Method: { type: String, required: true }, // "Cash/Cheque"
+  PaidBy: { type: String, required: true }, // Admin email
+  Date: { type: Date, default: Date.now }
+});
+const Payroll = mongoose.model("Payroll", payrollSchema, "payroll");
+
+
+// ================= ATTENDANCE ROUTES =================
+
+// Mark Present (Employee)
+app.post("/api/attendance/mark", auth, async (req, res) => {
+  try {
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+
+    const existing = await Attendance.findOne({ 
+      EmployeeEmail: req.user.email, 
+      Date: today 
+    });
+
+    if (existing) {
+      return res.status(400).json({ message: "Attendance already marked for today." });
+    }
+
+    const attendance = await Attendance.create({
+      EmployeeEmail: req.user.email,
+      Company: req.user.company,
+      Date: today,
+      Status: "Present"
+    });
+
+    res.json({ success: true, attendance });
+  } catch (err) {
+    console.error("ATTENDANCE_MARK_ERROR", err);
+    res.status(500).json({ message: "Failed to mark attendance." });
+  }
+});
+
+// Get Attendance (Admin sees all, Employee sees own)
+app.get("/api/attendance", auth, async (req, res) => {
+  try {
+    let filter = { Company: req.user.company };
+    if (req.user.role === "Employee") {
+      filter.EmployeeEmail = req.user.email;
+    } else if (req.query.email) {
+      filter.EmployeeEmail = req.query.email; // Admin checking specific employee
+    }
+
+    const records = await Attendance.find(filter).sort({ Date: -1 }).lean();
+    res.json(records);
+  } catch (err) {
+    console.error("ATTENDANCE_GET_ERROR", err);
+    res.status(500).json({ message: "Failed to fetch attendance." });
+  }
+});
+
+
+// ================= PAYROLL ROUTES =================
+
+// Process Payout (Admin/SuperAdmin only)
+app.post("/api/payroll/pay", auth, async (req, res) => {
+  try {
+    if (req.user.role !== "Admin" && req.user.role !== "SuperAdmin") {
+      return res.status(403).json({ message: "Only admins can process payroll." });
+    }
+
+    const { targetEmail, amount, method } = req.body;
+    if (!targetEmail || !amount || !method) {
+      return res.status(400).json({ message: "Missing required fields." });
+    }
+
+    // Verify employee belongs to the admin's company
+    const employee = await EmployeesModel.findOne({ Email: targetEmail, Company: req.user.company });
+    if (!employee) return res.status(404).json({ message: "Employee not found." });
+
+    const payment = await Payroll.create({
+      EmployeeEmail: targetEmail,
+      Company: req.user.company,
+      Amount: amount,
+      Method: method,
+      PaidBy: req.user.email
+    });
+
+    logAudit("PAYROLL_PROCESSED", req.user.email, { targetEmail, amount, method });
+    res.json({ success: true, payment });
+  } catch (err) {
+    console.error("PAYROLL_ERROR", err);
+    res.status(500).json({ message: "Failed to process payroll." });
+  }
+});
+
+// Get Payroll History
+app.get("/api/payroll", auth, async (req, res) => {
+  try {
+    let filter = { Company: req.user.company };
+    if (req.user.role === "Employee") {
+      filter.EmployeeEmail = req.user.email;
+    } else if (req.query.email) {
+      filter.EmployeeEmail = req.query.email;
+    }
+
+    const records = await Payroll.find(filter).sort({ Date: -1 }).lean();
+    res.json(records);
+  } catch (err) {
+    console.error("PAYROLL_GET_ERROR", err);
+    res.status(500).json({ message: "Failed to fetch payroll history." });
+  }
+});
 // ================= LEAVE SYSTEM =================
 
 // APPLY LEAVE
