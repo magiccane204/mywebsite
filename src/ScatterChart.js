@@ -11,7 +11,7 @@ import {
 ChartJS.register(LinearScale, PointElement, Tooltip, Legend, Title);
 
 function ScatterChart({ chartData, labels, title }) {
-  // 1. Validation: Scatter plots need at least 2 variables (X and Y)
+
   if (!chartData || chartData.length === 0 || !labels || labels.length < 2) {
     return (
       <div style={{ textAlign: "center", padding: "40px", color: "#64748b", fontWeight: "500" }}>
@@ -20,15 +20,15 @@ function ScatterChart({ chartData, labels, title }) {
     );
   }
 
-  // 2. Define our X and Y axes based on selection order
+
   const xLabel = labels[0];
   const yLabel = labels[1];
 
-  // 3. Map data into {x, y} coordinates for Chart.js
+
   const dataPoints = chartData.map((item) => ({
     x: parseFloat(item[xLabel]) || 0,
     y: parseFloat(item[yLabel]) || 0,
-    name: item.name // We store the name to show in the tooltip
+    name: item.name 
   }));
 
   const data = {
@@ -36,7 +36,7 @@ function ScatterChart({ chartData, labels, title }) {
       {
         label: `${xLabel} vs ${yLabel}`,
         data: dataPoints,
-        backgroundColor: "rgba(244, 63, 94, 0.6)", // Vibrant pink/rose
+        backgroundColor: "rgba(244, 63, 94, 0.6)", 
         borderColor: "#be123c",
         borderWidth: 1,
         pointRadius: 6,
@@ -59,7 +59,7 @@ function ScatterChart({ chartData, labels, title }) {
       },
       tooltip: {
         callbacks: {
-          // Custom tooltip to show the Person's name + the coordinates
+         
           label: (context) => {
             const point = context.raw;
             return `${point.name}: (${xLabel}: ${point.x}, ${yLabel}: ${point.y})`;
