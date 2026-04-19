@@ -87,7 +87,7 @@ function TasksWorkspace() {
   return (
     <div style={{ padding: "20px", color: "white", fontFamily: "sans-serif" }}>
       
-      {/* INTERNAL CSS */}
+      
       <style>{`
         .chart-modal {
           position: fixed;
@@ -151,7 +151,7 @@ function TasksWorkspace() {
         }
       `}</style>
 
-      {/* HEADER */}
+      
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
         <h2 style={{ margin: 0 }}>Task Workspace</h2>
         <button
@@ -162,7 +162,7 @@ function TasksWorkspace() {
         </button>
       </div>
 
-      {/* MODAL */}
+      
       {showTaskModal && (
         <div className="chart-modal" onClick={() => setShowTaskModal(false)}>
           <div className="chart-modal-content" onClick={(e) => e.stopPropagation()}>
@@ -180,7 +180,7 @@ function TasksWorkspace() {
         </div>
       )}
 
-      {/* TABLE */}
+     
       <table className="excel-table" style={{ width: "100%" }}>
         <thead>
           <tr>
