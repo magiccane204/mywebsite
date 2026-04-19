@@ -11,7 +11,7 @@ import {
   Filler,
 } from "chart.js";
 
-// Register Filler to support the 'fill' property
+
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -23,16 +23,16 @@ ChartJS.register(
   Filler
 );
 
-// Color palette for multiple lines
+
 const COLORS = [
-  { border: "rgb(59, 130, 246)", bg: "rgba(59, 130, 246, 0.1)" }, // Blue
-  { border: "rgb(16, 124, 65)", bg: "rgba(16, 124, 65, 0.1)" },  // Excel Green
-  { border: "rgb(124, 58, 237)", bg: "rgba(124, 58, 237, 0.1)" }, // Purple
-  { border: "rgb(245, 158, 11)", bg: "rgba(245, 158, 11, 0.1)" }, // Orange
+  { border: "rgb(59, 130, 246)", bg: "rgba(59, 130, 246, 0.1)" },
+  { border: "rgb(16, 124, 65)", bg: "rgba(16, 124, 65, 0.1)" },
+  { border: "rgb(124, 58, 237)", bg: "rgba(124, 58, 237, 0.1)" }, 
+  { border: "rgb(245, 158, 11)", bg: "rgba(245, 158, 11, 0.1)" }, 
 ];
 
 function LineChart({ chartData, labels, title }) {
-  // 1. Validation for Multivariate data
+  
   if (!chartData || chartData.length === 0 || !labels || labels.length === 0) {
     return (
       <div style={{ textAlign: "center", padding: "40px", color: "#666", fontWeight: "500" }}>
@@ -41,10 +41,10 @@ function LineChart({ chartData, labels, title }) {
     );
   }
 
-  // 2. Map the X-Axis (Names/Labels from the first column)
+
   const xAxisLabels = chartData.map((row) => row.name);
 
-  // 3. Create Datasets (One line for every selected column)
+  
   const datasets = labels.map((label, index) => {
     const color = COLORS[index % COLORS.length];
     return {
@@ -55,8 +55,8 @@ function LineChart({ chartData, labels, title }) {
       pointBackgroundColor: color.border,
       pointBorderColor: "#fff",
       pointHoverRadius: 6,
-      tension: 0.4, // Smooth curves
-      fill: true,   // Area chart style
+      tension: 0.4,
+      fill: true,  
       borderWidth: 2,
     };
   });
@@ -81,7 +81,7 @@ function LineChart({ chartData, labels, title }) {
         padding: { bottom: 20 }
       },
       tooltip: {
-        mode: 'index', // Shows all values for a point on hover
+        mode: 'index', 
         intersect: false,
         backgroundColor: "rgba(255, 255, 255, 0.9)",
         titleColor: "#111",
