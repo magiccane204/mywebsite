@@ -1,4 +1,4 @@
-/* ========================= RESET ========================= */
+
 *,
 *::before,
 *::after {
@@ -20,12 +20,11 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* ========================= SCROLL ========================= */
+
 ::-webkit-scrollbar { width: 8px; }
 ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
-/* ========================= TOKENS ========================= */
 :root {
   --primary:#6366f1;
   --primary-dark:#4f46e5;
@@ -55,7 +54,7 @@ body {
   --sh-lg:0 15px 40px rgba(0,0,0,0.15);
 }
 
-/* ========================= APP ========================= */
+
 .app {
   display:flex;
   height:100vh;
@@ -63,7 +62,7 @@ body {
   overflow:hidden;
 }
 
-/* ========================= SIDEBAR ========================= */
+
 .sidebar {
   width:70px;
   height:100vh;
@@ -130,7 +129,7 @@ body {
   background:rgba(139,92,246,0.2);
 }
 
-/* ========================= CONTENT ========================= */
+
 .content {
   margin-left:70px;
   width:calc(100% - 70px);
@@ -149,7 +148,6 @@ body {
   width:calc(100% - 220px);
 }
 
-/* ========================= TOPBAR ========================= */
 .horizontalbar {
   width:100%;
   padding:16px 25px;
@@ -165,7 +163,6 @@ body {
   z-index:100;
 }
 
-/* ========================= GRID ========================= */
 .charts-container {
   display:grid;
   grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
@@ -173,7 +170,7 @@ body {
   padding:20px;
 }
 
-/* ========================= CHART ========================= */
+
 .chart {
   height:320px;
   background:var(--card);
@@ -189,7 +186,7 @@ body {
   box-shadow:var(--sh-lg);
 }
 
-/* ========================= TABLE ========================= */
+
 .excel-table {
   width:100%;
   border-collapse:collapse;
@@ -209,7 +206,7 @@ body {
   border:1px solid var(--border);
 }
 
-/* ========================= FORM ========================= */
+
 input, textarea, select {
   width:100%;
   padding:10px;
@@ -223,7 +220,7 @@ input:focus, textarea:focus, select:focus {
   box-shadow:0 0 0 3px rgba(99,102,241,0.2);
 }
 
-/* ========================= BUTTON ========================= */
+
 button {
   padding:10px 16px;
   border-radius:var(--r-sm);
@@ -242,7 +239,7 @@ button {
   color:white;
 }
 
-/* ========================= KPI ========================= */
+
 .dashboard-grid {
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
@@ -263,7 +260,7 @@ button {
   transform:translateY(-5px);
 }
 
-/* ========================= MODAL ========================= */
+
 .chart-modal {
   position:fixed;
   inset:0;
@@ -284,27 +281,25 @@ button {
   gap:12px;
 }
 
-/* ========================= UTILITIES ========================= */
 
-/* FLEX */
+
 .flex{display:flex;}
 .flex-col{flex-direction:column;}
 .flex-row{flex-direction:row;}
 .flex-center{justify-content:center;align-items:center;}
 
-/* GAP */
 .gap-5{gap:5px;}
 .gap-10{gap:10px;}
 .gap-15{gap:15px;}
 .gap-20{gap:20px;}
 
-/* PADDING */
+
 .p-5{padding:5px;}
 .p-10{padding:10px;}
 .p-15{padding:15px;}
 .p-20{padding:20px;}
 
-/* MARGIN */
+
 .mt-5{margin-top:5px;}
 .mt-10{margin-top:10px;}
 .mt-20{margin-top:20px;}
@@ -312,21 +307,21 @@ button {
 .mb-10{margin-bottom:10px;}
 .mb-20{margin-bottom:20px;}
 
-/* WIDTH */
+
 .w-full{width:100%;}
 .h-full{height:100%;}
 
-/* TEXT */
+
 .text-center{text-align:center;}
 .text-bold{font-weight:600;}
 .text-muted{color:var(--muted);}
 
-/* SHADOW */
+
 .shadow-sm{box-shadow:var(--sh-sm);}
 .shadow-md{box-shadow:var(--sh-md);}
 .shadow-lg{box-shadow:var(--sh-lg);}
 
-/* ========================= ANIMATIONS ========================= */
+
 
 .fade-in{animation:fadeIn 0.4s ease;}
 .slide-up{animation:slideUp 0.4s ease;}
@@ -347,7 +342,7 @@ button {
   to{transform:scale(1);opacity:1;}
 }
 
-/* ========================= DARK MODE ========================= */
+
 body.dark {
   --bg:#020617;
   --card:#111827;
@@ -365,9 +360,9 @@ body.dark select {
   color:white;
   border:1px solid #4c1d95;
 }
-/* ================= PART 2: COMPONENTS ================= */
 
-/* GRID */
+
+
 .charts-container {
   display: grid;
 
@@ -378,7 +373,7 @@ body.dark select {
   padding: 20px;
 }
 
-/* CARD */
+
 .chart {
   height: 320px;
 
@@ -398,7 +393,7 @@ body.dark select {
   box-shadow: var(--sh-lg);
 }
 
-/* KPI */
+
 .dashboard-grid {
   display: grid;
 
@@ -428,7 +423,7 @@ body.dark select {
   box-shadow: var(--sh-md);
 }
 
-/* TABLE */
+
 .excel-table {
   width: 100%;
 
@@ -457,7 +452,7 @@ body.dark select {
   border: 1px solid var(--border);
 }
 
-/* FORM */
+
 input,
 textarea,
 select {
@@ -482,7 +477,7 @@ select:focus {
   box-shadow: 0 0 0 3px rgba(99,102,241,0.2);
 }
 
-/* BUTTON */
+
 button {
   padding: 10px 16px;
 
@@ -513,7 +508,7 @@ button:hover {
   color: white;
 }
 
-/* MODAL */
+
 .chart-modal {
   position: fixed;
 
@@ -544,40 +539,40 @@ button:hover {
   box-shadow: var(--sh-lg);
 }
 
-/* TASK FORM */
+
 .task-form {
   display: flex;
   flex-direction: column;
   gap: 14px;
 }
 
-/* LEAVE FORM */
+
 .leave-form {
   display: flex;
   flex-direction: column;
   gap: 14px;
 }
-/* ================= PART 3: UTILITIES ================= */
 
-/* FLEX */
+
+
 .flex { display: flex; }
 .flex-col { flex-direction: column; }
 .flex-row { flex-direction: row; }
 .flex-center { justify-content: center; align-items: center; }
 
-/* GAP */
+
 .gap-5 { gap: 5px; }
 .gap-10 { gap: 10px; }
 .gap-15 { gap: 15px; }
 .gap-20 { gap: 20px; }
 
-/* PADDING */
+
 .p-5 { padding: 5px; }
 .p-10 { padding: 10px; }
 .p-15 { padding: 15px; }
 .p-20 { padding: 20px; }
 
-/* MARGIN */
+
 .mt-5 { margin-top: 5px; }
 .mt-10 { margin-top: 10px; }
 .mt-20 { margin-top: 20px; }
@@ -585,21 +580,20 @@ button:hover {
 .mb-10 { margin-bottom: 10px; }
 .mb-20 { margin-bottom: 20px; }
 
-/* WIDTH */
 .w-full { width: 100%; }
 .h-full { height: 100%; }
 
-/* TEXT */
+
 .text-center { text-align: center; }
 .text-bold { font-weight: 600; }
 .text-muted { color: var(--muted); }
 
-/* SHADOW */
+
 .shadow-sm { box-shadow: var(--sh-sm); }
 .shadow-md { box-shadow: var(--sh-md); }
 .shadow-lg { box-shadow: var(--sh-lg); }
 
-/* ================= ANIMATIONS ================= */
+
 
 .fade-in {
   animation: fadeIn 0.4s ease;
@@ -628,7 +622,7 @@ button:hover {
   to { transform: scale(1); opacity: 1; }
 }
 
-/* ================= DARK MODE ================= */
+
 
 body.dark {
   --bg: #020617;
@@ -661,9 +655,7 @@ body.dark textarea {
   color: white;
   border: 1px solid #4c1d95;
 }
-/* ================= PART 4: ADVANCED UI SYSTEM ================= */
 
-/* STATUS BADGES */
 .status {
   padding: 6px 12px;
   border-radius: 20px;
@@ -687,7 +679,7 @@ body.dark textarea {
   color: #991b1b;
 }
 
-/* TABLE ACTION BUTTONS */
+
 .table-actions {
   display: flex;
   gap: 8px;
@@ -698,7 +690,6 @@ body.dark textarea {
   font-size: 12px;
 }
 
-/* SEARCH BAR */
 .search-bar {
   width: 100%;
   max-width: 300px;
@@ -717,7 +708,7 @@ body.dark textarea {
   font-size: 14px;
 }
 
-/* FILTER BAR */
+
 .filter-bar {
   display: flex;
   gap: 10px;
@@ -729,7 +720,7 @@ body.dark textarea {
   min-width: 120px;
 }
 
-/* DROPDOWN */
+
 .dropdown {
   position: relative;
 }
@@ -765,7 +756,7 @@ body.dark textarea {
   background: #f1f5f9;
 }
 
-/* TABS */
+
 .tabs {
   display: flex;
   gap: 10px;
@@ -783,7 +774,6 @@ body.dark textarea {
   color: white;
 }
 
-/* PAGINATION */
 .pagination {
   display: flex;
   justify-content: center;
@@ -802,7 +792,7 @@ body.dark textarea {
   color: white;
 }
 
-/* NOTIFICATIONS */
+
 .notification {
   position: fixed;
   top: 20px;
@@ -825,7 +815,7 @@ body.dark textarea {
   border-left: 5px solid var(--danger);
 }
 
-/* LOADING */
+
 .loader {
   border: 4px solid #e5e7eb;
   border-top: 4px solid var(--primary);
@@ -839,7 +829,7 @@ body.dark textarea {
   100% { transform: rotate(360deg); }
 }
 
-/* SKELETON LOADING */
+
 .skeleton {
   background: linear-gradient(
     90deg,
@@ -856,7 +846,6 @@ body.dark textarea {
   100% { background-position: -200% 0; }
 }
 
-/* CARD VARIANTS */
 .card {
   background: white;
   padding: 15px;
@@ -869,7 +858,7 @@ body.dark textarea {
   box-shadow: var(--sh-md);
 }
 
-/* HRMS LEAVE TABLE SPECIAL */
+
 .leave-row {
   transition: background 0.2s;
 }
@@ -878,14 +867,14 @@ body.dark textarea {
   background: #f8fafc;
 }
 
-/* BUTTON ICON */
+
 .btn-icon {
   display: flex;
   align-items: center;
   gap: 5px;
 }
 
-/* TOOLTIP */
+
 .tooltip {
   position: relative;
 }
@@ -904,7 +893,7 @@ body.dark textarea {
   font-size: 12px;
 }
 
-/* PROGRESS BAR */
+
 .progress {
   width: 100%;
   height: 8px;
@@ -918,7 +907,7 @@ body.dark textarea {
   border-radius: 10px;
 }
 
-/* AVATAR */
+
 .avatar {
   width: 35px;
   height: 35px;
@@ -931,7 +920,7 @@ body.dark textarea {
   justify-content: center;
 }
 
-/* BADGE */
+
 .badge {
   padding: 4px 8px;
   font-size: 11px;
@@ -939,7 +928,7 @@ body.dark textarea {
   background: #e5e7eb;
 }
 
-/* HOVER SCALE */
+
 .hover-scale {
   transition: transform 0.2s;
 }
