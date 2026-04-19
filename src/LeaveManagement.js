@@ -261,6 +261,7 @@ function LeaveManagement({ user, isDarkMode }) {
           <table className="custom-table">
             <thead>
               <tr>
+                <th>Employee</th>
                 <th>Date Range</th>
                 <th>Reason</th>
                 <th>Status</th>
@@ -270,6 +271,9 @@ function LeaveManagement({ user, isDarkMode }) {
             <tbody>
               {leaves.map((leave) => (
                 <tr key={leave._id}>
+                  <td style={{fontWeight: 800, color: 'var(--accent-purple)'}}>
+                    {leave.employeeName || leave.userId || "Current Employee"}
+                  </td>
                   <td style={{fontWeight: 800, color: 'var(--text-main)'}}>{leave.Date}</td>
                   <td style={{color:'var(--text-main)'}}>{leave.Reason}</td>
                   <td>
