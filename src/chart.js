@@ -11,12 +11,12 @@ import {
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
-// Preset Colors for different variables (Excel Green, Purple, Blue, Orange)
+
 const COLORS = [
-  "rgba(16, 124, 65, 0.7)",  // Excel Green
-  "rgba(124, 58, 237, 0.7)", // Purple
-  "rgba(59, 130, 246, 0.7)",  // Blue
-  "rgba(245, 158, 11, 0.7)",  // Orange
+  "rgba(16, 124, 65, 0.7)",  
+  "rgba(124, 58, 237, 0.7)", 
+  "rgba(59, 130, 246, 0.7)",  
+  "rgba(245, 158, 11, 0.7)",  
 ];
 
 const BORDER_COLORS = [
@@ -27,7 +27,7 @@ const BORDER_COLORS = [
 ];
 
 function MyBarChart({ chartData, labels, title }) {
-  // 1. Validation: Check if we have data and multivariate labels
+
   if (!chartData || chartData.length === 0 || !labels || labels.length === 0) {
     return (
       <div style={{ textAlign: "center", padding: "40px", color: "#64748b" }}>
@@ -36,15 +36,13 @@ function MyBarChart({ chartData, labels, title }) {
     );
   }
 
-  // 2. Map the X-Axis (Labels)
-  // These are the names of the people/rows from the first column
+
   const xAxisLabels = chartData.map((item) => item.name);
 
-  // 3. Create Datasets (One for each selected column)
   const datasets = labels.map((label, index) => {
     return {
-      label: label, // Name of the column (e.g., "Salary")
-      data: chartData.map((item) => item[label]), // The values for that column
+      label: label, 
+      data: chartData.map((item) => item[label]),
       backgroundColor: COLORS[index % COLORS.length],
       borderColor: BORDER_COLORS[index % BORDER_COLORS.length],
       borderWidth: 1,
@@ -82,7 +80,7 @@ function MyBarChart({ chartData, labels, title }) {
     },
     scales: {
       x: {
-        grid: { display: false } // Cleaner Excel look
+        grid: { display: false } 
       },
       y: {
         beginAtZero: true,
