@@ -9,7 +9,7 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-function LeaveManagement() {
+function LeaveManagement({ user, isDarkMode }) {
   const [leaves, setLeaves] = useState([]);
   const [formData, setFormData] = useState({ startDate: "", endDate: "", Reason: "" });
   const [loading, setLoading] = useState(false);
@@ -84,7 +84,6 @@ function LeaveManagement() {
     
     for (let d = 1; d <= daysInMonth; d++) {
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-      
       let className = "calendar-day";
       if (dateStr === formData.startDate) className += " selected start-date";
       if (dateStr === formData.endDate) className += " selected end-date";
@@ -93,13 +92,8 @@ function LeaveManagement() {
           new Date(dateStr) < new Date(formData.endDate)) {
         className += " in-range";
       }
-      
       days.push(
-        <div 
-          key={d} 
-          className={className}
-          onClick={() => handleDateClick(dateStr)}
-        >
+        <div key={d} className={className} onClick={() => handleDateClick(dateStr)}>
           {d}
         </div>
       );
@@ -112,158 +106,130 @@ function LeaveManagement() {
   };
 
   return (
-    <div id="leave-module-root" className="leave-mgmt-container">
+    <div id="leave-module-root" className={`leave-mgmt-container ${isDarkMode ? 'dark-mode' : 'light-mode'}`}>
       <style>{`
-        #leave-module-root { 
-          padding: 40px; 
-          color: #1e293b; 
-          font-family: 'Inter', sans-serif; 
-          background-color: #f8fafc; 
-          min-height: 100vh; 
-          box-sizing: border-box; 
-          width: 100%; 
-        }
+        #leave-module-root { padding: 20px 0; width: 100%; }
         #leave-module-root * { box-sizing: border-box; }
-        #leave-module-root h3 { color: #0f172a; font-weight: 700; font-size: 1.1rem; }
         
-        #leave-module-root .leave-form-card, #leave-module-root .leave-table-card { 
-          background: #ffffff; 
-          border: 1px solid #e2e8f0; 
-          padding: 30px; 
-          border-radius: 20px; 
-          margin-bottom: 30px; 
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        .dark-mode {
+          --bg-card: #161533;
+          --bg-input: #0b0a1a;
+          --text-main: #ffffff;
+          --text-dim: #94a3b8;
+          --border: #2d2b55;
+          --shadow: 0 10px 30px rgba(0,0,0,0.4);
         }
         
-        #leave-module-root .form-layout { display: flex; gap: 30px; flex-wrap: wrap; align-items: flex-start; }
-        
-        #leave-module-root .calendar-section { flex: 0 0 350px; border: 1px solid #e2e8f0; border-radius: 15px; padding: 20px; background: #ffffff; }
-        #leave-module-root .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        #leave-module-root .month-year-display { text-align: center; line-height: 1.2; }
-        #leave-module-root .month-year-display div:first-child { font-weight: 800; color: #a855f7; text-transform: uppercase; font-size: 14px; }
-        #leave-module-root .nav-btn { background: #f1f5f9; border: 1px solid #e2e8f0; color: #64748b; cursor: pointer; border-radius: 8px; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; font-weight: bold; transition: all 0.2s; }
-        #leave-module-root .nav-btn:hover { background: #e2e8f0; color: #0f172a; }
-        
-        #leave-module-root .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; }
-        #leave-module-root .weekday { font-size: 11px; color: #94a3b8; font-weight: 700; padding-bottom: 15px; text-transform: uppercase; }
-        #leave-module-root .calendar-day { aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 8px; font-size: 13px; transition: 0.2s; color: #334155; }
-        #leave-module-root .calendar-day:hover:not(.empty) { background: #f1f5f9; }
-        #leave-module-root .calendar-day.selected { background: #a855f7; color: white; font-weight: 700; }
-        #leave-module-root .calendar-day.in-range { background: #f3e8ff; border-radius: 0; color: #7e22ce; }
-        
-        #leave-module-root .details-section { flex: 1; min-width: 300px; display: flex; flex-direction: column; gap: 20px; }
-        #leave-module-root .date-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        #leave-module-root .input-group label { font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 8px; display: block; }
-        #leave-module-root .leave-input { background: #f8fafc; border: 1px solid #e2e8f0; color: #1e293b; padding: 12px; border-radius: 12px; width: 100%; transition: border 0.2s; }
-        #leave-module-root .leave-input:focus { border-color: #a855f7; outline: none; }
-        
-        #leave-module-root .table-wrapper { border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; }
-        #leave-module-root .custom-table { width: 100%; border-collapse: collapse; background: white; }
-        #leave-module-root .custom-table th, #leave-module-root .custom-table td { border: 1px solid #e2e8f0; padding: 15px; }
-        #leave-module-root .custom-table th { text-align: left; font-size: 11px; color: #64748b; text-transform: uppercase; background-color: #f1f5f9; font-weight: 700; }
-        #leave-module-root .custom-table td { font-size: 14px; color: #334155; }
-        
-        #leave-module-root .status-badge { padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; display: inline-block; min-width: 80px; text-align: center; }
-        #leave-module-root .status-approved { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
-        #leave-module-root .status-rejected { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
-        #leave-module-root .status-submitted { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+        .light-mode {
+          --bg-card: #ffffff;
+          --bg-input: #f8fafc;
+          --text-main: #0f172a;
+          --text-dim: #64748b;
+          --border: #e2e8f0;
+          --shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
 
-        #leave-module-root .action-btn { border: none; padding: 12px; border-radius: 12px; cursor: pointer; font-size: 12px; font-weight: 700; transition: all 0.2s; }
-        #leave-module-root .btn-primary { background: #a855f7; color: white; width: 100%; box-shadow: 0 4px 14px 0 rgba(168, 85, 247, 0.39); }
-        #leave-module-root .btn-primary:hover { background: #9333ea; transform: translateY(-1px); }
+        #leave-module-root .leave-form-card, #leave-module-root .leave-table-card { 
+          background: var(--bg-card); border: 1px solid var(--border); 
+          padding: 30px; border-radius: 20px; margin-bottom: 30px; box-shadow: var(--shadow);
+        }
         
-        #leave-module-root .btn-approve { background: #22c55e; color: white; margin-right: 5px; }
-        #leave-module-root .btn-reject { background: #ef4444; color: white; }
+        #leave-module-root .form-layout { display: flex; gap: 30px; flex-wrap: wrap; }
+        #leave-module-root .calendar-section { flex: 0 0 350px; border: 1px solid var(--border); border-radius: 15px; padding: 20px; background: var(--bg-input); }
+        #leave-module-root .month-year-display div:first-child { font-weight: 800; color: #7c3aed; text-transform: uppercase; font-size: 14px; }
+        
+        #leave-module-root .calendar-day { aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 8px; font-size: 13px; color: var(--text-main); }
+        #leave-module-root .calendar-day.selected { background: #7c3aed; color: white; font-weight: 700; }
+        #leave-module-root .calendar-day.in-range { background: rgba(124, 58, 237, 0.2); border-radius: 0; color: #7c3aed; }
+        
+        #leave-module-root .leave-input { background: var(--bg-input); border: 1px solid var(--border); color: var(--text-main); padding: 12px; border-radius: 12px; width: 100%; }
+        #leave-module-root .custom-table { width: 100%; border-collapse: collapse; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+        #leave-module-root .custom-table th, #leave-module-root .custom-table td { border: 1px solid var(--border); padding: 15px; }
+        #leave-module-root .custom-table th { text-align: left; font-size: 11px; color: var(--text-dim); text-transform: uppercase; background: var(--bg-input); }
+        
+        #leave-module-root .status-approved { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; padding: 5px 12px; border-radius: 20px; font-weight: 700; font-size: 10px; }
+        #leave-module-root .status-rejected { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; padding: 5px 12px; border-radius: 20px; font-weight: 700; font-size: 10px; }
+        #leave-module-root .btn-primary { background: #7c3aed; color: white; border: none; padding: 14px; border-radius: 12px; font-weight: 800; cursor: pointer; width: 100%; margin-top: 10px; }
       `}</style>
 
       <div className="leave-form-card">
-        <h3>Apply for Vacation / Leave</h3>
+        <h3 style={{ marginBottom: '20px', color: 'var(--text-main)' }}>Leave & Vacation Request</h3>
         <form onSubmit={handleSubmit} className="form-layout">
           <div className="calendar-section">
-            <div className="calendar-header">
-              <button type="button" className="nav-btn" onClick={() => changeMonth(-1)}>{"<"}</button>
-              <div className="month-year-display">
+            <div className="calendar-header" style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'15px'}}>
+              <button type="button" onClick={() => changeMonth(-1)} style={{background:'none', border:'none', color:'#7c3aed', cursor:'pointer', fontSize:'18px'}}>❮</button>
+              <div className="month-year-display" style={{textAlign:'center'}}>
                 <div>{currentMonth.toLocaleString('default', { month: 'long' })}</div>
-                <div style={{fontSize: '14px', color: '#64748b'}}>{currentMonth.getFullYear()}</div>
+                <div style={{color:'var(--text-dim)', fontSize:'12px'}}>{currentMonth.getFullYear()}</div>
               </div>
-              <button type="button" className="nav-btn" onClick={() => changeMonth(1)}>{">"}</button>
+              <button type="button" onClick={() => changeMonth(1)} style={{background:'none', border:'none', color:'#7c3aed', cursor:'pointer', fontSize:'18px'}}>❯</button>
             </div>
-            <div className="calendar-grid">
-              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => <div key={d} className="weekday">{d}</div>)}
+            <div className="calendar-grid" style={{display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap:'5px'}}>
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => <div key={d} style={{fontSize:'10px', color:'var(--text-dim)', textAlign:'center', fontWeight:700}}>{d}</div>)}
               {renderCalendar()}
             </div>
           </div>
 
-          <div className="details-section">
-            <div className="date-inputs">
+          <div className="details-section" style={{flex: 1, display: 'flex', flexDirection: 'column', gap: '20px'}}>
+            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'15px'}}>
               <div className="input-group">
-                <label>From Date</label>
-                <input type="text" className="leave-input" value={formData.startDate} readOnly placeholder="Select start" />
+                <label style={{fontSize:'11px', fontWeight:700, color:'var(--text-dim)', display:'block', marginBottom:'8px'}}>FROM</label>
+                <input type="text" className="leave-input" value={formData.startDate} readOnly placeholder="Select start date" />
               </div>
               <div className="input-group">
-                <label>To Date</label>
-                <input type="text" className="leave-input" value={formData.endDate} readOnly placeholder="Select end" />
+                <label style={{fontSize:'11px', fontWeight:700, color:'var(--text-dim)', display:'block', marginBottom:'8px'}}>TO</label>
+                <input type="text" className="leave-input" value={formData.endDate} readOnly placeholder="Select end date" />
               </div>
             </div>
             <div className="input-group">
-              <label>Reason for Absence</label>
+              <label style={{fontSize:'11px', fontWeight:700, color:'var(--text-dim)', display:'block', marginBottom:'8px'}}>REASON</label>
               <textarea 
                 className="leave-input" 
-                style={{ height: '110px', resize: 'none' }} 
-                placeholder="Briefly describe the reason for your leave request..."
-                value={formData.Reason}
-                onChange={(e) => setFormData({...formData, Reason: e.target.value})}
-                required
+                style={{height:'100px', resize:'none'}} 
+                value={formData.Reason} 
+                onChange={(e) => setFormData({...formData, Reason: e.target.value})} 
+                placeholder="Reason for absence..."
+                required 
               />
             </div>
-            <button type="submit" className="action-btn btn-primary" disabled={loading}>
-              {loading ? "PROCESSING..." : "SUBMIT LEAVE REQUEST"}
+            <button type="submit" className="btn-primary" disabled={loading}>
+              {loading ? "SENDING..." : "SUBMIT REQUEST"}
             </button>
           </div>
         </form>
       </div>
 
       <div className="leave-table-card">
-        <h3>Leave History & Requests</h3>
-        <div className="table-wrapper">
-          <table className="custom-table">
-            <thead>
-              <tr>
-                <th>Date / Range</th>
-                <th>Employee Email</th>
-                <th>Reason</th>
-                <th>Status</th>
-                {(userRole === "Admin" || userRole === "SuperAdmin") && <th>Actions</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {leaves.map((leave) => (
-                <tr key={leave._id}>
-                  <td style={{ fontWeight: '600' }}>{leave.Date}</td>
-                  <td style={{ color: '#64748b' }}>{leave.EmployeeEmail}</td>
-                  <td>{leave.Reason}</td>
+        <h3 style={{ marginBottom: '20px', color: 'var(--text-main)' }}>History & Requests</h3>
+        <table className="custom-table">
+          <thead>
+            <tr>
+              <th>Date Range</th>
+              <th>Reason</th>
+              <th>Status</th>
+              {(userRole === "Admin" || userRole === "SuperAdmin") && <th>Actions</th>}
+            </tr>
+          </thead>
+          <tbody>
+            {leaves.map((leave) => (
+              <tr key={leave._id}>
+                <td style={{fontWeight:700}}>{leave.Date}</td>
+                <td style={{color:'var(--text-dim)'}}>{leave.Reason}</td>
+                <td><span className={`status-${(leave.Status || 'submitted').toLowerCase()}`}>{leave.Status || 'Submitted'}</span></td>
+                {(userRole === "Admin" || userRole === "SuperAdmin") && (
                   <td>
-                    <span className={`status-badge status-${(leave.Status || 'submitted').toLowerCase()}`}>
-                      {leave.Status || 'Submitted'}
-                    </span>
+                    {(!leave.Status || leave.Status === "Submitted") ? (
+                      <div style={{display:'flex', gap:'8px'}}>
+                        <button onClick={() => handleStatusUpdate(leave._id, 'Approved')} style={{background:'#22c55e', color:'white', border:'none', padding:'6px 12px', borderRadius:'8px', cursor:'pointer', fontWeight:700}}>✓</button>
+                        <button onClick={() => handleStatusUpdate(leave._id, 'Rejected')} style={{background:'#ef4444', color:'white', border:'none', padding:'6px 12px', borderRadius:'8px', cursor:'pointer', fontWeight:700}}>✕</button>
+                      </div>
+                    ) : <span style={{fontSize:'11px', color:'var(--text-dim)', fontStyle:'italic'}}>Processed</span>}
                   </td>
-                  {(userRole === "Admin" || userRole === "SuperAdmin") && (
-                    <td>
-                      {(!leave.Status || leave.Status === "Submitted") ? (
-                        <div style={{ display: 'flex' }}>
-                          <button onClick={() => handleStatusUpdate(leave._id, 'Approved')} className="action-btn btn-approve">Approve</button>
-                          <button onClick={() => handleStatusUpdate(leave._id, 'Rejected')} className="action-btn btn-reject">Reject</button>
-                        </div>
-                      ) : (
-                        <span style={{ color: '#94a3b8', fontSize: '12px', fontStyle: 'italic' }}>Processed</span>
-                      )}
-                    </td>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
