@@ -1,27 +1,20 @@
-/* ==========================================================================
-   APP.CSS - Authentication UI
-   ========================================================================== */
 
-/* 1. The wrapper takes up the full screen and explicitly defines 
-     its own background and text colors to block dark-mode inheritance.
-*/
 .auth-page {
   min-height: 100vh;
   width: 100vw;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #f3f4f6; /* Strict light gray background */
-  color: #1f2937;            /* Strict dark gray text */
+  background-color: #f3f4f6; 
+  color: #1f2937;            
   font-family: 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   box-sizing: border-box;
   padding: 20px;
 }
 
-/* 2. The floating card styling with a soft shadow.
-*/
+
 .auth-page .floating-card {
-  background-color: #ffffff; /* Strict white background */
+  background-color: #ffffff; 
   padding: 48px 40px;
   border-radius: 16px;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
@@ -31,7 +24,7 @@
   box-sizing: border-box;
 }
 
-/* Profile Image */
+
 .auth-page .profile-wrapper {
   margin-bottom: 24px;
 }
@@ -43,14 +36,14 @@
   object-fit: cover;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   border: 3px solid #ffffff;
-  background-color: #e5e7eb; /* Fallback color */
+  background-color: #e5e7eb; 
 }
 
-/* Typography */
+
 .auth-page .title {
   margin: 0;
   font-size: 26px;
-  color: #111827; /* Force dark text */
+  color: #111827; 
   font-weight: 700;
   letter-spacing: -0.5px;
 }
@@ -58,10 +51,10 @@
 .auth-page .subtitle {
   margin: 8px 0 32px;
   font-size: 15px;
-  color: #6b7280; /* Force medium gray text */
+  color: #6b7280; 
 }
 
-/* Inputs */
+
 .auth-page .input-group {
   display: flex;
   flex-direction: column;
@@ -76,8 +69,8 @@
   border-radius: 8px;
   font-size: 15px;
   box-sizing: border-box;
-  background-color: #ffffff; /* Force white background */
-  color: #1f2937;            /* Force dark text */
+  background-color: #ffffff; 
+  color: #1f2937;           
   transition: all 0.2s ease;
 }
 
@@ -91,7 +84,7 @@
   box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
 }
 
-/* Button */
+
 .auth-page .button {
   width: 100%;
   padding: 14px;
@@ -119,11 +112,11 @@
   opacity: 0.7;
 }
 
-/* Footer Links */
+
 .auth-page .register-text {
   margin-top: 28px;
   font-size: 14px;
-  color: #4b5563; /* Force standard gray */
+  color: #4b5563; 
 }
 
 .auth-page .link-text {
