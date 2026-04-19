@@ -719,7 +719,93 @@ app.put("/api/Employees/lock/:id", auth, async (req, res) => {
 
 });
 
+// ================== FORGOT & RESET PASSWORD ==================
 
+app.post("/api/forgot-password", rateLimit, async (req, res) => {
+  try {
+    const email = String(req.body.email || "").trim().toLowerCase();
+    if (!email) return res.status(400).json({ success: false, message: "Email required" });
+
+    // 1. Check if user exists
+    const user = await users.findOne({ Email: email });
+    if (!user) {
+      // Security best practice: Return success anyway to prevent email enumeration attacks
+      return res.json({ success: true, message: "If your email is registered, you will receive an OTP." });
+    }
+
+    // 2. Generate and store a new OTP
+    const otp = generate();
+    await otps.deleteMany({ Email: email });
+    await otps.insertOne({
+      Email: email,
+      OTP: otp,
+      attempts: 0,
+      createdAt: new Date(),
+    });
+
+    // 3. Send the email using your existing Resend setup
+    await resend.emails.send({
+      from: "CRM Support <noreply@dntcrm.work.gd>",
+      to: email,
+      subject: "Password Reset OTP",
+      html: `
+        <h2>Password Reset Request</h2>
+        <p>Your OTP to reset your password is <b>${otp}</b></p>
+        <p>If you didn't request this, you can safely ignore this email.</p>
+      `
+    });
+
+    // Keep your multi-tenant auditing intact
+    logAudit("FORGOT_PASSWORD_REQUESTED", email, { company: user.Company });
+
+    return res.json({ success: true, message: "OTP sent to your email." });
+  } catch (err) {
+    console.error("FORGOT_PASSWORD_ERROR", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.post("/api/reset-password", async (req, res) => {
+  try {
+    const email = String(req.body.email || "").trim().toLowerCase();
+    const otp = String(req.body.otp || "").trim();
+    const newPassword = String(req.body.newPassword || "").trim();
+
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({ success: false, message: "Missing required fields" });
+    }
+
+    // 1. Verify OTP using your existing logic
+    const record = await otps.findOne({ Email: email });
+    if (!record) return res.status(401).json({ success: false, message: "OTP expired or invalid" });
+    if (record.attempts >= 5) return res.status(403).json({ success: false, message: "Too many attempts" });
+
+    if (record.OTP !== otp) {
+      await otps.updateOne({ Email: email }, { $inc: { attempts: 1 } });
+      return res.status(401).json({ success: false, message: "Invalid OTP" });
+    }
+
+    // 2. Hash the new password with bcrypt
+    const hashed = await bcrypt.hash(newPassword, 10);
+    const result = await users.updateOne(
+      { Email: email },
+      { $set: { Password: hashed } }
+    );
+
+    if (result.matchedCount === 0) {
+       return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    // 3. Cleanup OTP and log the success
+    await otps.deleteMany({ Email: email });
+    logAudit("PASSWORD_RESET_SUCCESS", email);
+
+    return res.json({ success: true, message: "Password updated successfully. You can now log in." });
+  } catch (err) {
+    console.error("RESET_PASSWORD_ERROR", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
 // --- AI RESUME EXTRACTION (STABLE & SECURE) ---
 app.post("/api/resume/extract", auth, upload.array("resumes", 20), async (req, res) => {
   try {
