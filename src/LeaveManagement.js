@@ -69,36 +69,41 @@ function LeaveManagement() {
         }
         .leave-form-card, .leave-table-card { 
           background: #12112a; 
-          border: 2px solid #8b5cf6; 
+          border: 1px solid #8b5cf6; 
           padding: 30px; 
           border-radius: 20px; 
           margin-bottom: 30px; 
-          box-shadow: 0 0 15px rgba(139, 92, 246, 0.2);
         }
         .form-grid { display: grid; grid-template-columns: 1fr 2fr 150px; gap: 20px; align-items: flex-end; }
         .input-group label { font-size: 11px; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px; display: block; }
-        .leave-input { background: #0b0a1a; border: 1px solid #2d2b55; color: white; padding: 12px; border-radius: 8px; width: 100%; box-sizing: border-box; }
+        .leave-input { background: #0b0a1a; border: 1px solid #8b5cf6; color: white; padding: 12px; border-radius: 8px; width: 100%; box-sizing: border-box; }
         
-        .custom-table { width: 100%; border-collapse: collapse; table-layout: auto; border: 1px solid #8b5cf6; border-radius: 12px; overflow: hidden; }
+        .table-wrapper {
+          border: 1px solid #8b5cf6;
+          border-radius: 12px;
+          overflow: hidden;
+        }
+        .custom-table { 
+          width: 100%; 
+          border-collapse: collapse; 
+          table-layout: auto; 
+        }
+        .custom-table th, .custom-table td {
+          border: 1px solid #8b5cf6;
+          padding: 15px;
+        }
         .custom-table th { 
           text-align: left; 
-          padding: 15px; 
           font-size: 11px; 
           color: #94a3b8; 
           text-transform: uppercase; 
-          border-bottom: 2px solid #8b5cf6; 
           background-color: #12112a;
         }
         .custom-table td { 
-          padding: 15px; 
           font-size: 14px; 
-          border-bottom: 1px solid rgba(139, 92, 246, 0.3); 
           color: #e2e8f0; 
           vertical-align: middle;
           background-color: #12112a;
-        }
-        .custom-table tr:last-child td {
-          border-bottom: none;
         }
         .custom-table tr:hover td {
           background-color: #1a1935;
@@ -136,53 +141,55 @@ function LeaveManagement() {
 
       <div className="leave-table-card">
         <h3>Leave History & Requests</h3>
-        <table className="custom-table">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Employee Email</th>
-              <th>Reason</th>
-              <th>Status</th>
-              {(userRole === "Admin" || userRole === "SuperAdmin") && <th>Actions</th>}
-            </tr>
-          </thead>
-          <tbody>
-            {leaves.map((leave) => (
-              <tr key={leave._id}>
-                <td style={{fontWeight: 'bold'}}>{leave.Date}</td>
-                <td style={{color: '#94a3b8'}}>{leave.EmployeeEmail}</td>
-                <td>{leave.Reason}</td>
-                <td>
-                  <span className={`status-badge status-${(leave.Status || 'submitted').toLowerCase()}`}>
-                    {leave.Status || 'Submitted'}
-                  </span>
-                </td>
-                {(userRole === "Admin" || userRole === "SuperAdmin") && (
-                  <td>
-                    {(!leave.Status || leave.Status === "Submitted") ? (
-                      <div className="admin-actions">
-                        <button 
-                          disabled={updatingId === leave._id}
-                          onClick={() => handleStatusUpdate(leave._id, 'Approved')} 
-                          className="action-btn btn-approve">
-                          Approve
-                        </button>
-                        <button 
-                          disabled={updatingId === leave._id}
-                          onClick={() => handleStatusUpdate(leave._id, 'Rejected')} 
-                          className="action-btn btn-reject">
-                          Reject
-                        </button>
-                      </div>
-                    ) : (
-                      <span style={{color: '#94a3b8', fontSize: '11px', fontStyle: 'italic'}}>Processed</span>
-                    )}
-                  </td>
-                )}
+        <div className="table-wrapper">
+          <table className="custom-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Employee Email</th>
+                <th>Reason</th>
+                <th>Status</th>
+                {(userRole === "Admin" || userRole === "SuperAdmin") && <th>Actions</th>}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {leaves.map((leave) => (
+                <tr key={leave._id}>
+                  <td style={{fontWeight: 'bold'}}>{leave.Date}</td>
+                  <td style={{color: '#94a3b8'}}>{leave.EmployeeEmail}</td>
+                  <td>{leave.Reason}</td>
+                  <td>
+                    <span className={`status-badge status-${(leave.Status || 'submitted').toLowerCase()}`}>
+                      {leave.Status || 'Submitted'}
+                    </span>
+                  </td>
+                  {(userRole === "Admin" || userRole === "SuperAdmin") && (
+                    <td>
+                      {(!leave.Status || leave.Status === "Submitted") ? (
+                        <div className="admin-actions">
+                          <button 
+                            disabled={updatingId === leave._id}
+                            onClick={() => handleStatusUpdate(leave._id, 'Approved')} 
+                            className="action-btn btn-approve">
+                            Approve
+                          </button>
+                          <button 
+                            disabled={updatingId === leave._id}
+                            onClick={() => handleStatusUpdate(leave._id, 'Rejected')} 
+                            className="action-btn btn-reject">
+                            Reject
+                          </button>
+                        </div>
+                      ) : (
+                        <span style={{color: '#94a3b8', fontSize: '11px', fontStyle: 'italic'}}>Processed</span>
+                      )}
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
