@@ -460,7 +460,7 @@ const Dashboard = ({ setMode }) => {
          
           {activePage === "employees" && <Employee user={user} />}
           {activePage === "tasks" && <TasksWorkspace user={user} />}
-          {activePage === "leaves" && <LeaveManagement user={user} />}
+          {activePage === "leaves" && ( <LeaveManagement  user={user} isDarkMode={isDarkMode} />)}
           {activePage === "reports" && <Reports user={user} />}
           {activePage === "settings" && <Settings user={user} refresh={syncSystem} />}
           {activePage === "crm" && <CRM setMode={setMode} />}
