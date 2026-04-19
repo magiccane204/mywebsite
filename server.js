@@ -1,5 +1,5 @@
 require("dotenv").config();
-console.log("🔥 SERVER FILE RUNNING");
+
 const express = require("express");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
@@ -21,10 +21,8 @@ const MONGO_URI = process.env.MONGODB_URI;
 const JWT_SECRET = process.env.JWT_SECRET;
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const NODE_ENV = process.env.NODE_ENV || "production";
-const { GoogleGenerativeAI } = require("@google/generative-ai");
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-console.log("RESEND KEY:", RESEND_API_KEY ? "Loaded" : "Missing");
+
 
 app.use(cors({   origin: [     "https://mywebsite-im3c.onrender.com"   ],   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],   allowedHeaders: ["Content-Type", "Authorization"],   credentials: true }));
 app.options("*", cors());
@@ -102,7 +100,7 @@ const EmployeesModel = mongoose.model(
   "Employee"
 );
 
-// ================== AUTH MIDDLEWARE (INSTANT RBAC) ==================
+
 // ================== AUTH MIDDLEWARE (INSTANT RBAC) ==================
 async function auth(req, res, next) {
   const raw = req.headers.authorization;
@@ -806,25 +804,16 @@ app.post("/api/reset-password", async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 });
-// --- AI RESUME EXTRACTION (STABLE & SECURE) ---
+
 app.post("/api/resume/extract", auth, upload.array("resumes", 20), async (req, res) => {
   try {
     if (!req.files || req.files.length === 0)
       return res.status(400).json({ success: false, message: "No files uploaded" });
 
-    // Use gemini-1.5-flash or gemini-2.0-flash
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     const results = [];
 
     for (let i = 0; i < req.files.length; i++) {
       const file = req.files[i];
-
-      // 🔥 RATE LIMIT FIX: If processing more than one file, wait 13 seconds between them.
-      // This ensures you never exceed your 5 RPM (Requests Per Minute) limit.
-      if (i > 0) {
-        console.log(`⏳ Waiting 13s to avoid 429 error for: ${file.originalname}`);
-        await delay(13000);
-      }
 
       try {
         const buffer = fs.readFileSync(file.path);
@@ -833,63 +822,111 @@ app.post("/api/resume/extract", auth, upload.array("resumes", 20), async (req, r
         // 1. EXTRACT TEXT
         if (file.mimetype === "application/pdf") {
           const parsed = await pdfParse(buffer);
-          text = (parsed.text || "").replace(/\n/g, " ").trim();
+          text = parsed.text || "";
         } else if (file.mimetype === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
           const out = await mammoth.extractRawText({ buffer });
-          text = (out.value || "").replace(/\n/g, " ").trim();
+          text = out.value || "";
         } else {
           results.push({ filename: file.originalname, success: false, error: "Unsupported file type" });
           continue;
         }
 
-        if (!text) {
+        if (!text.trim()) {
           results.push({ filename: file.originalname, success: false, error: "Empty file content" });
           continue;
         }
 
-        // 2. THE AI PROMPT
-        const prompt = `
-          You are a professional resume parser. 
-          Extract data from the following resume text and return it strictly as a JSON object.
-          If any field is missing, use "N/A".
-          
-          Required JSON Keys:
-          {
-            "name": "Full Name",
-            "email": "Email Address",
-            "phone": "Phone Number",
-            "linkedIn": "LinkedIn URL",
-            "skills": "Key professional skills",
-            "experience": "Brief work history",
-            "education": "Degree and University info"
-          }
+        // 2. REGEX & HEURISTIC PARSING LOGIC
+        const parsedData = {
+          name: "N/A",
+          email: "N/A",
+          phone: "N/A",
+          linkedIn: "N/A",
+          skills: "N/A",
+          experience: "N/A",
+          education: "N/A"
+        };
 
-          Rules:
-          - Return ONLY the JSON object.
-          - No markdown code blocks (no \`\`\`json).
-          - No introductory text or explanations.
+        // --- Standard Regex Matches ---
+        
+        // Email: Standard RFC 5322 regex
+        const emailMatch = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/i);
+        if (emailMatch) parsedData.email = emailMatch[0];
 
-          Resume Text:
-          ${text}
-        `;
+        // Phone: Catches international, US formats, parentheses, and dashes
+        const phoneMatch = text.match(/(?:\+?\d{1,3}[\s-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/);
+        if (phoneMatch) parsedData.phone = phoneMatch[0];
 
-        // 3. AI GENERATION
-        const aiResult = await model.generateContent(prompt);
-        const aiResponse = await aiResult.response;
-        let rawText = aiResponse.text().trim();
+        // LinkedIn: Matches standard linkedin.com/in/ profiles
+        const linkedInMatch = text.match(/(?:https?:\/\/)?(?:www\.)?linkedin\.com\/in\/[a-zA-Z0-9_-]+/i);
+        if (linkedInMatch) parsedData.linkedIn = linkedInMatch[0];
 
-        // 4. JSON SANITIZATION
-        let parsedData;
-        try {
-          // Removes any stray markdown backticks if Gemini accidentally adds them
-          const cleanedJson = rawText.replace(/```json|```/g, "").trim();
-          parsedData = JSON.parse(cleanedJson);
-        } catch (jsonErr) {
-          console.error("JSON Parse Error. Attempting substring recovery...");
-          const start = rawText.indexOf("{");
-          const end = rawText.lastIndexOf("}") + 1;
-          parsedData = JSON.parse(rawText.substring(start, end));
+        // --- Heuristic Matches ---
+
+        // Name: Assume the first non-empty line with 1 to 4 words is the name
+        const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+        if (lines.length > 0) {
+            const firstLineWords = lines[0].split(/\s+/);
+            if (firstLineWords.length > 0 && firstLineWords.length <= 4) {
+                parsedData.name = lines[0];
+            }
         }
+
+        // Sections: Split text by common resume headers
+        const upperText = text.toUpperCase();
+        
+        // Define common keywords for sections
+        const sectionKeywords = {
+            skills: ["SKILLS", "CORE COMPETENCIES", "TECHNOLOGIES", "TECHNICAL SKILLS"],
+            experience: ["EXPERIENCE", "WORK HISTORY", "EMPLOYMENT", "PROFESSIONAL EXPERIENCE"],
+            education: ["EDUCATION", "ACADEMIC BACKGROUND", "QUALIFICATIONS"]
+        };
+
+        // Find the character index where each section starts
+        function findSectionIndices(keywords) {
+            let bestIndex = -1;
+            for (const kw of keywords) {
+                // Looks for keyword at the start of a line
+                const regex = new RegExp(`(?:^|\\n)\\s*${kw}\\s*(?:\\n|:|\\r)`, 'i');
+                const match = regex.exec(text); // Execute on original text for accurate indices
+                if (match) {
+                    bestIndex = match.index;
+                    break; // Take the first matched keyword
+                }
+            }
+            return bestIndex;
+        }
+
+        const indices = {
+            skills: findSectionIndices(sectionKeywords.skills),
+            experience: findSectionIndices(sectionKeywords.experience),
+            education: findSectionIndices(sectionKeywords.education)
+        };
+
+        // Extract text between the found header and the next known header
+        function extractSection(startIndex, currentKey) {
+            if (startIndex === -1) return "N/A";
+
+            let nextIndex = text.length;
+            // Find the closest NEXT section header to establish the end boundary
+            for (const [key, idx] of Object.entries(indices)) {
+                if (key !== currentKey && idx > startIndex && idx < nextIndex) {
+                    nextIndex = idx;
+                }
+            }
+            
+            // Extract the block, and strip out the actual header title from the result
+            const rawSection = text.substring(startIndex, nextIndex).trim();
+            const lines = rawSection.split('\n');
+            if (lines.length > 1) {
+                return lines.slice(1).join('\n').trim(); // Remove the header line itself
+            }
+            return rawSection;
+        }
+
+        parsedData.skills = extractSection(indices.skills, 'skills');
+        parsedData.experience = extractSection(indices.experience, 'experience');
+        parsedData.education = extractSection(indices.education, 'education');
 
         results.push({
           filename: file.originalname,
@@ -899,16 +936,9 @@ app.post("/api/resume/extract", auth, upload.array("resumes", 20), async (req, r
 
       } catch (fileErr) {
         console.error(`Error processing ${file.originalname}:`, fileErr.message);
-        
-        // Stop the loop if we hit the Daily Quota (20 RPD)
-        if (fileErr.message.includes("429") || fileErr.message.includes("quota")) {
-          results.push({ filename: file.originalname, success: false, error: "Quota Exceeded (RPD/RPM)" });
-          break; 
-        }
-
-        results.push({ filename: file.originalname, success: false, error: "AI Parsing Failed" });
+        results.push({ filename: file.originalname, success: false, error: "Parsing Failed" });
       } finally {
-        // Always delete the temp file
+        // Always delete the temp file to prevent server bloat
         if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
       }
     }
