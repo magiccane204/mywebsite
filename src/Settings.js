@@ -76,16 +76,18 @@ export default function Settings() {
           transition: background-color 0.2s ease, color 0.2s ease;
         }
 
-        #settings-root.dark-theme {
-          --bg-main: #1e1f22;
-          --bg-card: #2b2d31;
-          --text-main: #f2f3f5;
-          --text-muted: #b5bac1;
-          --border-color: #3f4147;
-          --danger-bg: rgba(218, 55, 60, 0.1);
-          --input-bg: #1e1f22;
-          --input-text: #dbdee1;
-        }
+#settings-root.dark-theme {
+  /* Change these three to match your website */
+  --bg-main: #1e1f22;       /* The deep background behind everything */
+  --bg-card: #2b2d31;       /* The color of the actual settings boxes */
+  --border-color: #3f4147;  /* The lines separating sections */
+
+  --text-main: #f2f3f5;
+  --text-muted: #b5bac1;
+  --danger-bg: rgba(218, 55, 60, 0.1);
+  --input-bg: #1e1f22;
+  --input-text: #dbdee1;
+}
 
         #settings-root * {
           box-sizing: border-box;
