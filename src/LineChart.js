@@ -8,61 +8,52 @@ import {
   Title,
   Tooltip,
   Legend,
-  Filler,
 } from "chart.js";
 
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-);
-
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
 const COLORS = [
-  { border: "rgb(59, 130, 246)", bg: "rgba(59, 130, 246, 0.1)" },
-  { border: "rgb(16, 124, 65)", bg: "rgba(16, 124, 65, 0.1)" },
-  { border: "rgb(124, 58, 237)", bg: "rgba(124, 58, 237, 0.1)" }, 
-  { border: "rgb(245, 158, 11)", bg: "rgba(245, 158, 11, 0.1)" }, 
+  "rgba(59, 130, 246, 0.8)",  
+  "rgba(16, 124, 65, 0.8)",  
+  "rgba(124, 58, 237, 0.8)", 
+  "rgba(245, 158, 11, 0.8)",  
 ];
 
-function LineChart({ chartData, labels, title }) {
-  
+function LineChart({ chartData, labels }) {
   if (!chartData || chartData.length === 0 || !labels || labels.length === 0) {
-    return (
-      <div style={{ textAlign: "center", padding: "40px", color: "#666", fontWeight: "500" }}>
-        Select multiple numeric columns to compare trends
-      </div>
-    );
+    return null;
   }
 
+  // Truncate massive MongoDB IDs so they don't break the layout
+  const truncate = (str) => str.length > 15 ? str.slice(0, 6) + "..." + str.slice(-4) : str;
+  const safeLabels = labels.map(truncate);
 
-  const xAxisLabels = chartData.map((row) => row.name);
+  const isMultiDimensional = Array.isArray(chartData[0]);
+  let datasets = [];
 
-  
-  const datasets = labels.map((label, index) => {
-    const color = COLORS[index % COLORS.length];
-    return {
-      label: label,
-      data: chartData.map((row) => row[label]),
-      borderColor: color.border,
-      backgroundColor: color.bg,
-      pointBackgroundColor: color.border,
-      pointBorderColor: "#fff",
-      pointHoverRadius: 6,
-      tension: 0.4,
-      fill: true,  
-      borderWidth: 2,
-    };
-  });
+  if (!isMultiDimensional) {
+    datasets = [{
+      label: "Trend",
+      data: chartData,
+      borderColor: COLORS[0],
+      backgroundColor: COLORS[0],
+      tension: 0.3, // smooth curves
+    }];
+  } else {
+    const numMetrics = chartData[0].length;
+    for (let i = 0; i < numMetrics; i++) {
+      datasets.push({
+        label: `Metric ${i + 1}`,
+        data: chartData.map((row) => row[i]),
+        borderColor: COLORS[i % COLORS.length],
+        backgroundColor: COLORS[i % COLORS.length],
+        tension: 0.3,
+      });
+    }
+  }
 
   const data = {
-    labels: xAxisLabels,
+    labels: safeLabels,
     datasets: datasets,
   };
 
@@ -70,43 +61,17 @@ function LineChart({ chartData, labels, title }) {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { 
-        position: "top", 
-        labels: { usePointStyle: true, padding: 20, font: { size: 12 } } 
-      },
-      title: {
-        display: true,
-        text: title || "Multivariate Trend Analysis",
-        font: { size: 16, weight: "bold" },
-        padding: { bottom: 20 }
-      },
+      legend: { labels: { color: "#cbd5e1" } },
       tooltip: {
-        mode: 'index', 
-        intersect: false,
-        backgroundColor: "rgba(255, 255, 255, 0.9)",
-        titleColor: "#111",
-        bodyColor: "#444",
-        borderColor: "#ddd",
-        borderWidth: 1,
-        padding: 12
+        backgroundColor: "rgba(15, 23, 42, 0.9)",
+        titleColor: "#f8fafc",
+        bodyColor: "#cbd5e1",
       }
     },
     scales: {
-      x: {
-        grid: { display: false },
-        ticks: { font: { size: 11 } }
-      },
-      y: {
-        beginAtZero: true,
-        grid: { color: "rgba(0,0,0,0.05)" },
-        ticks: { font: { size: 11 } }
-      },
+      x: { ticks: { color: "#94a3b8" }, grid: { display: false } },
+      y: { ticks: { color: "#94a3b8" }, grid: { color: "rgba(255,255,255,0.05)" } },
     },
-    interaction: {
-      mode: 'nearest',
-      axis: 'x',
-      intersect: false
-    }
   };
 
   return (
