@@ -16,23 +16,23 @@ export default function Settings() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
 
-// Uncomment this at the top of your file:
-  // import api from "./api.js";
 
-  useEffect(() => {
+
+useEffect(() => {
     const fetchUserData = async () => {
       try {
         setLoading(true);
-        // Replace '/user/profile' with your actual endpoint
-        // The API should return the data based on the current session token
-        const response = await api.get('/user/profile'); 
         
+
+        const response = await api.get('/api/me'); 
+        
+
         setUser({
-          Email: response.data.email,
-          Role: response.data.role,
-          Company: response.data.company 
+          Email: response.data.Email,
+          Role: response.data.Role,
+          Company: response.data.Company 
         });
-        setName(response.data.name);
+        setName(response.data.Name);
         
       } catch (error) {
         console.error("Failed to fetch user data:", error);
@@ -69,9 +69,7 @@ export default function Settings() {
 
   return (
     <div id="settings-root" className={darkMode ? "dark-theme" : "light-theme"}>
-      {/* INTERNAL CSS 
-        This keeps all styles scoped to this component making it easy to explain.
-      */}
+
       <style>{`
         #settings-root {
           --bg-main: #f2f3f5;
@@ -237,7 +235,7 @@ export default function Settings() {
 
       <div className="settings-container">
         
-        {/* Header Section */}
+
         <div className="settings-header">
           <div className="user-avatar-large">
             {name ? name.charAt(0).toUpperCase() : "U"}
@@ -250,12 +248,10 @@ export default function Settings() {
             </p>
           </div>
         </div>
-
-        {/* Status Message */}
         {message && <div className="settings-alert">{message}</div>}
 
         <div className="settings-grid">
-          {/* Column 1 */}
+
           <div className="settings-column">
             
             <div className="settings-card">
@@ -303,7 +299,6 @@ export default function Settings() {
 
           </div>
 
-          {/* Column 2 */}
           <div className="settings-column">
             
             <div className="settings-card">
@@ -361,7 +356,7 @@ export default function Settings() {
           </div>
         </div>
 
-        {/* Danger Zone */}
+
         <div className="settings-card danger-zone">
           <div className="danger-header">
             <h3>Danger Zone</h3>
