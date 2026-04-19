@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 
-
 import Signup from "./SignUp.js";
 import Otp from "./otp.js";
 import Dashboard from "./Dashboard.js";
-
+import ForgotPassword from "./ForgotPassword.js"; // 1. Import the new component
 
 import "./App.css";
-
 
 const api = axios.create({
   baseURL: "https://mywebsite-im3c.onrender.com",
@@ -23,7 +21,6 @@ function App() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
- 
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) return;
@@ -33,7 +30,7 @@ function App() {
     async function loadUser() {
       try {
         const res = await api.get("/api/me");
-      
+        
         if (res.data.DarkMode) {
           document.body.classList.add("dark-theme");
         } else {
@@ -48,7 +45,6 @@ function App() {
     }
     loadUser();
   }, []);
-
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -80,16 +76,18 @@ function App() {
     }
   };
 
-
+  // 2. Add routing logic for the new modes
   if (mode === "signup") return <Signup setMode={setMode} />;
   
   if (mode === "otp") {
     return <Otp setMode={setMode} email={localStorage.getItem("otp_email")} />;
   }
 
+  if (mode === "forgot_password") return <ForgotPassword setMode={setMode} />;
+
   if (mode === "crm") return <Dashboard setMode={setMode} />;
 
-
+  // Main Login Render
   return (
     <div className="auth-page">
       <div className="floating-card">
@@ -120,6 +118,17 @@ function App() {
             className="input-field"
             onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
           />
+          
+          {/* 3. Added Forgot Password Link */}
+          <div className="forgot-password-container" style={{ textAlign: 'right', marginTop: '5px' }}>
+            <span 
+              className="link-text" 
+              onClick={() => setMode("forgot_password")}
+              style={{ fontSize: '0.85rem', cursor: 'pointer' }}
+            >
+              Forgot Password?
+            </span>
+          </div>
         </div>
 
         <button
