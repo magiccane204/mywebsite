@@ -99,6 +99,10 @@ export default function Employee() {
   };
 
   const editEmployee = (emp) => {
+    if (role === "Employee") {
+      showMessage("You do not have permission to edit", "error");
+      return;
+    }
     if (emp.locked) {
       showMessage("This employee is locked and cannot be edited", "error");
       return;
@@ -171,6 +175,8 @@ export default function Employee() {
     (c.Email || "").toLowerCase().includes(search.toLowerCase())
   );
 
+  const isEmployee = role === "Employee";
+
   if (!role) return <div className="Employee-wrapper">Loading...</div>;
 
   return (
@@ -179,38 +185,41 @@ export default function Employee() {
         Employee Management — <span className="user-role">{role}</span>
       </h2>
 
-
       <div className="Employee-card">
         <h3>{editingId ? "Update Employee" : "Add New Employee"}</h3>
-        {role === "Employee" && <p className="view-only">View Only Mode</p>}
+        {isEmployee && <p className="view-only">View Only Mode</p>}
 
         <div className="Employee-form">
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Full Name"
+            disabled={isEmployee}
           />
           <input
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Email Address"
             type="email"
+            disabled={isEmployee}
           />
           <input
             value={position}
             onChange={(e) => setPosition(e.target.value)}
             placeholder="Position"
+            disabled={isEmployee}
           />
           <input
             type="number"
             value={salary}
             onChange={(e) => setSalary(e.target.value)}
             placeholder="Salary"
+            disabled={isEmployee}
           />
 
           <button
             onClick={submitEmployee}
-            disabled={role === "Employee"}
+            disabled={isEmployee}
             className="add-btn"
           >
             {editingId ? "Update Employee" : "Add Employee"}
@@ -274,13 +283,12 @@ export default function Employee() {
                     </span>
                   </td>
 
-                  
                   <td className="action-cell">
                     <div className="actions-wrapper">
                       <button
                         title="Edit"
                         onClick={() => editEmployee(emp)}
-                        disabled={emp.locked}
+                        disabled={emp.locked || isEmployee}
                         className="action-btn edit"
                       >
                         ✏️
@@ -323,7 +331,6 @@ export default function Employee() {
         </div>
       </div>
 
-      
       {showRoleModal && selectedEmployee && (
         <div className="modal-overlay">
           <div className="modal">
