@@ -6,12 +6,12 @@ import {
   LineChart, Line, AreaChart, Area,
   ScatterChart, Scatter, ZAxis
 } from "recharts";
-import "./CRM.css"; // Keeping your existing CSS import
+import "./CRM.css"; 
 
-// Exquisite Theme Colors
+
 const COLORS = ["#7c3aed", "#38bdf8", "#10b981", "#f59e0b", "#ef4444", "#ec4899", "#8b5cf6", "#14b8a6", "#f97316", "#6366f1"];
 
-// Custom Tooltip for Dark/Light Mode
+
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
@@ -46,12 +46,11 @@ function Reports() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Raw Data States
+ 
   const [employees, setEmployees] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [leaves, setLeaves] = useState([]);
 
-  // Aggregate States
   const [summary, setSummary] = useState({ total: 0, avgSalary: 0, maxSalary: 0, activeTasks: 0, totalLeaves: 0 });
 
   useEffect(() => {
@@ -60,7 +59,6 @@ function Reports() {
         const token = localStorage.getItem("token");
         const headers = { Authorization: `Bearer ${token}` };
 
-        // Fetch everything in parallel using your existing backend routes
         const [empRes, taskRes, leaveRes] = await Promise.all([
           axios.get("/api/Employees", { headers }),
           axios.get("/api/tasks", { headers }),
@@ -75,7 +73,7 @@ function Reports() {
         setTasks(taskData);
         setLeaves(leaveData);
 
-        // Calculate Core Summary
+        
         const salaries = empData.map(e => e.Salary || 0);
         const total = empData.length;
         const avgSalary = total > 0 ? Math.round(salaries.reduce((a, b) => a + b, 0) / total) : 0;
@@ -99,10 +97,7 @@ function Reports() {
     fetchSystemData();
   }, []);
 
-  // ================= DATA PROCESSING ENGINE =================
-  // We use useMemo to re-calculate charts only when raw data changes
 
-  // 1. Position/Role Distribution
   const positionData = useMemo(() => {
     const counts = {};
     employees.forEach(emp => {
@@ -112,7 +107,6 @@ function Reports() {
     return Object.keys(counts).map(k => ({ name: k, value: counts[k] }));
   }, [employees]);
 
-  // 2. Salary by Position
   const salaryByPosData = useMemo(() => {
     const groups = {};
     employees.forEach(emp => {
@@ -127,7 +121,7 @@ function Reports() {
     }));
   }, [employees]);
 
-  // 3. Hiring Timeline (Area Chart)
+
   const hiringTimelineData = useMemo(() => {
     const timeline = {};
     employees.forEach(emp => {
@@ -139,7 +133,6 @@ function Reports() {
     return Object.keys(timeline).sort().map(k => ({ date: k, Hires: timeline[k] }));
   }, [employees]);
 
-  // 4. Access Privileges (Admin vs Employee)
   const rolePrivilegeData = useMemo(() => {
     const counts = {};
     employees.forEach(emp => {
@@ -149,7 +142,7 @@ function Reports() {
     return Object.keys(counts).map(k => ({ name: k, value: counts[k] }));
   }, [employees]);
 
-  // 5. Account Lock Status
+
   const accountStatusData = useMemo(() => {
     const lockedCount = employees.filter(e => e.locked).length;
     const activeCount = employees.length - lockedCount;
@@ -159,7 +152,7 @@ function Reports() {
     ];
   }, [employees]);
 
-  // 6. Task Pipeline Status
+
   const taskStatusData = useMemo(() => {
     const counts = {};
     tasks.forEach(t => {
@@ -169,22 +162,22 @@ function Reports() {
     return Object.keys(counts).map(k => ({ name: k, Tasks: counts[k] }));
   }, [tasks]);
 
-  // 7. Top Workload (Tasks per Employee)
+
   const workloadData = useMemo(() => {
     const counts = {};
     tasks.forEach(t => {
       const email = t.EmployeeEmail || "Unknown";
-      const name = email.split("@")[0]; // Extract rough name from email
+      const name = email.split("@")[0]; 
       counts[name] = (counts[name] || 0) + 1;
     });
-    // Sort and get top 5
+   
     return Object.keys(counts)
       .map(k => ({ name: k, Tasks: counts[k] }))
       .sort((a, b) => b.Tasks - a.Tasks)
       .slice(0, 5);
   }, [tasks]);
 
-  // 8. Leave Status Distribution
+
   const leaveStatusData = useMemo(() => {
     const counts = {};
     leaves.forEach(l => {
@@ -194,7 +187,7 @@ function Reports() {
     return Object.keys(counts).map(k => ({ name: k, value: counts[k] }));
   }, [leaves]);
 
-  // 9. Leave Timeline
+
   const leaveTimelineData = useMemo(() => {
     const timeline = {};
     leaves.forEach(l => {
@@ -206,7 +199,7 @@ function Reports() {
     return Object.keys(timeline).sort().map(k => ({ date: k, Requests: timeline[k] }));
   }, [leaves]);
 
-  // 10. Tenure vs Salary Scatter
+ 
   const tenureSalaryData = useMemo(() => {
     const now = new Date();
     return employees.map(emp => {
@@ -230,7 +223,7 @@ function Reports() {
         <p style={{ color: 'var(--text-dim, #94a3b8)' }}>Real-time telemetry extracted from MongoDB records.</p>
       </div>
 
-      {/* Top Summary Cards */}
+  
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px', marginBottom: '32px' }}>
         {[
           { label: "Total Workforce", value: summary.total },
@@ -245,10 +238,10 @@ function Reports() {
         ))}
       </div>
 
-      {/* Dynamic 10-Chart Grid */}
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: '24px' }}>
 
-        {/* 1. Position Distribution */}
+        
         <ChartCard title="Workforce by Position" subtitle="Employee spread across applied roles">
           <PieChart>
             <Pie data={positionData} innerRadius={80} outerRadius={120} dataKey="value" stroke="none">
@@ -259,7 +252,7 @@ function Reports() {
           </PieChart>
         </ChartCard>
 
-        {/* 2. Salary by Position */}
+        
         <ChartCard title="Compensation Matrix" subtitle="Average salary per position">
           <BarChart data={salaryByPosData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border, #2d2b55)" />
@@ -270,7 +263,6 @@ function Reports() {
           </BarChart>
         </ChartCard>
 
-        {/* 3. Hiring Timeline */}
         <ChartCard title="Hiring Velocity" subtitle="Employee account creation over time">
           <AreaChart data={hiringTimelineData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
             <defs>
@@ -287,7 +279,7 @@ function Reports() {
           </AreaChart>
         </ChartCard>
 
-        {/* 4. Access Privileges */}
+        
         <ChartCard title="System Privileges" subtitle="Breakdown of system Roles">
           <PieChart>
             <Pie data={rolePrivilegeData} innerRadius={0} outerRadius={110} dataKey="value" stroke="var(--bg-card, #161533)">
@@ -298,7 +290,7 @@ function Reports() {
           </PieChart>
         </ChartCard>
 
-        {/* 5. Task Pipeline */}
+        
         <ChartCard title="Task Pipeline" subtitle="Overview of all assigned tasks by status">
           <BarChart data={taskStatusData} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border, #2d2b55)" />
@@ -309,7 +301,7 @@ function Reports() {
           </BarChart>
         </ChartCard>
 
-        {/* 6. Leave Status */}
+        
         <ChartCard title="Leave Requests Overview" subtitle="Status of all submitted leaves">
           <PieChart>
             <Pie data={leaveStatusData} innerRadius={60} outerRadius={100} dataKey="value" stroke="none">
@@ -320,7 +312,7 @@ function Reports() {
           </PieChart>
         </ChartCard>
 
-        {/* 7. Task Workload Top 5 */}
+        
         <ChartCard title="Highest Workloads" subtitle="Top 5 employees by assigned task count">
           <BarChart data={workloadData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border, #2d2b55)" />
@@ -331,7 +323,7 @@ function Reports() {
           </BarChart>
         </ChartCard>
 
-        {/* 8. Tenure vs Salary Scatter */}
+        
         <ChartCard title="Tenure vs Compensation" subtitle="Days employed against current salary">
           <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--border, #2d2b55)" />
@@ -342,7 +334,7 @@ function Reports() {
           </ScatterChart>
         </ChartCard>
 
-        {/* 9. Leave Timeline */}
+        
         <ChartCard title="Leave Request Velocity" subtitle="Volume of leaves submitted over time">
           <LineChart data={leaveTimelineData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--border, #2d2b55)" vertical={false} />
@@ -353,7 +345,7 @@ function Reports() {
           </LineChart>
         </ChartCard>
 
-        {/* 10. Account Security Status */}
+        
         <ChartCard title="Account Security" subtitle="Active vs Administratively Locked accounts">
           <PieChart>
             <Pie data={accountStatusData} innerRadius={80} outerRadius={110} dataKey="value" stroke="none">
@@ -369,7 +361,6 @@ function Reports() {
   );
 }
 
-// Reusable Chart Container Component
 const ChartCard = ({ title, subtitle, children }) => (
   <div style={{
     background: 'var(--bg-card, #161533)',
@@ -386,7 +377,7 @@ const ChartCard = ({ title, subtitle, children }) => (
       <span style={{ fontSize: '12px', color: 'var(--text-dim, #94a3b8)', fontWeight: 600 }}>{subtitle}</span>
     </div>
     <div style={{ flex: 1, width: '100%', minHeight: 0 }}>
-      {/* If a chart receives an empty array, Recharts gracefully renders empty axes. */}
+     
       <ResponsiveContainer width="100%" height="100%">
         {children}
       </ResponsiveContainer>
