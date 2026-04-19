@@ -112,60 +112,86 @@ function LeaveManagement({ user, isDarkMode }) {
         #leave-module-root * { box-sizing: border-box; }
         
         .dark-mode {
-          --bg-card: #161533;
-          --bg-input: #0b0a1a;
+          --bg-main: #0b0a1a;
+          --bg-card: #12112a;
           --text-main: #ffffff;
           --text-dim: #94a3b8;
-          --border: #2d2b55;
-          --shadow: 0 10px 30px rgba(0,0,0,0.4);
+          --accent-purple: #8b5cf6;
         }
         
         .light-mode {
+          --bg-main: #f8fafc;
           --bg-card: #ffffff;
-          --bg-input: #f8fafc;
           --text-main: #0f172a;
           --text-dim: #64748b;
-          --border: #e2e8f0;
-          --shadow: 0 4px 15px rgba(0,0,0,0.05);
+          --accent-purple: #a855f7;
         }
 
         #leave-module-root .leave-form-card, #leave-module-root .leave-table-card { 
-          background: var(--bg-card); border: 1px solid var(--border); 
-          padding: 30px; border-radius: 20px; margin-bottom: 30px; box-shadow: var(--shadow);
+          background: var(--bg-card); 
+          border: 1px solid var(--accent-purple); 
+          padding: 30px; 
+          border-radius: 20px; 
+          margin-bottom: 30px; 
         }
         
         #leave-module-root .form-layout { display: flex; gap: 30px; flex-wrap: wrap; }
-        #leave-module-root .calendar-section { flex: 0 0 350px; border: 1px solid var(--border); border-radius: 15px; padding: 20px; background: var(--bg-input); }
-        #leave-module-root .month-year-display div:first-child { font-weight: 800; color: #7c3aed; text-transform: uppercase; font-size: 14px; }
+        #leave-module-root .calendar-section { flex: 0 0 350px; border: 1px solid var(--accent-purple); border-radius: 15px; padding: 20px; background: var(--bg-main); }
         
         #leave-module-root .calendar-day { aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 8px; font-size: 13px; color: var(--text-main); }
-        #leave-module-root .calendar-day.selected { background: #7c3aed; color: white; font-weight: 700; }
-        #leave-module-root .calendar-day.in-range { background: rgba(124, 58, 237, 0.2); border-radius: 0; color: #7c3aed; }
+        #leave-module-root .calendar-day.selected { background: var(--accent-purple); color: white; font-weight: 700; }
+        #leave-module-root .calendar-day.in-range { background: rgba(139, 92, 246, 0.2); border-radius: 0; }
         
-        #leave-module-root .leave-input { background: var(--bg-input); border: 1px solid var(--border); color: var(--text-main); padding: 12px; border-radius: 12px; width: 100%; }
-        #leave-module-root .custom-table { width: 100%; border-collapse: collapse; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
-        #leave-module-root .custom-table th, #leave-module-root .custom-table td { border: 1px solid var(--border); padding: 15px; }
-        #leave-module-root .custom-table th { text-align: left; font-size: 11px; color: var(--text-dim); text-transform: uppercase; background: var(--bg-input); }
+        #leave-module-root .leave-input { background: var(--bg-main); border: 1px solid var(--accent-purple); color: var(--text-main); padding: 12px; border-radius: 12px; width: 100%; }
         
-        #leave-module-root .status-approved { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; padding: 5px 12px; border-radius: 20px; font-weight: 700; font-size: 10px; }
-        #leave-module-root .status-rejected { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; padding: 5px 12px; border-radius: 20px; font-weight: 700; font-size: 10px; }
-        #leave-module-root .btn-primary { background: #7c3aed; color: white; border: none; padding: 14px; border-radius: 12px; font-weight: 800; cursor: pointer; width: 100%; margin-top: 10px; }
+        /* RESTORED PURPLE TABLE DESIGN */
+        #leave-module-root .table-wrapper { 
+          border: 1px solid var(--accent-purple); 
+          border-radius: 12px; 
+          overflow: hidden; 
+        }
+        #leave-module-root .custom-table { 
+          width: 100%; 
+          border-collapse: collapse; 
+          background: var(--bg-card); 
+        }
+        #leave-module-root .custom-table th, 
+        #leave-module-root .custom-table td { 
+          border: 1px solid var(--accent-purple); 
+          padding: 18px 15px; 
+          color: var(--text-main);
+          text-align: center;
+        }
+        #leave-module-root .custom-table th { 
+          font-size: 11px; 
+          color: var(--text-dim); 
+          text-transform: uppercase; 
+          background: var(--bg-main); 
+          font-weight: 800;
+          letter-spacing: 1px;
+        }
+        
+        #leave-module-root .status-approved { background: rgba(34, 197, 94, 0.1); color: #22c55e; border: 1px solid #22c55e; padding: 6px 14px; border-radius: 20px; font-weight: 800; font-size: 10px; text-transform: uppercase; display: inline-block; }
+        #leave-module-root .status-rejected { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid #ef4444; padding: 6px 14px; border-radius: 20px; font-weight: 800; font-size: 10px; text-transform: uppercase; display: inline-block; }
+        #leave-module-root .status-submitted { background: rgba(56, 189, 248, 0.1); color: #38bdf8; border: 1px solid #38bdf8; padding: 6px 14px; border-radius: 20px; font-weight: 800; font-size: 10px; text-transform: uppercase; display: inline-block; }
+
+        #leave-module-root .btn-primary { background: var(--accent-purple); color: white; border: none; padding: 14px; border-radius: 12px; font-weight: 800; cursor: pointer; width: 100%; }
       `}</style>
 
       <div className="leave-form-card">
-        <h3 style={{ marginBottom: '20px', color: 'var(--text-main)' }}>Leave & Vacation Request</h3>
+        <h3 style={{ marginBottom: '25px', color: 'var(--text-main)', fontWeight: 800 }}>Apply for Leave</h3>
         <form onSubmit={handleSubmit} className="form-layout">
           <div className="calendar-section">
-            <div className="calendar-header" style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'15px'}}>
-              <button type="button" onClick={() => changeMonth(-1)} style={{background:'none', border:'none', color:'#7c3aed', cursor:'pointer', fontSize:'18px'}}>❮</button>
+            <div className="calendar-header" style={{display:'flex', justifySpaceBetween:'center', alignItems:'center', marginBottom:'15px', justifyContent: 'space-between'}}>
+              <button type="button" onClick={() => changeMonth(-1)} style={{background:'none', border:'none', color:'var(--accent-purple)', cursor:'pointer', fontSize:'18px', fontWeight: 'bold'}}>❮</button>
               <div className="month-year-display" style={{textAlign:'center'}}>
-                <div>{currentMonth.toLocaleString('default', { month: 'long' })}</div>
+                <div style={{fontWeight: 800, color: 'var(--accent-purple)', textTransform: 'uppercase'}}>{currentMonth.toLocaleString('default', { month: 'long' })}</div>
                 <div style={{color:'var(--text-dim)', fontSize:'12px'}}>{currentMonth.getFullYear()}</div>
               </div>
-              <button type="button" onClick={() => changeMonth(1)} style={{background:'none', border:'none', color:'#7c3aed', cursor:'pointer', fontSize:'18px'}}>❯</button>
+              <button type="button" onClick={() => changeMonth(1)} style={{background:'none', border:'none', color:'var(--accent-purple)', cursor:'pointer', fontSize:'18px', fontWeight: 'bold'}}>❯</button>
             </div>
             <div className="calendar-grid" style={{display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap:'5px'}}>
-              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => <div key={d} style={{fontSize:'10px', color:'var(--text-dim)', textAlign:'center', fontWeight:700}}>{d}</div>)}
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => <div key={d} style={{fontSize:'10px', color:'var(--text-dim)', textAlign:'center', fontWeight:800}}>{d}</div>)}
               {renderCalendar()}
             </div>
           </div>
@@ -173,22 +199,21 @@ function LeaveManagement({ user, isDarkMode }) {
           <div className="details-section" style={{flex: 1, display: 'flex', flexDirection: 'column', gap: '20px'}}>
             <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'15px'}}>
               <div className="input-group">
-                <label style={{fontSize:'11px', fontWeight:700, color:'var(--text-dim)', display:'block', marginBottom:'8px'}}>FROM</label>
-                <input type="text" className="leave-input" value={formData.startDate} readOnly placeholder="Select start date" />
+                <label style={{fontSize:'11px', fontWeight:800, color:'var(--text-dim)', display:'block', marginBottom:'8px'}}>FROM</label>
+                <input type="text" className="leave-input" value={formData.startDate} readOnly />
               </div>
               <div className="input-group">
-                <label style={{fontSize:'11px', fontWeight:700, color:'var(--text-dim)', display:'block', marginBottom:'8px'}}>TO</label>
-                <input type="text" className="leave-input" value={formData.endDate} readOnly placeholder="Select end date" />
+                <label style={{fontSize:'11px', fontWeight:800, color:'var(--text-dim)', display:'block', marginBottom:'8px'}}>TO</label>
+                <input type="text" className="leave-input" value={formData.endDate} readOnly />
               </div>
             </div>
             <div className="input-group">
-              <label style={{fontSize:'11px', fontWeight:700, color:'var(--text-dim)', display:'block', marginBottom:'8px'}}>REASON</label>
+              <label style={{fontSize:'11px', fontWeight:800, color:'var(--text-dim)', display:'block', marginBottom:'8px'}}>REASON</label>
               <textarea 
                 className="leave-input" 
-                style={{height:'100px', resize:'none'}} 
+                style={{height:'115px', resize:'none'}} 
                 value={formData.Reason} 
                 onChange={(e) => setFormData({...formData, Reason: e.target.value})} 
-                placeholder="Reason for absence..."
                 required 
               />
             </div>
@@ -200,36 +225,42 @@ function LeaveManagement({ user, isDarkMode }) {
       </div>
 
       <div className="leave-table-card">
-        <h3 style={{ marginBottom: '20px', color: 'var(--text-main)' }}>History & Requests</h3>
-        <table className="custom-table">
-          <thead>
-            <tr>
-              <th>Date Range</th>
-              <th>Reason</th>
-              <th>Status</th>
-              {(userRole === "Admin" || userRole === "SuperAdmin") && <th>Actions</th>}
-            </tr>
-          </thead>
-          <tbody>
-            {leaves.map((leave) => (
-              <tr key={leave._id}>
-                <td style={{fontWeight:700}}>{leave.Date}</td>
-                <td style={{color:'var(--text-dim)'}}>{leave.Reason}</td>
-                <td><span className={`status-${(leave.Status || 'submitted').toLowerCase()}`}>{leave.Status || 'Submitted'}</span></td>
-                {(userRole === "Admin" || userRole === "SuperAdmin") && (
-                  <td>
-                    {(!leave.Status || leave.Status === "Submitted") ? (
-                      <div style={{display:'flex', gap:'8px'}}>
-                        <button onClick={() => handleStatusUpdate(leave._id, 'Approved')} style={{background:'#22c55e', color:'white', border:'none', padding:'6px 12px', borderRadius:'8px', cursor:'pointer', fontWeight:700}}>✓</button>
-                        <button onClick={() => handleStatusUpdate(leave._id, 'Rejected')} style={{background:'#ef4444', color:'white', border:'none', padding:'6px 12px', borderRadius:'8px', cursor:'pointer', fontWeight:700}}>✕</button>
-                      </div>
-                    ) : <span style={{fontSize:'11px', color:'var(--text-dim)', fontStyle:'italic'}}>Processed</span>}
-                  </td>
-                )}
+        <h3 style={{ marginBottom: '25px', color: 'var(--text-main)', fontWeight: 800 }}>Leave History & Requests</h3>
+        <div className="table-wrapper">
+          <table className="custom-table">
+            <thead>
+              <tr>
+                <th>Date Range</th>
+                <th>Reason</th>
+                <th>Status</th>
+                {(userRole === "Admin" || userRole === "SuperAdmin") && <th>Actions</th>}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {leaves.map((leave) => (
+                <tr key={leave._id}>
+                  <td style={{fontWeight: 800, color: 'var(--text-main)'}}>{leave.Date}</td>
+                  <td style={{color:'var(--text-main)'}}>{leave.Reason}</td>
+                  <td>
+                    <span className={`status-${(leave.Status || 'submitted').toLowerCase()}`}>
+                      {leave.Status || 'Submitted'}
+                    </span>
+                  </td>
+                  {(userRole === "Admin" || userRole === "SuperAdmin") && (
+                    <td>
+                      {(!leave.Status || leave.Status === "Submitted") ? (
+                        <div style={{display:'flex', gap:'8px', justifyContent: 'center'}}>
+                          <button onClick={() => handleStatusUpdate(leave._id, 'Approved')} style={{background:'#22c55e', color:'white', border:'none', padding:'8px 15px', borderRadius:'8px', cursor:'pointer', fontWeight:800}}>Approve</button>
+                          <button onClick={() => handleStatusUpdate(leave._id, 'Rejected')} style={{background:'#ef4444', color:'white', border:'none', padding:'8px 15px', borderRadius:'8px', cursor:'pointer', fontWeight:800}}>Reject</button>
+                        </div>
+                      ) : <span style={{fontSize:'11px', color:'var(--text-dim)', fontStyle:'italic'}}>Processed</span>}
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
