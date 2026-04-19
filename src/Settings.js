@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-// import api from "./api.js"; // Uncomment when ready
+import api from "./api.js"; 
 
 export default function Settings() {
   const [user, setUser] = useState(null);
@@ -16,13 +16,33 @@ export default function Settings() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // Mock API for demonstration
+// Uncomment this at the top of your file:
+  // import api from "./api.js";
+
   useEffect(() => {
-    setTimeout(() => {
-      setUser({ Email: "dhruvbhatiaxcyz@gmail.com", Role: "SuperAdmin", Company: "Apple" });
-      setName("Dhruv Bhatia");
-      setLoading(false);
-    }, 500);
+    const fetchUserData = async () => {
+      try {
+        setLoading(true);
+        // Replace '/user/profile' with your actual endpoint
+        // The API should return the data based on the current session token
+        const response = await api.get('/user/profile'); 
+        
+        setUser({
+          Email: response.data.email,
+          Role: response.data.role,
+          Company: response.data.company 
+        });
+        setName(response.data.name);
+        
+      } catch (error) {
+        console.error("Failed to fetch user data:", error);
+        setMessage("Error loading profile data.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserData();
   }, []);
 
   const handleThemeChange = (isDark) => {
