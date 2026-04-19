@@ -11,7 +11,7 @@ export default function TableEditorApp({ tableData, setTableData }) {
   const [colHeaders, setColHeaders] = useState([]);
   const [rowHeaders, setRowHeaders] = useState([]);
 
-  /* ================= LOAD ================= */
+
   useEffect(() => {
     const saved = localStorage.getItem("table-editor-data");
 
@@ -24,7 +24,7 @@ export default function TableEditorApp({ tableData, setTableData }) {
     }
   }, []);
 
-  /* ================= INIT HEADERS ================= */
+ 
   useEffect(() => {
     if (!tableData.length) return;
 
@@ -41,7 +41,6 @@ export default function TableEditorApp({ tableData, setTableData }) {
     );
   }, [tableData]);
 
-  /* ================= SAVE ================= */
   useEffect(() => {
     localStorage.setItem(
       "table-editor-data",
@@ -49,14 +48,14 @@ export default function TableEditorApp({ tableData, setTableData }) {
     );
   }, [tableData, colHeaders, rowHeaders]);
 
-  /* ================= UPDATE CELL ================= */
+
   const updateCell = (r, c, value) => {
     const newData = [...tableData];
     newData[r][c] = value;
     setTableData(newData);
   };
 
-  /* ================= FONT APPLY ================= */
+
   const applyFont = () => {
     if (selectedCell.row === null) return;
 
@@ -70,7 +69,7 @@ export default function TableEditorApp({ tableData, setTableData }) {
     }
   };
 
-  /* ================= HEADER UPDATES ================= */
+
   const updateColHeader = (c, value) => {
     const newHeaders = [...colHeaders];
     newHeaders[c] = value;
@@ -83,7 +82,6 @@ export default function TableEditorApp({ tableData, setTableData }) {
     setRowHeaders(newHeaders);
   };
 
-  /* ================= RESET ================= */
   const resetData = () => {
     localStorage.removeItem("table-editor-data");
     window.location.reload();
@@ -94,7 +92,7 @@ export default function TableEditorApp({ tableData, setTableData }) {
 
       <h2>🎨 Table Editor</h2>
 
-      {/* ===== TOOLBAR (RESTORED) ===== */}
+  
       <div className="toolbar">
         <label>Font Size:</label>
         <input
@@ -123,7 +121,7 @@ export default function TableEditorApp({ tableData, setTableData }) {
 
         <table>
 
-          {/* ===== COLUMN HEADERS ===== */}
+       
           <thead>
             <tr>
               <th></th>
@@ -140,13 +138,13 @@ export default function TableEditorApp({ tableData, setTableData }) {
             </tr>
           </thead>
 
-          {/* ===== BODY ===== */}
+
           <tbody>
 
             {tableData.map((row, r) => (
               <tr key={r}>
 
-                {/* ROW HEADER */}
+
                 <th>
                   <input
                     value={rowHeaders[r] || ""}
