@@ -179,7 +179,7 @@ export default function Employee() {
         Employee Management — <span className="user-role">{role}</span>
       </h2>
 
-      {/* Add / Edit Form */}
+
       <div className="Employee-card">
         <h3>{editingId ? "Update Employee" : "Add New Employee"}</h3>
         {role === "Employee" && <p className="view-only">View Only Mode</p>}
@@ -226,7 +226,6 @@ export default function Employee() {
         {message && <p className={`message ${messageType}`}>{message}</p>}
       </div>
 
-      {/* Employee Directory */}
       <div className="Employee-card">
         <div className="list-header">
           <h3>Employee Directory ({filteredEmployees.length})</h3>
@@ -275,7 +274,7 @@ export default function Employee() {
                     </span>
                   </td>
 
-                  {/* FIXED ACTIONS COLUMN */}
+                  
                   <td className="action-cell">
                     <div className="actions-wrapper">
                       <button
@@ -324,7 +323,7 @@ export default function Employee() {
         </div>
       </div>
 
-      {/* Role Change Modal */}
+      
       {showRoleModal && selectedEmployee && (
         <div className="modal-overlay">
           <div className="modal">
