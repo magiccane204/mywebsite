@@ -96,37 +96,44 @@ export default function ExcelTable({ onColumnSelect }) {
 
 const handleColumnHeaderClick = (colIndex) => {
     setSelectedCols(prev => {
-     
       const newCols = prev.includes(colIndex) 
         ? prev.filter(c => c !== colIndex) 
         : [...prev, colIndex];
 
-  
       if (onColumnSelect) {
-        
         const columnsInfo = newCols.map(c => colHeaders[c]);
 
-   
-        const data = tableData.map(row => {
-          if (newCols.length === 1) {
+        // 1. Clean the data: Filter out completely empty rows to prevent "undefined" UI bugs
+        const validRows = tableData.filter(row => 
+          row.some(cell => String(cell).trim() !== "")
+        );
 
-            return Number(row[newCols[0]]) || 0; 
-          }
-         
-          return newCols.map(c => Number(row[c]) || 0); 
+        // 2. Smart Labels: Use the first column (Name) for chart labels. Fallback to "Entry #" if blank.
+        const labels = validRows.map((row, i) => {
+          const firstCell = String(row[0]).trim();
+          return firstCell ? firstCell : `Entry ${i + 1}`;
         });
 
-       
-        const labels = tableData.map((_, i) => `Row ${i + 1}`);
+        // 3. Safe Parsing: Convert to numbers, and default to 0 if the cell has invalid text
+        const data = validRows.map(row => {
+          if (newCols.length === 1) {
+            const val = parseFloat(row[newCols[0]]);
+            return isNaN(val) ? 0 : val;
+          }
+          // Handle multiple columns for Scatter/Line charts
+          return newCols.map(c => {
+            const val = parseFloat(row[c]);
+            return isNaN(val) ? 0 : val;
+          });
+        });
 
-       
+        // Send the cleaned data up to CRM.jsx
         onColumnSelect(data, labels, columnsInfo);
       }
 
       return newCols;
     });
   };
-
   const exportToExcel = () => {
     const wsData = [colHeaders, ...tableData];
     const ws = XLSX.utils.aoa_to_sheet(wsData);
