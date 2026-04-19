@@ -11,7 +11,7 @@ api.interceptors.request.use((config) => {
 
 function LeaveManagement() {
   const [leaves, setLeaves] = useState([]);
-  const [formData, setFormData] = useState({ Date: "", Reason: "" });
+  const [formData, setFormData] = useState({ startDate: "", endDate: "", Reason: "" });
   const [loading, setLoading] = useState(false);
   const [updatingId, setUpdatingId] = useState(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -33,16 +33,29 @@ function LeaveManagement() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.Date) return;
+    if (!formData.startDate || !formData.endDate) return;
     setLoading(true);
     try {
-      await api.post("/leaves", formData);
-      setFormData({ Date: "", Reason: "" });
+      const dateRange = `${formData.startDate} to ${formData.endDate}`;
+      await api.post("/leaves", { Date: dateRange, Reason: formData.Reason });
+      setFormData({ startDate: "", endDate: "", Reason: "" });
       fetchLeaves();
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDateClick = (dateStr) => {
+    if (!formData.startDate || (formData.startDate && formData.endDate)) {
+      setFormData({ ...formData, startDate: dateStr, endDate: "" });
+    } else {
+      if (new Date(dateStr) < new Date(formData.startDate)) {
+        setFormData({ ...formData, startDate: dateStr, endDate: "" });
+      } else {
+        setFormData({ ...formData, endDate: dateStr });
+      }
     }
   };
 
@@ -71,13 +84,21 @@ function LeaveManagement() {
     
     for (let d = 1; d <= daysInMonth; d++) {
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-      const isSelected = formData.Date === dateStr;
+      
+      let className = "calendar-day";
+      if (dateStr === formData.startDate) className += " selected start-date";
+      if (dateStr === formData.endDate) className += " selected end-date";
+      if (formData.startDate && formData.endDate && 
+          new Date(dateStr) > new Date(formData.startDate) && 
+          new Date(dateStr) < new Date(formData.endDate)) {
+        className += " in-range";
+      }
       
       days.push(
         <div 
           key={d} 
-          className={`calendar-day ${isSelected ? 'selected' : ''}`}
-          onClick={() => setFormData({...formData, Date: dateStr})}
+          className={className}
+          onClick={() => handleDateClick(dateStr)}
         >
           {d}
         </div>
@@ -93,57 +114,43 @@ function LeaveManagement() {
   return (
     <div id="leave-module-root" className="leave-mgmt-container">
       <style>{`
-        #leave-module-root { 
-          padding: 40px; 
-          color: #f8fafc; 
-          font-family: sans-serif; 
-          background-color: #0b0a1a; 
-          min-height: 100vh;
-          box-sizing: border-box;
-          width: 100%;
-        }
+        #leave-module-root { padding: 40px; color: #f8fafc; font-family: sans-serif; background-color: #0b0a1a; min-height: 100vh; box-sizing: border-box; width: 100%; }
         #leave-module-root * { box-sizing: border-box; }
-        #leave-module-root .leave-form-card, 
-        #leave-module-root .leave-table-card { 
-          background: #12112a; 
-          border: 1px solid #8b5cf6; 
-          padding: 30px; 
-          border-radius: 20px; 
-          margin-bottom: 30px; 
-        }
+        #leave-module-root .leave-form-card, #leave-module-root .leave-table-card { background: #12112a; border: 1px solid #8b5cf6; padding: 30px; border-radius: 20px; margin-bottom: 30px; }
         #leave-module-root .form-layout { display: flex; gap: 30px; flex-wrap: wrap; align-items: flex-start; }
         #leave-module-root .calendar-section { flex: 0 0 350px; border: 1px solid #8b5cf6; border-radius: 15px; padding: 20px; background: #0b0a1a; }
         #leave-module-root .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         #leave-module-root .month-year-display { text-align: center; line-height: 1.2; }
         #leave-module-root .month-year-display div:first-child { font-weight: 900; color: #8b5cf6; text-transform: uppercase; font-size: 14px; }
-        #leave-module-root .month-year-display div:last-child { font-weight: bold; color: #f8fafc; font-size: 16px; }
-        #leave-module-root .nav-btn { background: #12112a; border: 1px solid #8b5cf6; color: #8b5cf6; cursor: pointer; border-radius: 8px; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; font-weight: bold; transition: 0.2s; }
-        #leave-module-root .nav-btn:hover { background: #8b5cf6; color: white; }
+        #leave-module-root .nav-btn { background: #12112a; border: 1px solid #8b5cf6; color: #8b5cf6; cursor: pointer; border-radius: 8px; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; font-weight: bold; }
         #leave-module-root .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; }
         #leave-module-root .weekday { font-size: 11px; color: #94a3b8; font-weight: bold; padding-bottom: 15px; }
-        #leave-module-root .calendar-day { aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 50%; font-size: 13px; transition: 0.2s; border: 1px solid transparent; }
+        #leave-module-root .calendar-day { aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 8px; font-size: 13px; transition: 0.2s; border: 1px solid transparent; }
         #leave-module-root .calendar-day:hover:not(.empty) { background: rgba(139, 92, 246, 0.2); border-color: #8b5cf6; }
-        #leave-module-root .calendar-day.selected { background: #8b5cf6; color: white; font-weight: bold; box-shadow: 0 0 10px rgba(139, 92, 246, 0.5); }
+        #leave-module-root .calendar-day.selected { background: #8b5cf6; color: white; font-weight: bold; border-radius: 8px; }
+        #leave-module-root .calendar-day.in-range { background: rgba(139, 92, 246, 0.3); border-radius: 0; }
+        #leave-module-root .calendar-day.start-date { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+        #leave-module-root .calendar-day.end-date { border-top-left-radius: 0; border-bottom-left-radius: 0; }
         #leave-module-root .details-section { flex: 1; min-width: 300px; display: flex; flex-direction: column; gap: 20px; }
+        #leave-module-root .date-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         #leave-module-root .input-group label { font-size: 11px; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px; display: block; }
-        #leave-module-root .leave-input { background: #0b0a1a; border: 1px solid #8b5cf6; color: white; padding: 12px; border-radius: 8px; width: 100%; box-sizing: border-box; }
+        #leave-module-root .leave-input { background: #0b0a1a; border: 1px solid #8b5cf6; color: white; padding: 12px; border-radius: 8px; width: 100%; }
         #leave-module-root .table-wrapper { border: 1px solid #8b5cf6; border-radius: 12px; overflow: hidden; }
         #leave-module-root .custom-table { width: 100%; border-collapse: collapse; }
-        #leave-module-root .custom-table th, 
-        #leave-module-root .custom-table td { border: 1px solid #8b5cf6; padding: 15px; }
+        #leave-module-root .custom-table th, #leave-module-root .custom-table td { border: 1px solid #8b5cf6; padding: 15px; }
         #leave-module-root .custom-table th { text-align: left; font-size: 11px; color: #94a3b8; text-transform: uppercase; background-color: #12112a; }
         #leave-module-root .custom-table td { font-size: 14px; color: #e2e8f0; background-color: #12112a; }
         #leave-module-root .status-badge { padding: 6px 14px; border-radius: 20px; font-size: 10px; font-weight: 800; text-transform: uppercase; display: inline-block; min-width: 80px; text-align: center; }
         #leave-module-root .status-approved { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
         #leave-module-root .status-rejected { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
-        #leave-module-root .action-btn { border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-size: 10px; font-weight: 900; text-transform: uppercase; transition: 0.2s; }
+        #leave-module-root .action-btn { border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-size: 10px; font-weight: 900; text-transform: uppercase; }
         #leave-module-root .btn-primary { background: #8b5cf6; color: white; width: 100%; }
         #leave-module-root .btn-approve { background: #10b981; color: white; margin-right: 5px; }
         #leave-module-root .btn-reject { background: #ef4444; color: white; }
       `}</style>
 
       <div className="leave-form-card">
-        <h3 style={{ marginBottom: '25px' }}>Apply for Leave</h3>
+        <h3 style={{ marginBottom: '25px' }}>Apply for Vacation / Leave</h3>
         <form onSubmit={handleSubmit} className="form-layout">
           <div className="calendar-section">
             <div className="calendar-header">
@@ -161,23 +168,29 @@ function LeaveManagement() {
           </div>
 
           <div className="details-section">
-            <div className="input-group">
-              <label>Selected Leave Date</label>
-              <input type="text" className="leave-input" value={formData.Date} readOnly placeholder="Select a date from calendar" />
+            <div className="date-inputs">
+              <div className="input-group">
+                <label>From Date</label>
+                <input type="text" className="leave-input" value={formData.startDate} readOnly placeholder="Click calendar" />
+              </div>
+              <div className="input-group">
+                <label>To Date</label>
+                <input type="text" className="leave-input" value={formData.endDate} readOnly placeholder="Click calendar" />
+              </div>
             </div>
             <div className="input-group">
               <label>Reason for Absence</label>
               <textarea 
                 className="leave-input" 
-                style={{ height: '145px', resize: 'none' }} 
-                placeholder="Briefly explain your reason for leave..."
+                style={{ height: '110px', resize: 'none' }} 
+                placeholder="Describe your vacation or leave reason..."
                 value={formData.Reason}
                 onChange={(e) => setFormData({...formData, Reason: e.target.value})}
                 required
               />
             </div>
             <button type="submit" className="action-btn btn-primary" disabled={loading}>
-              {loading ? "SENDING REQUEST..." : "SUBMIT LEAVE APPLICATION"}
+              {loading ? "SENDING..." : "SUBMIT RANGE REQUEST"}
             </button>
           </div>
         </form>
@@ -189,7 +202,7 @@ function LeaveManagement() {
           <table className="custom-table">
             <thead>
               <tr>
-                <th>Date</th>
+                <th>Date / Range</th>
                 <th>Employee Email</th>
                 <th>Reason</th>
                 <th>Status</th>
@@ -199,7 +212,7 @@ function LeaveManagement() {
             <tbody>
               {leaves.map((leave) => (
                 <tr key={leave._id}>
-                  <td style={{ fontWeight: 'bold' }}>{leave.Date}</td>
+                  <td style={{ fontWeight: 'bold', fontSize: '12px' }}>{leave.Date}</td>
                   <td style={{ color: '#94a3b8' }}>{leave.EmployeeEmail}</td>
                   <td>{leave.Reason}</td>
                   <td>
