@@ -107,7 +107,7 @@ function ChatWidget({ user }) {
           flex: 1; background: #1a1833; border: 1px solid #4c477a; border-radius: 16px;
           padding: 14px 18px; color: white; outline: none; font-size: 14.5px;
         }
-        .chat-input:focus { border-color: #a78bfa; box-shadow: 0 0 0 4px rgba(167, 139, 250, 0.15); }
+        .chat-input:focus { border-color: #a78bfa; box-shadow: 0 0 0 4px rgba(167, 139, 250, 0.15);  color:grey}
 
         .send-btn {
           background: #7c3aed; color: white; border: none; width: 48px; height: 48px;
