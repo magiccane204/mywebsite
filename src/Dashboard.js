@@ -12,7 +12,7 @@ import Reports from "./Reports";
 import CRM from "./CRM";
 import api from "./api";
 
-// Live Clock Hook
+
 const useClock = () => {
   const [time, setTime] = useState(new Date().toLocaleTimeString());
   useEffect(() => {
@@ -22,7 +22,7 @@ const useClock = () => {
   return time;
 };
 
-// Exquisite Custom Tooltip for Charts
+
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
@@ -62,7 +62,7 @@ const Dashboard = ({ setMode }) => {
 
   const currentTime = useClock();
 
-  // Sync Engine
+  
   const syncSystem = useCallback(async () => {
     try {
       const [meRes, reportRes, leaveRes] = await Promise.all([
@@ -77,7 +77,7 @@ const Dashboard = ({ setMode }) => {
       setLeaves(leaveRes.data);
       setIsDarkMode(userData.DarkMode || true);
 
-      // Persist identity
+     
       localStorage.setItem("userRole", userData.Role);
       localStorage.setItem("userCompany", userData.Company);
       localStorage.setItem("userName", userData.Name);
@@ -117,7 +117,7 @@ const Dashboard = ({ setMode }) => {
     };
   }, [leaves, stats]);
 
-  // Chart Data Processing (Robust fallback arrays ensure the UI looks exquisite even if backend stats are empty)
+  
   const chartColors = ['#7c3aed', '#38bdf8', '#10b981', '#f59e0b', '#ef4444'];
   
   const roleDistributionData = useMemo(() => {
@@ -132,7 +132,7 @@ const Dashboard = ({ setMode }) => {
   }, [stats.roles]);
 
   const salaryTrendData = useMemo(() => {
-    // Mocking structural data for the beautiful bar chart based on typical HR metrics
+
     return [
       { department: 'Engineering', AvgSalary: 125000, MaxSalary: 180000 },
       { department: 'Design', AvgSalary: 95000, MaxSalary: 140000 },
@@ -260,7 +260,6 @@ const Dashboard = ({ setMode }) => {
         .recharts-cartesian-grid-horizontal line, .recharts-cartesian-grid-vertical line { stroke: var(--grid-lines); }
       `}</style>
 
-      {/* Sidebar */}
       <aside className="sidebar-pillar">
         <div className="brand-zone">
           <div className="logo-text">
@@ -324,7 +323,7 @@ const Dashboard = ({ setMode }) => {
         </div>
       </aside>
 
-      {/* Main Viewport */}
+    
       <main className="main-viewport">
         <header className="top-nav">
           <div className="search-container">
@@ -354,7 +353,7 @@ const Dashboard = ({ setMode }) => {
                 <p style={{color: 'var(--text-dim)', marginTop: '8px'}}>Real-time overview of <strong>{user?.Company || "Operations"}</strong> telemetry and analytics</p>
               </div>
 
-              {/* Top Stats Grid */}
+             
               <div className="widget-grid">
                 <div className="card-stat">
                   <div className="stat-label">Total Personnel</div>
@@ -374,10 +373,10 @@ const Dashboard = ({ setMode }) => {
                 </div>
               </div>
 
-              {/* Exquisite Charts Section */}
+              
               <div className="analytics-grid">
                 
-                {/* Donut Chart: Role Distribution */}
+                
                 <div className="chart-container">
                   <div className="chart-header">
                     <div>
@@ -415,7 +414,7 @@ const Dashboard = ({ setMode }) => {
                   </div>
                 </div>
 
-                {/* Bar Chart: Salary Analytics */}
+                
                 <div className="chart-container">
                   <div className="chart-header">
                     <div>
@@ -458,7 +457,7 @@ const Dashboard = ({ setMode }) => {
             </div>
           )}
 
-          {/* Module Rendering */}
+         
           {activePage === "employees" && <Employee user={user} />}
           {activePage === "tasks" && <TasksWorkspace user={user} />}
           {activePage === "leaves" && <LeaveManagement user={user} />}
