@@ -99,10 +99,7 @@ export default function Employee() {
   };
 
   const editEmployee = (emp) => {
-    if (role === "Employee") {
-      showMessage("You do not have permission to edit", "error");
-      return;
-    }
+    if (role === "Employee") return;
     if (emp.locked) {
       showMessage("This employee is locked and cannot be edited", "error");
       return;
@@ -133,7 +130,7 @@ export default function Employee() {
   };
 
   const toggleLock = async (id) => {
-    if (role !== "SuperAdmin") return;
+    if (role === "Employee") return;
     try {
       await api.put(`/api/Employees/lock/${id}`);
       showMessage("Lock status updated");
@@ -144,10 +141,7 @@ export default function Employee() {
   };
 
   const openRoleModal = (emp) => {
-    if (role !== "SuperAdmin") {
-      showMessage("Only SuperAdmin can change roles", "error");
-      return;
-    }
+    if (role !== "SuperAdmin") return;
     setSelectedEmployee(emp);
     setNewRole(emp.Role || "Employee");
     setRoleDuration(30);
@@ -155,7 +149,7 @@ export default function Employee() {
   };
 
   const changeRole = async () => {
-    if (!selectedEmployee) return;
+    if (role !== "SuperAdmin" || !selectedEmployee) return;
     try {
       await api.put("/api/employees/change-role", {
         employeeId: selectedEmployee._id || selectedEmployee.Id,
@@ -176,6 +170,8 @@ export default function Employee() {
   );
 
   const isEmployee = role === "Employee";
+  const isAdmin = role === "Admin";
+  const isSuperAdmin = role === "SuperAdmin";
 
   if (!role) return <div className="Employee-wrapper">Loading...</div>;
 
@@ -256,7 +252,7 @@ export default function Employee() {
                 <th>Salary</th>
                 <th>Role</th>
                 <th>Status</th>
-                <th>Actions</th>
+                {!isEmployee && <th>Actions</th>}
               </tr>
             </thead>
             <tbody>
@@ -283,47 +279,48 @@ export default function Employee() {
                     </span>
                   </td>
 
-                  <td className="action-cell">
-                    <div className="actions-wrapper">
-                      <button
-                        title="Edit"
-                        onClick={() => editEmployee(emp)}
-                        disabled={emp.locked || isEmployee}
-                        className="action-btn edit"
-                      >
-                        ✏️
-                      </button>
+                  {!isEmployee && (
+                    <td className="action-cell">
+                      <div className="actions-wrapper">
+                        <button
+                          title="Edit"
+                          onClick={() => editEmployee(emp)}
+                          disabled={emp.locked}
+                          className="action-btn edit"
+                        >
+                          ✏️
+                        </button>
 
-                      {role === "SuperAdmin" && (
-                        <>
-                          <button
-                            title="Change Role"
-                            onClick={() => openRoleModal(emp)}
-                            className="action-btn role-btn"
-                          >
-                            👤
-                          </button>
+                        <button
+                          title="Lock / Unlock"
+                          onClick={() => toggleLock(emp._id || emp.Id)}
+                          className="action-btn lock-btn"
+                        >
+                          🔒
+                        </button>
 
-                          <button
-                            title="Lock / Unlock"
-                            onClick={() => toggleLock(emp._id || emp.Id)}
-                            className="action-btn lock-btn"
-                          >
-                            🔒
-                          </button>
-
-                          <button
-                            title="Delete"
-                            onClick={() => deleteEmployee(emp._id || emp.Id)}
-                            disabled={emp.locked}
-                            className="action-btn delete-btn"
-                          >
-                            🗑
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </td>
+                        {isSuperAdmin && (
+                          <>
+                            <button
+                              title="Change Role"
+                              onClick={() => openRoleModal(emp)}
+                              className="action-btn role-btn"
+                            >
+                              👤
+                            </button>
+                            <button
+                              title="Delete"
+                              onClick={() => deleteEmployee(emp._id || emp.Id)}
+                              disabled={emp.locked}
+                              className="action-btn delete-btn"
+                            >
+                              🗑
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
