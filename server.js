@@ -53,7 +53,7 @@ function logAudit(action, email, meta = {}) {
     timestamp: new Date(),
   });
 }
-// ================== RATE LIMITING ==================
+
 const rateMap = new Map();
 
 function rateLimit(req, res, next) {
@@ -61,7 +61,7 @@ function rateLimit(req, res, next) {
   const now = Date.now();
   const last = rateMap.get(ip) || 0;
 
-  // 800ms window to prevent spamming
+
   if (now - last < 800) {
     return res.status(429).json({ message: "Too fast" });
   }
@@ -101,7 +101,7 @@ const EmployeesModel = mongoose.model(
 );
 
 
-// ================== AUTH MIDDLEWARE (INSTANT RBAC) ==================
+
 async function auth(req, res, next) {
   const raw = req.headers.authorization;
   if (!raw) return res.sendStatus(401);
@@ -112,13 +112,13 @@ async function auth(req, res, next) {
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     
-    // Case-insensitive Regex search for the Employee inside their specific company
+  
     let employee = await EmployeesModel.findOne({ 
       Email: { $regex: new RegExp(`^${decoded.email}$`, "i") }, 
       Company: decoded.company 
     });
 
-    // Anti-Lockout Bypass for ALL Admins across ALL companies
+ 
     const isAdminRole = decoded.role === "SuperAdmin" || decoded.role === "Super Admin" || decoded.role === "Admin";
 
     if (!employee && isAdminRole) {
@@ -126,7 +126,7 @@ async function auth(req, res, next) {
             id: decoded.id,
             email: decoded.email.toLowerCase(),
             role: decoded.role === "Super Admin" ? "SuperAdmin" : decoded.role,
-            // 👇 FIX: Strictly uses the company from your token. No hardcoding!
+           
             company: decoded.company 
         };
         return next();
@@ -147,7 +147,7 @@ async function auth(req, res, next) {
     return res.sendStatus(403);
   }
 }
-// ================== SIGNUP (SECURE INVITE ONLY) ==================
+
 app.post("/api/signup", async (req, res) => {
   try {
     const { email, password, company } = req.body;
@@ -192,11 +192,11 @@ app.put("/api/employees/change-role", auth, async (req, res) => {
       ? new Date(Date.now() + Number(durationDays) * 24 * 60 * 60 * 1000) 
       : null;
 
-    // 1. Update EmployeesModel (Source of Truth)
+
     const employeeResult = await EmployeesModel.updateOne(
       { 
         _id: employeeId, 
-        Company: req.user.company   // ← Critical: Prevent cross-company changes
+        Company: req.user.company  
       },
       { 
         $set: { 
@@ -213,10 +213,10 @@ app.put("/api/employees/change-role", auth, async (req, res) => {
       });
     }
 
-    // 2. Get employee details
+ 
     const employee = await EmployeesModel.findById(employeeId);
 
-    // 3. Sync to users collection
+
     const userUpdateResult = await users.updateOne(
       { Email: employee.Email.toLowerCase() },
       { $set: { Role: newRole } }
@@ -270,11 +270,11 @@ app.post("/api/login", rateLimit, async (req, res) => {
 
     let match = false;
 
-    // Try bcrypt first (for all modern users)
+   
     if (user.Password && user.Password.startsWith("$2")) {
       match = await bcrypt.compare(password, user.Password);
     } 
-    // Fallback to SHA256 only for legacy users (you, admin, etc.)
+   
     else {
       const sha256Hash = crypto
         .createHash("sha256")
@@ -290,7 +290,6 @@ app.post("/api/login", rateLimit, async (req, res) => {
       });
     }
 
-    // === Auto-migrate SHA256 → bcrypt on successful login ===
     if (user.Password && user.Password.length === 64 && !user.Password.startsWith("$2")) {
       console.log(`🔄 Auto-migrating password for ${email} to bcrypt`);
       const newHashedPassword = await bcrypt.hash(password, 10);
@@ -303,7 +302,7 @@ app.post("/api/login", rateLimit, async (req, res) => {
       console.log(`✅ Password successfully migrated to bcrypt for ${email}`);
     }
 
-    // OTP flow
+    
     const otp = generate();
     await otps.deleteMany({ Email: email });
     await otps.insertOne({
@@ -348,25 +347,22 @@ app.post("/api/verify-otp", async (req, res) => {
     let user = await users.findOne({ Email: email });
     if (!user) return res.status(401).json({ success: false, message: "User not found" });
 
-    // FIX 1: Use case-insensitive Regex search for the Employee record to prevent case mismatches.
-    // FIX 2: Safely handle Company checking.
+
     let employee = await EmployeesModel.findOne({ 
       Email: { $regex: new RegExp(`^${email}$`, "i") }, 
       ...(user.Company ? { Company: user.Company } : {})
     });
 
-    // FIX 3: SuperAdmin Anti-Lockout.
-    // If you manually seeded your admin account in the 'users' DB but it's missing from 
-    // the 'Employee' DB, this bypasses the block so you can get into your dashboard.
+
     if (!employee && user.Role === "SuperAdmin") {
-        employee = { Role: "SuperAdmin", Company: user.Company || "Apple" }; // Mock object to proceed
+        employee = { Role: "SuperAdmin", Company: user.Company || "Apple" }; 
     } else if (!employee) {
         return res.status(403).json({ success: false, message: "No active employee record." });
     }
 
     const finalRole = employee.Role || user.Role;
 
-    // Only attempt to sync roles if it's a real MongoDB document (has an _id)
+ 
     if (employee._id && employee.Role && employee.Role !== user.Role) {
       await users.updateOne({ Email: email }, { $set: { Role: employee.Role } });
       user.Role = employee.Role;
@@ -631,7 +627,7 @@ app.delete("/api/Employees/:id", auth, async (req, res) => {
 
 });
 
-// 1. Message Schema
+
 const messageSchema = new mongoose.Schema({
   SenderEmail: { type: String, required: true },
   SenderName: { type: String, required: true },
@@ -642,28 +638,28 @@ const messageSchema = new mongoose.Schema({
 
 const Message = mongoose.model("Message", messageSchema);
 
-// 2. GET Messages (Filtered by Company)
+
 app.get("/api/messages", auth, async (req, res) => {
   try {
     const messages = await Message.find({ Company: req.user.company })
       .sort({ createdAt: -1 })
-      .limit(50); // Security: Limit fetch size to prevent lag/abuse
+      .limit(50); 
     res.json(messages.reverse());
   } catch (err) {
     res.status(500).json({ message: "Error fetching messages" });
   }
 });
 
-// 3. POST Message
+
 app.post("/api/messages", auth, async (req, res) => {
   try {
     const { Content } = req.body;
     if (!Content || Content.trim() === "") return res.status(400).send();
 
-    // Security: We get Company and Email from the TOKEN, not the body
+   
     const newMessage = await Message.create({
       SenderEmail: req.user.email,
-      SenderName: req.user.email.split('@')[0], // Basic name from email
+      SenderName: req.user.email.split('@')[0], 
       Content: Content.trim(),
       Company: req.user.company
     });
@@ -717,21 +713,20 @@ app.put("/api/Employees/lock/:id", auth, async (req, res) => {
 
 });
 
-// ================== FORGOT & RESET PASSWORD ==================
 
 app.post("/api/forgot-password", rateLimit, async (req, res) => {
   try {
     const email = String(req.body.email || "").trim().toLowerCase();
     if (!email) return res.status(400).json({ success: false, message: "Email required" });
 
-    // 1. Check if user exists
+  
     const user = await users.findOne({ Email: email });
     if (!user) {
-      // Security best practice: Return success anyway to prevent email enumeration attacks
+      
       return res.json({ success: true, message: "If your email is registered, you will receive an OTP." });
     }
 
-    // 2. Generate and store a new OTP
+
     const otp = generate();
     await otps.deleteMany({ Email: email });
     await otps.insertOne({
@@ -741,7 +736,7 @@ app.post("/api/forgot-password", rateLimit, async (req, res) => {
       createdAt: new Date(),
     });
 
-    // 3. Send the email using your existing Resend setup
+   
     await resend.emails.send({
       from: "CRM Support <noreply@dntcrm.work.gd>",
       to: email,
@@ -753,7 +748,7 @@ app.post("/api/forgot-password", rateLimit, async (req, res) => {
       `
     });
 
-    // Keep your multi-tenant auditing intact
+   
     logAudit("FORGOT_PASSWORD_REQUESTED", email, { company: user.Company });
 
     return res.json({ success: true, message: "OTP sent to your email." });
@@ -773,7 +768,7 @@ app.post("/api/reset-password", async (req, res) => {
       return res.status(400).json({ success: false, message: "Missing required fields" });
     }
 
-    // 1. Verify OTP using your existing logic
+   
     const record = await otps.findOne({ Email: email });
     if (!record) return res.status(401).json({ success: false, message: "OTP expired or invalid" });
     if (record.attempts >= 5) return res.status(403).json({ success: false, message: "Too many attempts" });
@@ -783,7 +778,7 @@ app.post("/api/reset-password", async (req, res) => {
       return res.status(401).json({ success: false, message: "Invalid OTP" });
     }
 
-    // 2. Hash the new password with bcrypt
+
     const hashed = await bcrypt.hash(newPassword, 10);
     const result = await users.updateOne(
       { Email: email },
@@ -794,7 +789,7 @@ app.post("/api/reset-password", async (req, res) => {
        return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    // 3. Cleanup OTP and log the success
+
     await otps.deleteMany({ Email: email });
     logAudit("PASSWORD_RESET_SUCCESS", email);
 
@@ -805,7 +800,7 @@ app.post("/api/reset-password", async (req, res) => {
   }
 });
 
-// --- REGEX RESUME EXTRACTION (FAST, OFFLINE & BLACKLISTED) ---
+
 app.post("/api/resume/extract", auth, upload.array("resumes", 20), async (req, res) => {
   try {
     if (!req.files || req.files.length === 0)
@@ -820,7 +815,7 @@ app.post("/api/resume/extract", auth, upload.array("resumes", 20), async (req, r
         const buffer = fs.readFileSync(file.path);
         let text = "";
 
-        // 1. EXTRACT RAW TEXT
+   
         if (file.mimetype === "application/pdf") {
           const parsed = await pdfParse(buffer);
           text = parsed.text || "";
@@ -837,7 +832,7 @@ app.post("/api/resume/extract", auth, upload.array("resumes", 20), async (req, r
           continue;
         }
 
-        // 2. INITIALIZE DATA PAYLOAD
+ 
         const parsedData = {
           name: "N/A",
           email: "N/A",
@@ -848,65 +843,55 @@ app.post("/api/resume/extract", auth, upload.array("resumes", 20), async (req, r
           education: "N/A"
         };
 
-        // ==========================================
-        // A. CONTACT INFO (STRICT REGEX)
-        // ==========================================
-        
-        // Email: Forgiving regex that handles accidental spaces or glued text
+
         const emailMatch = text.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i);
         if (emailMatch) parsedData.email = emailMatch[1];
 
-        // Phone: Catches international, US formats, parentheses, and dashes
+      
         const phoneMatch = text.match(/(?:\+?\d{1,3}[\s-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/);
         if (phoneMatch) parsedData.phone = phoneMatch[0];
 
-        // LinkedIn: Matches standard linkedin.com/in/ profiles
+  
         const linkedInMatch = text.match(/(?:https?:\/\/)?(?:www\.)?linkedin\.com\/in\/[a-zA-Z0-9_-]+/i);
         if (linkedInMatch) parsedData.linkedIn = linkedInMatch[0];
 
-        // ==========================================
-        // B. NAME EXTRACTION (HEURISTICS + BLACKLIST)
-        // ==========================================
+ 
         
-        // Define static blacklist
         const staticBlacklist = [
             "resume", "cv", "curriculum vitae", "profile", "page", 
             "contact", "email", "phone", "personal details"
         ];
 
-        // Create dynamic blacklist from filename (e.g., "Dhruv_Resume[1].pdf" -> "dhruv_resume[1]")
+
         const nameParts = file.originalname.split('.');
         const rawFilename = (nameParts.length > 1 ? nameParts.slice(0, -1).join('.') : file.originalname).toLowerCase();
         const fullBlacklist = [...staticBlacklist, rawFilename];
 
-        // Clean and filter lines
+
         const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
         const cleanLines = lines.filter(line => {
             const lowerLine = line.toLowerCase();
             
-            // Check against our dynamic and static blacklist words
+      
             const isBlacklisted = fullBlacklist.some(badWord => lowerLine.includes(badWord));
             if (isBlacklisted) return false;
 
-            // Catch-all for weird formatting or brackets
+        
             if (line.includes("[") || line.includes("]") || lowerLine.includes(".pdf") || lowerLine.includes(".docx")) return false;
             
             return true;
         });
 
-        // Grab the first clean line that looks like a human name (1 to 4 words)
         if (cleanLines.length > 0) {
             const firstLineWords = cleanLines[0].split(/\s+/);
             if (firstLineWords.length > 0 && firstLineWords.length <= 4) {
-                // Strip out stray symbols just to be safe, allow hyphens/dots
+              
                 const cleanedName = cleanLines[0].replace(/[^a-zA-Z\s.-]/g, "");
                 parsedData.name = cleanedName.trim() || "N/A";
             }
         }
 
-        // ==========================================
-        // C. SECTION EXTRACTION (BLOCK PARSING)
-        // ==========================================
+
         const sectionKeywords = {
             skills: ["SKILLS", "CORE COMPETENCIES", "TECHNOLOGIES", "TECHNICAL SKILLS"],
             experience: ["EXPERIENCE", "WORK HISTORY", "EMPLOYMENT", "PROFESSIONAL EXPERIENCE"],
@@ -954,7 +939,7 @@ app.post("/api/resume/extract", auth, upload.array("resumes", 20), async (req, r
         parsedData.experience = extractSection(indices.experience, 'experience');
         parsedData.education = extractSection(indices.education, 'education');
 
-        // PUSH FINAL SUCCESSFUL RESULT
+
         results.push({
           filename: file.originalname,
           success: true,
@@ -1212,7 +1197,7 @@ app.put("/api/me/password", auth, async (req, res) => {
   try {
     const hashed = await bcrypt.hash(password, 10);
     
-    // Use raw collection for consistency with login/signup
+
     const result = await users.updateOne(
       { Email: req.user.email },
       { $set: { Password: hashed } }
@@ -1280,7 +1265,7 @@ const leaveSchema = new mongoose.Schema({
   Company: String,
   Status: { 
     type: String, 
-    default: "Submitted" // This ensures every new leave starts here
+    default: "Submitted" 
   },
   createdAt: {
     type: Date,
@@ -1348,15 +1333,15 @@ app.post("/api/tasks", auth, async (req, res) => {
   }
 
 });
-// ================= ATTENDANCE & PAYROLL SCHEMAS =================
+
 const attendanceSchema = new mongoose.Schema({
   EmployeeEmail: { type: String, required: true },
   Company: { type: String, required: true },
-  Date: { type: String, required: true }, // Format: YYYY-MM-DD
+  Date: { type: String, required: true },
   Status: { type: String, default: "Present" },
   createdAt: { type: Date, default: Date.now }
 });
-// Ensure an employee can only mark present once per day
+
 attendanceSchema.index({ EmployeeEmail: 1, Date: 1 }, { unique: true });
 const Attendance = mongoose.model("Attendance", attendanceSchema, "attendance");
 
@@ -1364,19 +1349,18 @@ const payrollSchema = new mongoose.Schema({
   EmployeeEmail: { type: String, required: true },
   Company: { type: String, required: true },
   Amount: { type: Number, required: true },
-  Method: { type: String, required: true }, // "Cash/Cheque"
-  PaidBy: { type: String, required: true }, // Admin email
+  Method: { type: String, required: true }, 
+  PaidBy: { type: String, required: true }, 
   Date: { type: Date, default: Date.now }
 });
 const Payroll = mongoose.model("Payroll", payrollSchema, "payroll");
 
 
-// ================= ATTENDANCE ROUTES =================
 
-// Mark Present (Employee)
+
 app.post("/api/attendance/mark", auth, async (req, res) => {
   try {
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const today = new Date().toISOString().split('T')[0]; 
 
     const existing = await Attendance.findOne({ 
       EmployeeEmail: req.user.email, 
@@ -1401,14 +1385,14 @@ app.post("/api/attendance/mark", auth, async (req, res) => {
   }
 });
 
-// Get Attendance (Admin sees all, Employee sees own)
+
 app.get("/api/attendance", auth, async (req, res) => {
   try {
     let filter = { Company: req.user.company };
     if (req.user.role === "Employee") {
       filter.EmployeeEmail = req.user.email;
     } else if (req.query.email) {
-      filter.EmployeeEmail = req.query.email; // Admin checking specific employee
+      filter.EmployeeEmail = req.query.email; 
     }
 
     const records = await Attendance.find(filter).sort({ Date: -1 }).lean();
@@ -1420,9 +1404,7 @@ app.get("/api/attendance", auth, async (req, res) => {
 });
 
 
-// ================= PAYROLL ROUTES =================
 
-// Process Payout (Admin/SuperAdmin only)
 app.post("/api/payroll/pay", auth, async (req, res) => {
   try {
     if (req.user.role !== "Admin" && req.user.role !== "SuperAdmin") {
@@ -1434,7 +1416,7 @@ app.post("/api/payroll/pay", auth, async (req, res) => {
       return res.status(400).json({ message: "Missing required fields." });
     }
 
-    // Verify employee belongs to the admin's company
+  
     const employee = await EmployeesModel.findOne({ Email: targetEmail, Company: req.user.company });
     if (!employee) return res.status(404).json({ message: "Employee not found." });
 
@@ -1454,7 +1436,7 @@ app.post("/api/payroll/pay", auth, async (req, res) => {
   }
 });
 
-// Get Payroll History
+
 app.get("/api/payroll", auth, async (req, res) => {
   try {
     let filter = { Company: req.user.company };
@@ -1471,9 +1453,8 @@ app.get("/api/payroll", auth, async (req, res) => {
     res.status(500).json({ message: "Failed to fetch payroll history." });
   }
 });
-// ================= LEAVE SYSTEM =================
 
-// APPLY LEAVE
+
 app.post("/api/leaves", auth, async (req,res)=>{
 try{
 
@@ -1498,37 +1479,35 @@ res.status(500).json({message:"Failed to apply leave"});
 });
 
 
-// GET LEAVES (ADMIN ONLY)
-// GET LEAVES (ADMIN ONLY)
+
 app.get("/api/leaves", auth, async (req, res) => {
   try {
     let filter = { Company: req.user.company };
 
-    // employees only see their own
+
     if (req.user.role === "Employee") {
       filter.EmployeeEmail = req.user.email;
     }
 
-    // Using aggregation to merge the Employee's Name into the Leave data
     const leaves = await Leave.aggregate([
       { $match: filter },
       { $sort: { createdAt: -1 } },
       {
         $lookup: {
-          from: "Employee", // Looks inside your Employee collection
+          from: "Employee",
           localField: "EmployeeEmail",
           foreignField: "Email",
           as: "employeeData"
         }
       },
       {
-        // Extracts the Name from the matched employee and calls it 'employeeName'
+       
         $addFields: {
           employeeName: { $arrayElemAt: ["$employeeData.Name", 0] }
         }
       },
       {
-        // Cleans up the response by removing the bulky joined array
+
         $project: {
           employeeData: 0 
         }
@@ -1542,19 +1521,19 @@ app.get("/api/leaves", auth, async (req, res) => {
     res.status(500).json({ message: "Failed to fetch leaves" });
   }
 });
-// UPDATE LEAVE STATUS (Admin/SuperAdmin Only)
+
 app.put("/api/leaves/status/:id", auth, async (req, res) => {
   try {
     const { status } = req.body; 
     
-    // Permission Check
+  
     if (req.user.role !== "Admin" && req.user.role !== "SuperAdmin") {
       return res.status(403).json({ message: "Access Denied" });
     }
 
     const updatedLeave = await Leave.findOneAndUpdate(
       { _id: req.params.id, Company: req.user.company },
-      { $set: { Status: status } }, // Capital 'S' to match Schema
+      { $set: { Status: status } },
       { new: true }
     );
 
@@ -1765,12 +1744,12 @@ app.get(/^\/(?!api).*/, (req, res) => {
   res.sendFile(path.join(frontendPath, "index.html"));
 });
 
-// ================= AUTO EXPIRE TEMPORARY ROLES =================
+
 setInterval(async () => {
   try {
     const now = new Date();
 
-    // Find employees whose temporary role expired
+  
     const expiredEmployees = await EmployeesModel.find({
       roleExpiresAt: { $lte: now },
       Role: { $ne: "Employee" }
@@ -1779,7 +1758,7 @@ setInterval(async () => {
     if (expiredEmployees.length > 0) {
       const emailsToUpdate = expiredEmployees.map(emp => emp.Email.toLowerCase());
 
-      // Update EmployeesModel
+ 
       const result = await EmployeesModel.updateMany(
         {
           roleExpiresAt: { $lte: now },
@@ -1794,7 +1773,7 @@ setInterval(async () => {
         }
       );
 
-      // Also sync to users collection
+   
       if (emailsToUpdate.length > 0) {
         await users.updateMany(
           { Email: { $in: emailsToUpdate } },
@@ -1811,7 +1790,7 @@ setInterval(async () => {
   } catch (err) {
     console.error("AUTO_ROLE_EXPIRATION_ERROR:", err);
   }
-}, 15 * 60 * 1000); // every 15 minutes
+}, 15 * 60 * 1000); 
 async function startServer() {
 
   await mongoose.connect(MONGO_URI);
