@@ -805,6 +805,7 @@ app.post("/api/reset-password", async (req, res) => {
   }
 });
 
+// --- REGEX RESUME EXTRACTION (FAST, OFFLINE & BLACKLISTED) ---
 app.post("/api/resume/extract", auth, upload.array("resumes", 20), async (req, res) => {
   try {
     if (!req.files || req.files.length === 0)
@@ -819,7 +820,7 @@ app.post("/api/resume/extract", auth, upload.array("resumes", 20), async (req, r
         const buffer = fs.readFileSync(file.path);
         let text = "";
 
-        // 1. EXTRACT TEXT
+        // 1. EXTRACT RAW TEXT
         if (file.mimetype === "application/pdf") {
           const parsed = await pdfParse(buffer);
           text = parsed.text || "";
@@ -836,7 +837,7 @@ app.post("/api/resume/extract", auth, upload.array("resumes", 20), async (req, r
           continue;
         }
 
-        // 2. REGEX & HEURISTIC PARSING LOGIC
+        // 2. INITIALIZE DATA PAYLOAD
         const parsedData = {
           name: "N/A",
           email: "N/A",
@@ -847,11 +848,13 @@ app.post("/api/resume/extract", auth, upload.array("resumes", 20), async (req, r
           education: "N/A"
         };
 
-        // --- Standard Regex Matches ---
+        // ==========================================
+        // A. CONTACT INFO (STRICT REGEX)
+        // ==========================================
         
-        // Email: Standard RFC 5322 regex
-        const emailMatch = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/i);
-        if (emailMatch) parsedData.email = emailMatch[0];
+        // Email: Forgiving regex that handles accidental spaces or glued text
+        const emailMatch = text.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i);
+        if (emailMatch) parsedData.email = emailMatch[1];
 
         // Phone: Catches international, US formats, parentheses, and dashes
         const phoneMatch = text.match(/(?:\+?\d{1,3}[\s-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/);
@@ -861,37 +864,63 @@ app.post("/api/resume/extract", auth, upload.array("resumes", 20), async (req, r
         const linkedInMatch = text.match(/(?:https?:\/\/)?(?:www\.)?linkedin\.com\/in\/[a-zA-Z0-9_-]+/i);
         if (linkedInMatch) parsedData.linkedIn = linkedInMatch[0];
 
-        // --- Heuristic Matches ---
+        // ==========================================
+        // B. NAME EXTRACTION (HEURISTICS + BLACKLIST)
+        // ==========================================
+        
+        // Define static blacklist
+        const staticBlacklist = [
+            "resume", "cv", "curriculum vitae", "profile", "page", 
+            "contact", "email", "phone", "personal details"
+        ];
 
-        // Name: Assume the first non-empty line with 1 to 4 words is the name
+        // Create dynamic blacklist from filename (e.g., "Dhruv_Resume[1].pdf" -> "dhruv_resume[1]")
+        const nameParts = file.originalname.split('.');
+        const rawFilename = (nameParts.length > 1 ? nameParts.slice(0, -1).join('.') : file.originalname).toLowerCase();
+        const fullBlacklist = [...staticBlacklist, rawFilename];
+
+        // Clean and filter lines
         const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-        if (lines.length > 0) {
-            const firstLineWords = lines[0].split(/\s+/);
+        const cleanLines = lines.filter(line => {
+            const lowerLine = line.toLowerCase();
+            
+            // Check against our dynamic and static blacklist words
+            const isBlacklisted = fullBlacklist.some(badWord => lowerLine.includes(badWord));
+            if (isBlacklisted) return false;
+
+            // Catch-all for weird formatting or brackets
+            if (line.includes("[") || line.includes("]") || lowerLine.includes(".pdf") || lowerLine.includes(".docx")) return false;
+            
+            return true;
+        });
+
+        // Grab the first clean line that looks like a human name (1 to 4 words)
+        if (cleanLines.length > 0) {
+            const firstLineWords = cleanLines[0].split(/\s+/);
             if (firstLineWords.length > 0 && firstLineWords.length <= 4) {
-                parsedData.name = lines[0];
+                // Strip out stray symbols just to be safe, allow hyphens/dots
+                const cleanedName = cleanLines[0].replace(/[^a-zA-Z\s.-]/g, "");
+                parsedData.name = cleanedName.trim() || "N/A";
             }
         }
 
-        // Sections: Split text by common resume headers
-        const upperText = text.toUpperCase();
-        
-        // Define common keywords for sections
+        // ==========================================
+        // C. SECTION EXTRACTION (BLOCK PARSING)
+        // ==========================================
         const sectionKeywords = {
             skills: ["SKILLS", "CORE COMPETENCIES", "TECHNOLOGIES", "TECHNICAL SKILLS"],
             experience: ["EXPERIENCE", "WORK HISTORY", "EMPLOYMENT", "PROFESSIONAL EXPERIENCE"],
             education: ["EDUCATION", "ACADEMIC BACKGROUND", "QUALIFICATIONS"]
         };
 
-        // Find the character index where each section starts
         function findSectionIndices(keywords) {
             let bestIndex = -1;
             for (const kw of keywords) {
-                // Looks for keyword at the start of a line
                 const regex = new RegExp(`(?:^|\\n)\\s*${kw}\\s*(?:\\n|:|\\r)`, 'i');
-                const match = regex.exec(text); // Execute on original text for accurate indices
+                const match = regex.exec(text); 
                 if (match) {
                     bestIndex = match.index;
-                    break; // Take the first matched keyword
+                    break;
                 }
             }
             return bestIndex;
@@ -903,23 +932,20 @@ app.post("/api/resume/extract", auth, upload.array("resumes", 20), async (req, r
             education: findSectionIndices(sectionKeywords.education)
         };
 
-        // Extract text between the found header and the next known header
         function extractSection(startIndex, currentKey) {
             if (startIndex === -1) return "N/A";
 
             let nextIndex = text.length;
-            // Find the closest NEXT section header to establish the end boundary
             for (const [key, idx] of Object.entries(indices)) {
                 if (key !== currentKey && idx > startIndex && idx < nextIndex) {
                     nextIndex = idx;
                 }
             }
             
-            // Extract the block, and strip out the actual header title from the result
             const rawSection = text.substring(startIndex, nextIndex).trim();
-            const lines = rawSection.split('\n');
-            if (lines.length > 1) {
-                return lines.slice(1).join('\n').trim(); // Remove the header line itself
+            const sectionLines = rawSection.split('\n');
+            if (sectionLines.length > 1) {
+                return sectionLines.slice(1).join('\n').trim(); 
             }
             return rawSection;
         }
@@ -928,6 +954,7 @@ app.post("/api/resume/extract", auth, upload.array("resumes", 20), async (req, r
         parsedData.experience = extractSection(indices.experience, 'experience');
         parsedData.education = extractSection(indices.education, 'education');
 
+        // PUSH FINAL SUCCESSFUL RESULT
         results.push({
           filename: file.originalname,
           success: true,
@@ -938,7 +965,7 @@ app.post("/api/resume/extract", auth, upload.array("resumes", 20), async (req, r
         console.error(`Error processing ${file.originalname}:`, fileErr.message);
         results.push({ filename: file.originalname, success: false, error: "Parsing Failed" });
       } finally {
-        // Always delete the temp file to prevent server bloat
+        // CLEANUP: Always delete the temp file
         if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
       }
     }
@@ -950,23 +977,6 @@ app.post("/api/resume/extract", auth, upload.array("resumes", 20), async (req, r
     return res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
-// --- DATA ANALYSIS (CLEAN & FAST) ---
-app.get("/api/dataanalysis", auth, async (req, res) => {
-  try {
-    const employees = await EmployeesModel.find({ Company: req.user.company })
-      .sort({ createdAt: -1 })
-      .lean();
-
-    // Filters out locked/terminated profiles for the analysis view
-    const visibleEmployees = employees.filter(emp => !emp.locked);
-
-    return res.json({ success: true, employees: visibleEmployees });
-  } catch (err) {
-    console.error("ANALYSIS_ERROR:", err);
-    return res.status(500).json({ message: "Failed to load analysis data" });
-  }
-});
-
 app.get("/api/reports", auth, async (req, res) => {
 
   try {
