@@ -1,7 +1,11 @@
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import api from "./api.js"; 
 
 export default function Settings() {
+  // Initialize the global translation hook
+  const { t, i18n } = useTranslation();
+
   const [user, setUser] = useState(null);
   const [darkMode, setDarkMode] = useState(true);
   const [emailNotif, setEmailNotif] = useState(true);
@@ -10,7 +14,7 @@ export default function Settings() {
 
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
-  const [language, setLanguage] = useState("English");
+  const [language, setLanguage] = useState(i18n.language || "English");
   const [timezone, setTimezone] = useState("UTC");
 
   const [message, setMessage] = useState("");
@@ -30,7 +34,6 @@ export default function Settings() {
         
         // Load all preferences from the database
         setName(response.data.Name || "");
-        setLanguage(response.data.Language || "English");
         setTimezone(response.data.Timezone || "UTC");
         
         // Use ?? to ensure boolean values default correctly if undefined
@@ -38,6 +41,12 @@ export default function Settings() {
         setEmailNotif(response.data.EmailNotifications ?? true);
         setPublicProfile(response.data.PublicProfile ?? false);
         setAutoLogout(response.data.AutoLogout ?? false);
+
+        // Sync global language with DB on load
+        if (response.data.Language) {
+          setLanguage(response.data.Language);
+          i18n.changeLanguage(response.data.Language);
+        }
         
       } catch (error) {
         console.error("Failed to fetch user data:", error);
@@ -48,14 +57,21 @@ export default function Settings() {
     };
 
     fetchUserData();
-  }, []);
+  }, [i18n]);
 
   const handleThemeChange = (isDark) => {
     setDarkMode(isDark);
   };
 
+  // Instantly flip global translation when dropdown changes
+  const handleLanguageChange = (e) => {
+    const newLang = e.target.value;
+    setLanguage(newLang);
+    i18n.changeLanguage(newLang); 
+  };
+
   const saveSettings = async () => {
-    setMessage("Saving...");
+    setMessage(t('saving'));
     try {
       await api.put('/api/me/settings', {
         Name: name,
@@ -66,7 +82,7 @@ export default function Settings() {
         PublicProfile: publicProfile,
         AutoLogout: autoLogout
       });
-      setMessage("Settings saved successfully.");
+      setMessage(t('saved'));
     } catch (err) {
       console.error(err);
       setMessage("Failed to save settings.");
@@ -78,11 +94,11 @@ export default function Settings() {
       setMessage("Please enter a new password.");
       return;
     }
-    setMessage("Updating password...");
+    setMessage(t('passUpdating'));
     try {
       await api.put('/api/me/password', { password });
       setPassword(""); 
-      setMessage("Password updated successfully.");
+      setMessage(t('passUpdated'));
     } catch (err) {
       console.error(err);
       setMessage("Failed to update password.");
@@ -90,8 +106,8 @@ export default function Settings() {
   };
 
   const deleteAccount = async () => {
-    if (!window.confirm("Are you sure? This action cannot be undone.")) return;
-    setMessage("Deleting account...");
+    if (!window.confirm(t('dangerDesc'))) return;
+    setMessage(t('deleting'));
     try {
       await api.delete('/api/me');
       // Clear token and redirect to login after deletion
@@ -103,7 +119,7 @@ export default function Settings() {
     }
   };
 
-  if (loading) return <div style={{ padding: "40px", fontFamily: "sans-serif" }}>Loading your workspace...</div>;
+  if (loading) return <div style={{ padding: "40px", fontFamily: "sans-serif" }}>{t('loading')}</div>;
 
   return (
     <div id="settings-root" className={darkMode ? "dark-theme" : "light-theme"}>
@@ -206,7 +222,7 @@ export default function Settings() {
             {name ? name.charAt(0).toUpperCase() : "U"}
           </div>
           <div className="user-title-info">
-            <h2>{name || "User Profile"}</h2>
+            <h2>{name || t('userProfile')}</h2>
             <p className="user-badge-row">
               <span className="badge role-badge">{user?.Role}</span>
               <span className="badge company-badge">{user?.Company}</span>
@@ -220,37 +236,37 @@ export default function Settings() {
           <div className="settings-column">
             
             <div className="settings-card">
-              <h3>Profile Information</h3>
+              <h3>{t('profileInfo')}</h3>
               <div className="input-group">
-                <label>Display Name</label>
+                <label>{t('displayName')}</label>
                 <input 
                   type="text" 
                   value={name} 
                   onChange={(e) => setName(e.target.value)} 
-                  placeholder="Enter your name"
+                  placeholder={t('displayName')}
                 />
               </div>
               <div className="input-group">
-                <label>Email Address</label>
+                <label>{t('emailAddress')}</label>
                 <input type="email" value={user?.Email} disabled className="disabled-input" />
-                <span className="input-hint">Email cannot be changed directly. Contact support.</span>
+                <span className="input-hint">{t('emailHint')}</span>
               </div>
             </div>
 
             <div className="settings-card">
-              <h3>Localization</h3>
+              <h3>{t('localization')}</h3>
               <div className="input-group row-group">
                 <div className="half-width">
-                  <label>Language</label>
-                  <select value={language} onChange={(e) => setLanguage(e.target.value)}>
-                    <option>English</option>
-                    <option>Spanish</option>
-                    <option>French</option>
-                    <option>German</option>
+                  <label>{t('language')}</label>
+                  <select value={language} onChange={handleLanguageChange}>
+                    <option value="English">English</option>
+                    <option value="Spanish">Spanish</option>
+                    <option value="French">French</option>
+                    <option value="German">German</option>
                   </select>
                 </div>
                 <div className="half-width">
-                  <label>Timezone</label>
+                  <label>{t('timezone')}</label>
                   <select value={timezone} onChange={(e) => setTimezone(e.target.value)}>
                     <option>UTC</option>
                     <option>GMT</option>
@@ -267,12 +283,12 @@ export default function Settings() {
           <div className="settings-column">
             
             <div className="settings-card">
-              <h3>App Preferences</h3>
+              <h3>{t('appPrefs')}</h3>
               
               <div className="toggle-row">
                 <div className="toggle-info">
-                  <h4>Dark Mode</h4>
-                  <p>Switch between light and dark themes</p>
+                  <h4>{t('darkMode')}</h4>
+                  <p>{t('darkModeDesc')}</p>
                 </div>
                 <label className="switch">
                   <input type="checkbox" checked={darkMode} onChange={(e) => handleThemeChange(e.target.checked)} />
@@ -282,8 +298,8 @@ export default function Settings() {
 
               <div className="toggle-row">
                 <div className="toggle-info">
-                  <h4>Email Notifications</h4>
-                  <p>Receive system alerts via email</p>
+                  <h4>{t('emailNotifs')}</h4>
+                  <p>{t('emailNotifsDesc')}</p>
                 </div>
                 <label className="switch">
                   <input type="checkbox" checked={emailNotif} onChange={() => setEmailNotif(!emailNotif)} />
@@ -293,8 +309,8 @@ export default function Settings() {
 
               <div className="toggle-row">
                 <div className="toggle-info">
-                  <h4>Public Profile</h4>
-                  <p>Allow other tenant members to see your info</p>
+                  <h4>{t('publicProfile')}</h4>
+                  <p>{t('publicProfileDesc')}</p>
                 </div>
                 <label className="switch">
                   <input type="checkbox" checked={publicProfile} onChange={() => setPublicProfile(!publicProfile)} />
@@ -304,8 +320,8 @@ export default function Settings() {
               
               <div className="toggle-row">
                 <div className="toggle-info">
-                  <h4>Auto-Logout</h4>
-                  <p>Log out after 30 minutes of inactivity</p>
+                  <h4>{t('autoLogout')}</h4>
+                  <p>{t('autoLogoutDesc')}</p>
                 </div>
                 <label className="switch">
                   <input type="checkbox" checked={autoLogout} onChange={() => setAutoLogout(!autoLogout)} />
@@ -315,7 +331,7 @@ export default function Settings() {
             </div>
 
             <button className="btn-primary" onClick={saveSettings}>
-              Save All Changes
+              {t('saveChanges')}
             </button>
 
           </div>
@@ -323,32 +339,32 @@ export default function Settings() {
 
         <div className="settings-card danger-zone">
           <div className="danger-header">
-            <h3>Danger Zone</h3>
-            <p>Destructive actions that cannot be easily undone.</p>
+            <h3>{t('dangerZone')}</h3>
+            <p>{t('dangerDesc')}</p>
           </div>
           
           <div className="danger-action-row">
             <div className="danger-info">
-              <h4>Update Password</h4>
+              <h4>{t('updatePass')}</h4>
               <input 
                 type="password" 
                 value={password} 
                 onChange={(e) => setPassword(e.target.value)} 
-                placeholder="Enter new password"
+                placeholder={t('updatePass')}
                 className="danger-input"
               />
             </div>
-            <button className="btn-secondary" onClick={changePassword}>Update</button>
+            <button className="btn-secondary" onClick={changePassword}>{t('updateBtn')}</button>
           </div>
 
           <div className="danger-divider"></div>
 
           <div className="danger-action-row">
             <div className="danger-info">
-              <h4>Delete Account</h4>
-              <p>Permanently remove your SuperAdmin access and data.</p>
+              <h4>{t('deleteAcc')}</h4>
+              <p>{t('deleteDesc')}</p>
             </div>
-            <button className="btn-danger" onClick={deleteAccount}>Delete Account</button>
+            <button className="btn-danger" onClick={deleteAccount}>{t('deleteBtn')}</button>
           </div>
         </div>
 
