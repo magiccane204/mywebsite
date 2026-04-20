@@ -4,7 +4,7 @@ import axios from "axios";
 import Signup from "./SignUp.js";
 import Otp from "./otp.js";
 import Dashboard from "./Dashboard.js";
-import ForgotPassword from "./ForgotPassword.js"; // 1. Import the new component
+import ForgotPassword from "./ForgotPassword.js"; 
 
 import "./App.css";
 
@@ -76,7 +76,7 @@ function App() {
     }
   };
 
-  // 2. Add routing logic for the new modes
+  
   if (mode === "signup") return <Signup setMode={setMode} />;
   
   if (mode === "otp") {
@@ -87,7 +87,7 @@ function App() {
 
   if (mode === "crm") return <Dashboard setMode={setMode} />;
 
-  // Main Login Render
+  
   return (
     <div className="auth-page">
       <div className="floating-card">
@@ -119,7 +119,6 @@ function App() {
             onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
           />
           
-          {/* 3. Added Forgot Password Link */}
           <div className="forgot-password-container" style={{ textAlign: 'right', marginTop: '5px' }}>
             <span 
               className="link-text" 
