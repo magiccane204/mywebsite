@@ -16,7 +16,7 @@ const resources = {
       "darkMode": "Dark Mode",
       "darkModeDesc": "Switch between light and dark themes",
       "emailNotifs": "Email Notifications",
-      "emailNotifsDesc: "Receive system alerts via email",
+      "emailNotifsDesc": "Receive system alerts via email", 
       "publicProfile": "Public Profile",
       "publicProfileDesc": "Allow other tenant members to see your info",
       "autoLogout": "Auto-Logout",
@@ -103,7 +103,7 @@ const resources = {
       "saving": "Enregistrement...",
       "saved": "Paramètres enregistrés.",
       "passUpdating": "Mise à jour...",
-      "passUpdated: "Mot de passe mis à jour.",
+      "passUpdated": "Mot de passe mis à jour.", 
       "deleting": "Suppression du compte..."
     }
   },
