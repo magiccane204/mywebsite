@@ -9,7 +9,7 @@ const api = axios.create({
 });
 
 function ForgotPassword({ setMode }) {
-  const [step, setStep] = useState(1); // 1 = Request OTP, 2 = Enter OTP & New Password
+  const [step, setStep] = useState(1); 
   
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
@@ -31,7 +31,7 @@ function ForgotPassword({ setMode }) {
       const res = await api.post("/api/forgot-password", { email: email.trim().toLowerCase() });
       if (res.data.success) {
         setMessage("An OTP has been sent to your email.");
-        setStep(2); // Move to the next screen to verify
+        setStep(2); 
       }
     } catch (err) {
       alert(err.response?.data?.message || "Failed to process request. Please try again.");
@@ -56,7 +56,7 @@ function ForgotPassword({ setMode }) {
 
       if (res.data.success) {
         alert("Password updated successfully! Please login with your new password.");
-        setMode("login"); // Send them back to login
+        setMode("login"); 
       }
     } catch (err) {
       alert(err.response?.data?.message || "Invalid OTP or request failed.");
