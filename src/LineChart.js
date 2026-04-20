@@ -37,7 +37,7 @@ function LineChart({ chartData, labels }) {
       data: chartData,
       borderColor: COLORS[0],
       backgroundColor: COLORS[0],
-      tension: 0.3, // smooth curves
+      tension: 0.3, 
     }];
   } else {
     const numMetrics = chartData[0].length;
