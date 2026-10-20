@@ -1,70 +1,35 @@
-# Getting Started with Create React App
+# ⚡ D&T HRMS: Enterprise Workforce & Telemetry Command Center
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+> *"Real-time overview of Apple telemetry and analytics."* — You, looking at vacation requests.
 
-## Available Scripts
+## 🏢 Overview
+**D&T HRMS** is not just a Human Resources Management System; it is a high-security, cyberpunk-adjacent operational grid designed to monitor personnel assets, payroll matrices, and inter-departmental telemetry with military-grade precision. 
 
-In the project directory, you can run:
+Built using React to handle the intense operational overhead of managing exactly **7 total personnel** with a staggering average salary of ₹275,286.
+
+---
+
+## 🛠 Core Architecture & Operational Modules
+
+* **Command Center & Live Telemetry:** Real-time synchronization with active corporate nodes (currently monitoring: *Apple*). If things go south, the **Terminate Session** protocol is only one click away.
+* **Leave Control & Workforce Distribution:** Advanced circular data visualizations tracking who is currently missing from the grid (Spoiler: 0 on leave, nobody escapes the panopticon).
+* **Department Compensation Matrix:** Multi-tiered bar graphs comparing average salaries versus maximum caps, ensuring total transparency across all divisions.
+* **Personnel & Financial Analytics:** Seamless navigation across Staff Directory, Task Workspaces, and heavy financial reporting.
+
+---
+
+## 💻 Getting Started (For Authorized Personnel Only)
+
+Unlike what the default template suggests, running this app requires clearance. But technically, standard React protocols apply:
 
 ### `npm start`
-
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
-
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
-
-### `npm test`
-
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+Boots up the local command center cluster.
+Open [http://localhost:3000](http://localhost:3000) to view the telemetry in your browser[cite: 2].
 
 ### `npm run build`
+Bundles the HRMS in production mode, optimized for high-stakes corporate deployment.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+---
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+## ⚠️ Security Notice
+Unauthorized attempts to access the **Live Node: Apple** session or click **Terminate Session** will trigger automated HR audits.
